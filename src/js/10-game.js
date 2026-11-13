@@ -11,7 +11,8 @@ const Game = {
     this.bootT = { start: performance.now() }; const mark = (k) => { this.bootT[k] = Math.round(performance.now() - this.bootT.start); };
     const step = (pct, text, fn) => new Promise((res) => { $('loadFill').style.width = pct + '%'; $('loadText').textContent = text; setTimeout(() => { fn(); mark(text); res(); }, 30); });
     if (!GFX.init()) { this.fatal('Your browser could not start WebGL (3D graphics). Try a recent Chrome, Edge, Firefox or Safari, and make sure hardware acceleration is on.'); return; }
-    Promise.resolve()
+    const fontsReady = (document.fonts && document.fonts.load) ? Promise.race([Promise.all(['16px Inter', '600 16px Inter', '40px "IM Fell English SC"', '20px "Special Elite"'].map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 2500))]).catch(() => {}) : Promise.resolve();
+    fontsReady
       .then(async () => { let k = 0; const tips = ['Weathering the planks…', 'Growing bark…', 'Scattering dead leaves…', 'Staining the wallpaper…', 'Rusting the water tower…', 'Knitting a hoodie…']; await buildPBR(() => new Promise((res) => { k++; $('loadFill').style.width = (2 + k * 1.3) + '%'; $('loadText').textContent = tips[k % tips.length]; setTimeout(res, 0); })); })
       .then(() => step(20, 'Carving pumpkins…', () => { buildTextures(); buildMaterials(); Input.init($('c')); HUD.init(); Story.init(); }))
       .then(() => step(30, 'Raising the island out of the lake…', () => { World.build(() => {}); }))
@@ -60,7 +61,7 @@ const Game = {
   applyQuality() {
     const q = Q();
     GFX.resize(); World.lights.setCount(q.pointLights); World.applyMoonShadow(); setShadowSize(this.worldFlash, q.spotShadow); setShadowSize(Cabin.flash, Math.min(1024, q.spotShadow));
-    World.applyGrassDensity(); World.applyFireflies(); Cabin.fire.castShadow = q.fireShadow;
+    World.applyGrassDensity(); World.applyFireflies(); Cabin.bulb.castShadow = q.fireShadow;
   },
 
   // ---------------- title ----------------
@@ -197,7 +198,7 @@ const Game = {
     const jp = cam.position.clone().addScaledVector(fwd, 1.05);
     Joury.c.root.visible = true; Joury.c.root.position.set(jp.x, cam.position.y - Joury.c.eyeY * 1.05, jp.z); Joury.c.root.rotation.y = Math.atan2(cam.position.x - jp.x, cam.position.z - jp.z); Joury.c.root.scale.setScalar(1.05);
     animateJoury(Joury.c, 0, false, 0, 'scare');
-    SFX.jumpscare(); GFX.fx.flash = 0.8; GFX.fx.static = 0.45; GFX.fx.red = 0.3; this.scareFrom = jp; this.scareCam = cam.position.clone(); this.scareFwd = fwd;
+    SFX.jumpscare(); GFX.fx.fade = 0; this.fadeIn = 0; GFX.fx.flash = 0.8; GFX.fx.static = 0.45; GFX.fx.red = 0.3; this.scareFrom = jp; this.scareCam = cam.position.clone(); this.scareFwd = fwd;
     HUD.prompt(null);
   },
   updateCaught(dt) {

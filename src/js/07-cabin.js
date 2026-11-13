@@ -29,9 +29,13 @@ const Cabin = {
     b.box(7.2, 0.1, 6.2, 0, -0.05, 0, floor, 'wood'); b.box(7.2, 0.1, 6.2, 0, 2.85, 0, 0x2e2016, 'wood');
     for (let x = -3; x <= 3; x += 1.5) b.box(0.18, 0.22, 6.0, x, 2.69, 0, 0x2a1c12, 'wood');
     // walls (north has a door hole, south has a window hole)
-    b.box(0.1, 2.8, 6.2, -3.55, 1.4, 0, wall, 'wood'); b.box(0.1, 2.8, 6.2, 3.55, 1.4, 0, wall, 'wood');
-    b.box(4.45, 2.8, 0.1, -1.325, 1.4, -3.05, wall2, 'wood'); b.box(1.6, 2.8, 0.1, 2.75, 1.4, -3.05, wall2, 'wood'); b.box(1.0, 0.7, 0.1, 1.45, 2.45, -3.05, wall2, 'wood');
-    b.box(2.85, 2.8, 0.1, -2.125, 1.4, 3.05, wall2, 'wood'); b.box(2.85, 2.8, 0.1, 2.125, 1.4, 3.05, wall2, 'wood'); b.box(1.4, 1.0, 0.1, 0, 0.5, 3.05, wall2, 'wood'); b.box(1.4, 0.8, 0.1, 0, 2.4, 3.05, wall2, 'wood');
+    b.box(0.1, 2.8, 6.2, -3.55, 1.4, 0, 0xc4b8a4, 'wallpaper'); b.box(0.1, 2.8, 6.2, 3.55, 1.4, 0, 0xc4b8a4, 'wallpaper');
+    b.box(4.45, 2.8, 0.1, -1.325, 1.4, -3.05, 0xc4b8a4, 'wallpaper'); b.box(1.6, 2.8, 0.1, 2.75, 1.4, -3.05, 0xc4b8a4, 'wallpaper'); b.box(1.0, 0.7, 0.1, 1.45, 2.45, -3.05, 0xc4b8a4, 'wallpaper');
+    b.box(2.85, 2.8, 0.1, -2.125, 1.4, 3.05, 0xc4b8a4, 'wallpaper'); b.box(2.85, 2.8, 0.1, 2.125, 1.4, 3.05, 0xc4b8a4, 'wallpaper'); b.box(1.4, 1.0, 0.1, 0, 0.5, 3.05, 0xc4b8a4, 'wallpaper'); b.box(1.4, 0.8, 0.1, 0, 2.4, 3.05, 0xc4b8a4, 'wallpaper');
+    // dark wood wainscoting with a chair rail
+    [[-3.485, 0, 0.03, 6.0], [3.485, 0, 0.03, 6.0]].forEach(([x, z, w, d]) => { b.box(w, 1.0, d, x, 0.5, z, 0x6a4a30, 'wood'); b.box(0.06, 0.05, d, x + Math.sign(-x) * 0.02, 1.02, z, 0x3a2416, 'wood'); });
+    [[-1.3, -2.985, 4.4], [2.75, -2.985, 1.5], [0, 2.985, 7.0]].forEach(([x, z, d]) => { b.box(d, 1.0, 0.03, x, 0.5, z, 0x6a4a30, 'wood'); b.box(d, 0.05, 0.06, x, 1.02, z - Math.sign(z) * 0.02, 0x3a2416, 'wood'); });
+    [[-3.47, 0, 0.03, 6.0], [3.47, 0, 0.03, 6.0]].forEach(([x, z, w, d]) => b.box(w + 0.02, 0.12, d, x, 0.06, z, 0x2a1a10, 'wood'));
     // log corner posts
     [[-3.45, -2.95], [3.45, -2.95], [-3.45, 2.95], [3.45, 2.95]].forEach(([x, z]) => b.cyl(0.14, 0.14, 2.8, x, 1.4, z, 0x3a2618, 'wood', 8));
     // door frame
@@ -84,7 +88,24 @@ const Cabin = {
     this.flames = [];
     const flameTex = texFrom((() => { const c = makeCanvas(64, 128), g = c.getContext('2d'), gr = g.createRadialGradient(32, 100, 2, 32, 80, 60); gr.addColorStop(0, 'rgba(255,240,180,1)'); gr.addColorStop(0.3, 'rgba(255,150,40,.9)'); gr.addColorStop(0.7, 'rgba(200,40,0,.4)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(32, 4); g.quadraticCurveTo(62, 70, 50, 120); g.lineTo(14, 120); g.quadraticCurveTo(2, 70, 32, 4); g.fill(); return c; })());
     for (let i = 0; i < 3; i++) { const f = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.7), new THREE.MeshBasicMaterial({ map: flameTex, color: new THREE.Color(3, 2, 1.2), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); f.position.set(-1.6 + (i - 1) * 0.22, 0.42, -2.5); f.rotation.y = (i - 1) * 0.5; scene.add(f); this.flames.push(f); }
-    this.fire = new THREE.PointLight(0xff7a2a, 26, 12, 1.25); this.fire.position.set(-1.6, 0.7, -2.2); this.fire.castShadow = Q().fireShadow; this.fire.shadow.mapSize.set(512, 512); this.fire.shadow.bias = -0.003; scene.add(this.fire);
+    this.fire = new THREE.PointLight(0xff7a2a, 20, 12, 1.25); this.fire.position.set(-1.6, 0.7, -2.2); this.fire.castShadow = false;
+    this.bulb = new THREE.PointLight(0xffc488, 7, 10, 1.2); this.bulb.position.set(0.3, 2.12, 0.1); this.bulb.castShadow = Q().fireShadow; this.bulb.shadow.mapSize.set(512, 512); this.bulb.shadow.bias = -0.004; this.bulb.shadow.camera.near = 0.15; scene.add(this.bulb);
+    const cord = mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.55, 5), plainMat(0x111111, 0.6), false); cord.position.set(0.3, 2.53, 0.1); scene.add(cord);
+    const sock = mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.06, 10), plainMat(0x2a2620, 0.5, 0.5), false); sock.position.set(0.3, 2.24, 0.1); scene.add(sock);
+    this.bulbMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(4, 3, 1.8) }); const bulbM = new THREE.Mesh(new THREE.SphereGeometry(0.04, 12, 10), this.bulbMat); bulbM.position.set(0.3, 2.18, 0.1); scene.add(bulbM);
+    this.bulbT = 0; this.bulbK = 1;
+    // cobwebs in the ceiling corners and on the shelf
+    const webMat = fogify(new THREE.MeshStandardMaterial({ map: PBR.cobweb.map, transparent: true, depthWrite: false, side: THREE.DoubleSide, roughness: 1, opacity: 0.8 }));
+    [[-3.45, -2.95, 0], [3.45, -2.95, 1], [3.45, 2.95, 2], [-3.45, 2.95, 3]].forEach(([x, z, k]) => { const w = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.95), webMat); w.position.set(x - Math.sign(x) * 0.32, 2.48, z - Math.sign(z) * 0.32); w.rotation.set(0, Math.atan2(Math.sign(x), Math.sign(z)) + Math.PI / 4 * 0, 0); w.lookAt(0, 2.48, 0); w.rotateX(-0.35); w.rotateZ(Math.PI / 4 + k * Math.PI / 2); scene.add(w); });
+    { const w = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.6), webMat); w.position.set(3.06, 1.95, 0.42); w.rotation.y = -Math.PI / 2; scene.add(w); }
+    // drifting dust in the air
+    this.dust = new GlowSet(160, 12); scene.add(this.dust.points); this.dustP = [];
+    for (let i = 0; i < 160; i++) { const p = new THREE.Vector3(rand(-3.3, 3.3), rand(0.2, 2.6), rand(-2.8, 2.8)); this.dustP.push({ p, v: new THREE.Vector3(rand(-0.03, 0.03), rand(-0.02, 0.01), rand(-0.03, 0.03)) }); this.dust.add(p.x, p.y, p.z, 0xd8ccb8, rand(0.006, 0.014), 0.3); this.dust.setColor(i, 0xd8ccb8, 0.5); }
+    // NOT GG, scrawled in red paint above the shelf
+    { const cv = makeCanvas(512, 128), g = cv.getContext('2d'); g.fillStyle = 'rgba(120,8,10,.85)'; g.font = 'bold 96px Impact, "Arial Black", sans-serif'; g.textAlign = 'center'; g.save(); g.translate(256, 92); g.rotate(-0.04); g.fillText('NOT GG', 0, 0); g.restore();
+      for (let i = 0; i < 14; i++) { const x = rand(90, 420), y = rand(70, 100); g.fillRect(x, y, rand(2, 4), rand(10, 34)); }
+      const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
+      const d = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.42), fogify(new THREE.MeshStandardMaterial({ map: t, transparent: true, roughness: 0.6, depthWrite: false }))); d.position.set(3.47, 2.42, -0.6); d.rotation.y = -Math.PI / 2; scene.add(d); } this.fire.shadow.mapSize.set(512, 512); this.fire.shadow.bias = -0.003; scene.add(this.fire);
     this.monLight = new THREE.PointLight(0x9ab8ff, 5, 5, 1.5); this.monLight.position.set(-2.9, 1.35, -0.8); scene.add(this.monLight);
     this.glow = new GlowSet(8, 30); scene.add(this.glow.points); this.glow.add(-1.6, 0.5, -2.4, 0xff7a1a, 1.6, 0.6);
     // candy pile
@@ -183,7 +204,7 @@ const Cabin = {
     this.doorPivot.rotation.y = 0; this.doorT = -1; this.uvReveal = 0; this.uvOverlay.material.opacity = 0; this.light = 'flash';
     this.wakeT = 3.2; this.shadowT = 6; this.lineT = 12; this.silhouette.visible = false;
     this.anim = []; Player.attach(this.cam, this, this.flash); Player.place(-2.0, 0.6, -1.25, 0); Player.lightOn = true; Player.frozen = true;
-    this.fire.castShadow = Q().fireShadow;
+    this.bulb.castShadow = Q().fireShadow;
   },
   digitsLine() { return this.digits.map((d, i) => (this.found[i] ? d : '_')).join(' '); },
   aimed() {
@@ -263,6 +284,10 @@ const Cabin = {
     const f = 0.85 + Math.sin(t * 13) * 0.08 + Math.sin(t * 7.3) * 0.07 + Math.random() * 0.05;
     this.fire.intensity = 26 * f; this.flames.forEach((fl, i) => { fl.scale.set(1 + Math.sin(t * 9 + i) * 0.1, f + Math.sin(t * 11 + i * 2) * 0.12, 1); });
     this.monLight.intensity = 5 + Math.sin(t * 30) * 0.3;
+    this.bulbT -= dt; if (this.bulbT <= 0) { this.bulbT = Math.random() < 0.15 ? rand(0.05, 0.25) : rand(1.5, 5); this.bulbTarget = Math.random() < 0.18 ? rand(0, 0.25) : rand(0.85, 1.05); if (this.bulbTarget < 0.3) SFX.burst && SFX.ok() && SFX.burst(SFX.now, 0.08, 0.04, 'highpass', 4000, 1); }
+    this.bulbK = damp(this.bulbK, this.bulbTarget === undefined ? 1 : this.bulbTarget, 25, dt); const low = this.timer < 30 ? 0.7 : 1;
+    this.bulb.intensity = 7 * this.bulbK * low; this.bulbMat.color.setRGB(4 * this.bulbK * low, 3 * this.bulbK * low, 1.8 * this.bulbK * low);
+    this.dustP.forEach((d, i) => { d.p.addScaledVector(d.v, dt); d.v.x += rand(-0.01, 0.01) * dt; d.v.z += rand(-0.01, 0.01) * dt; if (d.p.y < 0.1 || Math.abs(d.p.x) > 3.4 || Math.abs(d.p.z) > 2.9) { d.p.set(rand(-3.3, 3.3), rand(1.5, 2.6), rand(-2.8, 2.8)); } this.dust.set(i, d.p.x, d.p.y, d.p.z); });
     // UV reveal on the poster
     const toP = new THREE.Vector3(2.3, 1.5, 2.99).sub(this.cam.position), dist = toP.length(); toP.normalize();
     const fwd = Player.forward(new THREE.Vector3()), aim = toP.dot(fwd);
