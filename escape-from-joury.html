@@ -168,6 +168,76 @@ input[type=checkbox]{accent-color:#c3242b;width:18px;height:18px}
 .end-lines{font-size:clamp(13px,2.3vh,19px);line-height:1.45;min-height:0}
 .end-lines .big{font-size:clamp(24px,5.6vh,52px);margin:2px 0}
 .stats{margin:6px 0;padding:8px 18px;font-size:clamp(13px,2.2vh,16px)}
+/* ===================== v2: professional theme ===================== */
+:root{--display:'IM Fell English SC',Georgia,'Times New Roman',serif;--mono:'Special Elite','Courier New',Courier,monospace;--ui:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;--ink:#e9e2d4;--dim:#8f877a;--blood:#b3141c;--line:rgba(233,226,212,.14);--panel:rgba(10,9,8,.84)}
+html,body{font-family:var(--ui)}
+.btn{background:rgba(0,0,0,.25);border:1px solid rgba(233,226,212,.28);color:var(--ink);font-family:var(--display);letter-spacing:.14em;font-size:19px;padding:9px 28px;border-radius:2px;box-shadow:none}
+.btn:hover{border-color:var(--ink);background:rgba(233,226,212,.07);box-shadow:none}
+.btn:focus-visible,.seg button:focus-visible{outline:2px solid #e7c98a;outline-offset:2px}
+.btn.big{font-size:30px;padding:8px 72px;border-color:rgba(179,20,28,.85);color:#fff;background:linear-gradient(rgba(130,10,18,.45),rgba(60,4,8,.45))}
+.btn.big:hover{background:rgba(160,14,24,.6);border-color:#e04048}
+.btn.ghost{border-color:transparent;color:var(--dim)}
+.btn.ghost:hover{color:var(--ink);border-color:var(--line)}
+#title{background:linear-gradient(90deg,rgba(0,0,0,.78) 0%,rgba(0,0,0,.45) 38%,rgba(0,0,0,0) 62%)}
+.logo-top{font-family:var(--display);letter-spacing:.55em;font-size:clamp(15px,2vw,22px);color:#cfc5b3;text-shadow:0 2px 6px #000}
+.logo-main{font-family:var(--display);font-size:clamp(80px,13vw,158px);letter-spacing:.03em;line-height:.95;color:#c0141d;text-shadow:0 0 34px rgba(140,0,0,.45),0 3px 0 #160000;animation:flick 8s infinite}
+.logo-main::after{display:none}
+.logo-sub{font-family:var(--mono);letter-spacing:.22em;font-size:13px;color:#8f877a;margin-top:12px}
+.sound-hint{font-family:var(--ui);font-size:12px;letter-spacing:.04em;color:#b99a62}
+.opt-label{font-family:var(--ui);font-weight:600;font-size:11px;letter-spacing:.18em;color:#8f877a}
+.seg{border-color:rgba(233,226,212,.18);border-radius:2px}
+.seg button{font-family:var(--ui);font-size:13px;padding:7px 15px;background:rgba(0,0,0,.4);color:#b8b0a2;border-right-color:rgba(233,226,212,.12)}
+.seg button.on{background:rgba(179,20,28,.6);color:#fff}
+.seg button:hover:not(.on){background:rgba(233,226,212,.08)}
+input[type=range]{accent-color:#b3141c}
+.controls{font-family:var(--ui);font-size:12px;background:rgba(0,0,0,.4);border-color:var(--line);border-radius:2px}
+.controls b{font-weight:600;color:#efe6d4}
+.diff-note{font-family:var(--ui);font-size:13px;color:#a69e90}
+#loading{background:radial-gradient(ellipse at center,#120d0a,#000 70%)}
+.load-title{font-family:var(--display);letter-spacing:.3em;font-size:24px}
+.load-title span{color:#c0141d;text-shadow:none}
+.load-bar{height:3px;border:0;background:rgba(233,226,212,.1)}
+#loadFill{background:linear-gradient(90deg,#5a0a0e,#c0141d)}
+#loadText{font-family:var(--mono);font-size:13px;letter-spacing:.06em}
+#storyLabel{font-family:var(--display);letter-spacing:.28em;font-size:15px;background:none;text-shadow:0 1px 6px #000;color:#e7dcc6}
+.story-box{background:linear-gradient(rgba(6,5,4,.5),rgba(6,5,4,.86));border:none;border-top:1px solid var(--line);border-radius:2px}
+#storyText{font-family:var(--mono);font-size:clamp(17px,2.1vw,23px);line-height:1.55;color:#efe6d2}
+#storyNext{font-family:var(--ui);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+#storyBig{font-family:var(--display);letter-spacing:.04em}
+.story-dots i{width:6px;height:6px}
+#objective{font-family:var(--display);font-size:17px;letter-spacing:.05em;color:#e9e2d4}
+#partsBar{font-family:var(--ui);font-size:12.5px}
+#toast{font-family:var(--ui);font-size:15px;line-height:1.5;background:rgba(8,7,6,.7);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border-color:var(--line);border-radius:3px;padding:11px 20px}
+#subtitle{font-family:var(--display);font-weight:normal;font-size:clamp(21px,2.6vw,30px);letter-spacing:.04em;color:#e0281f;text-shadow:0 0 14px rgba(160,0,0,.6),0 2px 3px #000}
+#subtitle.kid{font-family:var(--mono);color:#efe2bf;font-size:clamp(16px,2vw,21px);letter-spacing:0}
+#prompt{font-family:var(--ui);font-size:15px;font-weight:500}
+#prompt b{font-family:var(--ui);font-weight:600;font-size:13px;background:rgba(233,226,212,.92);border-radius:2px;padding:2px 7px;vertical-align:1px}
+#crosshair{width:3px;height:3px;margin:-1.5px 0 0 -1.5px;background:rgba(255,255,255,.7)}
+#cabinTimer{font-family:var(--display);font-size:44px;letter-spacing:.06em;text-shadow:0 0 18px rgba(200,60,0,.45),0 2px 0 #000}
+#cabinTimer small{font-family:var(--ui);font-weight:600;font-size:10px;letter-spacing:.24em}
+#stun{font-family:var(--display);letter-spacing:.12em}
+#kidsBar{background:rgba(0,0,0,.38);border-color:var(--line);gap:6px;padding:6px 8px;border-radius:3px}
+#kidsBar canvas{width:30px;height:30px;image-rendering:auto;border-radius:50%;background:rgba(233,226,212,.05)}
+#kidsBar canvas.saved{background:rgba(111,211,138,.12);box-shadow:0 0 0 1.5px #6fd38a,0 0 10px rgba(111,211,138,.45)}
+.bar{height:5px;border-radius:3px;border-color:rgba(255,255,255,.14);background:rgba(0,0,0,.5)}
+.bar-ico{font-size:12px;opacity:.8}
+#batPct{font-family:var(--ui);font-size:11px}
+.panel{background:var(--panel);border-color:var(--line);border-radius:3px}
+.panel-title{font-family:var(--display);letter-spacing:.1em}
+.panel-text{font-family:var(--ui)}
+.inspect-card{background:linear-gradient(#16120e,#0b0907);border-color:#3e3022;border-radius:3px}
+#inspectTitle{font-family:var(--display);color:#e7c98a;letter-spacing:.04em;font-size:30px}
+#inspectText{font-family:var(--ui);font-size:16px}
+#inspectText .digit{font-family:var(--mono)}
+.inspect-close{font-family:var(--ui);letter-spacing:.06em}
+.keypad-box{border-radius:6px}
+.kp-head{font-family:var(--ui);font-weight:600}
+.caught-text{font-family:var(--display);letter-spacing:.08em;color:#c0141d}
+.caught-sub{font-family:var(--mono)}
+.end-lines{font-family:var(--mono)}
+.end-lines .big{font-family:var(--display);color:#e7c98a}
+.stats{font-family:var(--ui)}
+.map-legend{font-family:var(--ui);font-size:12px}
 
 </style>
 </head>
@@ -3851,7 +3921,7 @@ const HUD = {
   init() {
     // kid icons (8x8 pixel art, drawn per costume)
     const bar = $('kidsBar'); bar.innerHTML = '';
-    this.kidIcons = KID_TYPES.map((k) => { const c = makeCanvas(8, 8); c.title = k.name; bar.appendChild(c); return c; });
+    this.kidIcons = KID_TYPES.map((k) => { const c = makeCanvas(64, 64); c.title = k.name; bar.appendChild(c); return c; });
     this.drawKidIcons([]);
     // keypad
     const grid = $('kpGrid'); grid.innerHTML = '';
@@ -3860,8 +3930,9 @@ const HUD = {
   },
   drawKidIcons(saved) {
     KID_TYPES.forEach((k, i) => {
-      const c = this.kidIcons[i], g = c.getContext('2d'), on = saved.includes(i); g.clearRect(0, 0, 8, 8);
-      k.icon.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === '.') return; let col = ICON_PAL[ch] || '#fff'; if (!on) { const v = new THREE.Color(col); const l = (v.r + v.g + v.b) / 3; col = `rgba(${(l * 120) | 0},${(l * 120) | 0},${(l * 130) | 0},0.75)`; } g.fillStyle = col; g.fillRect(x, y, 1, 1); }));
+      const c = this.kidIcons[i], on = saved.includes(i); if (c.width !== 64) { c.width = 64; c.height = 64; }
+      const g = c.getContext('2d'); g.clearRect(0, 0, 64, 64); g.save(); g.translate(32, 32);
+      drawKidIcon(g, k.id, on ? KID_ICON_COL[k.id] : 'rgba(233,226,212,.32)'); g.restore();
       c.classList.toggle('saved', on);
     });
   },
@@ -3989,6 +4060,26 @@ const HUD = {
     }
   },
 };
+
+// Clean vector icons for the kid tracker (drawn around 0,0 in a 64px box)
+const KID_ICON_COL = { ghost: '#e8eaf0', pumpkin: '#ff8a1c', witch: '#a678e0', vampire: '#e04048', skeleton: '#efe8d8', cat: '#c9c2b4', astronaut: '#bfe6ff', dino: '#6fd36f', bee: '#ffcf3a', hero: '#5a8cff' };
+function drawKidIcon(g, id, col) {
+  g.fillStyle = col; g.strokeStyle = col; g.lineJoin = 'round';
+  const cut = (fn) => { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; fn(); g.restore(); };
+  const P = (pts) => { g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); g.fill(); };
+  switch (id) {
+    case 'ghost': g.beginPath(); g.moveTo(-17, 20); g.lineTo(-17, -4); g.arc(0, -4, 17, Math.PI, 0); g.lineTo(17, 20); for (let i = 0; i < 4; i++) { const x = 17 - i * 8.5; g.quadraticCurveTo(x - 4.25, 13, x - 8.5, 20); } g.fill(); cut(() => { g.beginPath(); g.ellipse(-6, -4, 3.5, 5, 0, 0, TAU); g.ellipse(6, -4, 3.5, 5, 0, 0, TAU); g.fill(); g.beginPath(); g.ellipse(0, 8, 3, 4, 0, 0, TAU); g.fill(); }); break;
+    case 'pumpkin': g.beginPath(); g.ellipse(0, 4, 21, 17, 0, 0, TAU); g.fill(); g.fillRect(-2.5, -20, 5, 9); cut(() => { P([[-12, -2], [-6, -2], [-9, -8]]); P([[12, -2], [6, -2], [9, -8]]); g.beginPath(); g.moveTo(-13, 7); g.quadraticCurveTo(0, 20, 13, 7); g.lineTo(8, 10); g.lineTo(4, 7); g.lineTo(0, 11); g.lineTo(-4, 7); g.lineTo(-8, 10); g.closePath(); g.fill(); }); break;
+    case 'witch': P([[0, -24], [-12, 10], [12, 10]]); g.beginPath(); g.ellipse(0, 12, 24, 5, 0, 0, TAU); g.fill(); cut(() => g.fillRect(-11, 3, 22, 3)); break;
+    case 'vampire': g.beginPath(); g.moveTo(0, -6); g.quadraticCurveTo(-8, -14, -14, -10); g.quadraticCurveTo(-20, -18, -26, -8); g.quadraticCurveTo(-22, 0, -24, 8); g.quadraticCurveTo(-16, 2, -12, 10); g.quadraticCurveTo(-6, 4, 0, 12); g.quadraticCurveTo(6, 4, 12, 10); g.quadraticCurveTo(16, 2, 24, 8); g.quadraticCurveTo(22, 0, 26, -8); g.quadraticCurveTo(20, -18, 14, -10); g.quadraticCurveTo(8, -14, 0, -6); g.fill(); P([[-4, -6], [-6, -13], [-2, -8]]); P([[4, -6], [6, -13], [2, -8]]); break;
+    case 'skeleton': g.beginPath(); g.arc(0, -4, 17, 0, TAU); g.fill(); g.fillRect(-9, 8, 18, 12); cut(() => { g.beginPath(); g.ellipse(-7, -4, 5, 6, 0, 0, TAU); g.ellipse(7, -4, 5, 6, 0, 0, TAU); g.fill(); P([[0, 2], [-3, 8], [3, 8]]); for (let x = -6; x <= 6; x += 4) g.fillRect(x - 0.8, 12, 1.6, 8); }); break;
+    case 'cat': g.beginPath(); g.arc(0, 4, 17, 0, TAU); g.fill(); P([[-16, -2], [-15, -22], [-4, -12]]); P([[16, -2], [15, -22], [4, -12]]); cut(() => { g.beginPath(); g.ellipse(-7, 2, 3, 5, 0, 0, TAU); g.ellipse(7, 2, 3, 5, 0, 0, TAU); g.fill(); P([[-2.5, 9], [2.5, 9], [0, 12]]); }); break;
+    case 'astronaut': g.beginPath(); g.arc(0, 0, 20, 0, TAU); g.fill(); cut(() => { g.beginPath(); g.moveTo(-14, -6); g.quadraticCurveTo(0, -14, 14, -6); g.quadraticCurveTo(15, 8, 0, 9); g.quadraticCurveTo(-15, 8, -14, -6); g.fill(); }); g.globalAlpha = 0.5; g.beginPath(); g.arc(-6, -4, 2.5, 0, TAU); g.fill(); g.globalAlpha = 1; g.fillRect(-12, 17, 24, 5); break;
+    case 'dino': g.beginPath(); g.moveTo(-18, 18); g.lineTo(-18, -2); g.quadraticCurveTo(-16, -16, 0, -16); g.quadraticCurveTo(18, -16, 22, -2); g.quadraticCurveTo(24, 8, 10, 8); g.lineTo(-6, 8); g.lineTo(-6, 18); g.closePath(); g.fill(); P([[-12, -12], [-8, -22], [-4, -15]]); P([[-2, -16], [2, -25], [6, -16]]); P([[8, -15], [13, -22], [14, -12]]); cut(() => { g.beginPath(); g.arc(6, -6, 3, 0, TAU); g.fill(); for (let x = -2; x < 18; x += 5) P([[x, 8], [x + 2.5, 4], [x + 5, 8]]); }); break;
+    case 'bee': g.globalAlpha = 0.55; g.beginPath(); g.ellipse(-8, -14, 8, 11, -0.5, 0, TAU); g.ellipse(8, -14, 8, 11, 0.5, 0, TAU); g.fill(); g.globalAlpha = 1; g.beginPath(); g.ellipse(0, 6, 15, 17, 0, 0, TAU); g.fill(); cut(() => { g.fillRect(-16, 0, 32, 4); g.fillRect(-16, 9, 32, 4); }); g.lineWidth = 2; g.beginPath(); g.moveTo(-4, -10); g.lineTo(-9, -22); g.moveTo(4, -10); g.lineTo(9, -22); g.stroke(); break;
+    case 'hero': g.beginPath(); for (let i = 0; i < 10; i++) { const r = i % 2 ? 9 : 22, a = -Math.PI / 2 + (i * Math.PI) / 5; g.lineTo(Math.cos(a) * r, Math.sin(a) * r + 2); } g.closePath(); g.fill(); break;
+  }
+}
 
 // =====================================================================
 //  GAME — state machine, menus, ending, main loop
@@ -4329,7 +4420,7 @@ const Game = {
     fx.flash = Math.max(0, fx.flash - dt * 2.5);
     switch (this.state) {
       case 'title': {
-        this.t += dt; fx.fade = Math.max(0, fx.fade - dt * 0.6); fx.static = 0.02 + (Math.random() < 0.01 ? 0.4 : 0); fx.vignette = 1; fx.grain = 0.07; fx.red = 0; fx.warm = 0; fx.exposure = 1.8; fx.auto = 0;
+        this.t += dt; fx.fade = Math.max(0, fx.fade - dt * 0.6); fx.static = 0.02 + (Math.random() < 0.01 ? 0.4 : 0); fx.vignette = 1; fx.grain = 0.07; fx.red = 0; fx.warm = 0; fx.exposure = 2.8; fx.auto = 0;
         FogU.uMistAmt.value = 0.8;
         const sz = World.shoreZ, cam = World.cam, a = this.t * 0.05, dk = World.dock;
         cam.position.set(-6.5 + Math.sin(a) * 1.5, 2.1 + Math.sin(this.t * 0.4) * 0.1, dk.z1 + 7.5 + Math.cos(a) * 1.0); cam.lookAt(-11, 3.4, sz - 24);

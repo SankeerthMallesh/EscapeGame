@@ -6,7 +6,7 @@ const HUD = {
   init() {
     // kid icons (8x8 pixel art, drawn per costume)
     const bar = $('kidsBar'); bar.innerHTML = '';
-    this.kidIcons = KID_TYPES.map((k) => { const c = makeCanvas(8, 8); c.title = k.name; bar.appendChild(c); return c; });
+    this.kidIcons = KID_TYPES.map((k) => { const c = makeCanvas(64, 64); c.title = k.name; bar.appendChild(c); return c; });
     this.drawKidIcons([]);
     // keypad
     const grid = $('kpGrid'); grid.innerHTML = '';
@@ -15,8 +15,9 @@ const HUD = {
   },
   drawKidIcons(saved) {
     KID_TYPES.forEach((k, i) => {
-      const c = this.kidIcons[i], g = c.getContext('2d'), on = saved.includes(i); g.clearRect(0, 0, 8, 8);
-      k.icon.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === '.') return; let col = ICON_PAL[ch] || '#fff'; if (!on) { const v = new THREE.Color(col); const l = (v.r + v.g + v.b) / 3; col = `rgba(${(l * 120) | 0},${(l * 120) | 0},${(l * 130) | 0},0.75)`; } g.fillStyle = col; g.fillRect(x, y, 1, 1); }));
+      const c = this.kidIcons[i], on = saved.includes(i); if (c.width !== 64) { c.width = 64; c.height = 64; }
+      const g = c.getContext('2d'); g.clearRect(0, 0, 64, 64); g.save(); g.translate(32, 32);
+      drawKidIcon(g, k.id, on ? KID_ICON_COL[k.id] : 'rgba(233,226,212,.32)'); g.restore();
       c.classList.toggle('saved', on);
     });
   },
@@ -144,3 +145,23 @@ const HUD = {
     }
   },
 };
+
+// Clean vector icons for the kid tracker (drawn around 0,0 in a 64px box)
+const KID_ICON_COL = { ghost: '#e8eaf0', pumpkin: '#ff8a1c', witch: '#a678e0', vampire: '#e04048', skeleton: '#efe8d8', cat: '#c9c2b4', astronaut: '#bfe6ff', dino: '#6fd36f', bee: '#ffcf3a', hero: '#5a8cff' };
+function drawKidIcon(g, id, col) {
+  g.fillStyle = col; g.strokeStyle = col; g.lineJoin = 'round';
+  const cut = (fn) => { g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; fn(); g.restore(); };
+  const P = (pts) => { g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); g.fill(); };
+  switch (id) {
+    case 'ghost': g.beginPath(); g.moveTo(-17, 20); g.lineTo(-17, -4); g.arc(0, -4, 17, Math.PI, 0); g.lineTo(17, 20); for (let i = 0; i < 4; i++) { const x = 17 - i * 8.5; g.quadraticCurveTo(x - 4.25, 13, x - 8.5, 20); } g.fill(); cut(() => { g.beginPath(); g.ellipse(-6, -4, 3.5, 5, 0, 0, TAU); g.ellipse(6, -4, 3.5, 5, 0, 0, TAU); g.fill(); g.beginPath(); g.ellipse(0, 8, 3, 4, 0, 0, TAU); g.fill(); }); break;
+    case 'pumpkin': g.beginPath(); g.ellipse(0, 4, 21, 17, 0, 0, TAU); g.fill(); g.fillRect(-2.5, -20, 5, 9); cut(() => { P([[-12, -2], [-6, -2], [-9, -8]]); P([[12, -2], [6, -2], [9, -8]]); g.beginPath(); g.moveTo(-13, 7); g.quadraticCurveTo(0, 20, 13, 7); g.lineTo(8, 10); g.lineTo(4, 7); g.lineTo(0, 11); g.lineTo(-4, 7); g.lineTo(-8, 10); g.closePath(); g.fill(); }); break;
+    case 'witch': P([[0, -24], [-12, 10], [12, 10]]); g.beginPath(); g.ellipse(0, 12, 24, 5, 0, 0, TAU); g.fill(); cut(() => g.fillRect(-11, 3, 22, 3)); break;
+    case 'vampire': g.beginPath(); g.moveTo(0, -6); g.quadraticCurveTo(-8, -14, -14, -10); g.quadraticCurveTo(-20, -18, -26, -8); g.quadraticCurveTo(-22, 0, -24, 8); g.quadraticCurveTo(-16, 2, -12, 10); g.quadraticCurveTo(-6, 4, 0, 12); g.quadraticCurveTo(6, 4, 12, 10); g.quadraticCurveTo(16, 2, 24, 8); g.quadraticCurveTo(22, 0, 26, -8); g.quadraticCurveTo(20, -18, 14, -10); g.quadraticCurveTo(8, -14, 0, -6); g.fill(); P([[-4, -6], [-6, -13], [-2, -8]]); P([[4, -6], [6, -13], [2, -8]]); break;
+    case 'skeleton': g.beginPath(); g.arc(0, -4, 17, 0, TAU); g.fill(); g.fillRect(-9, 8, 18, 12); cut(() => { g.beginPath(); g.ellipse(-7, -4, 5, 6, 0, 0, TAU); g.ellipse(7, -4, 5, 6, 0, 0, TAU); g.fill(); P([[0, 2], [-3, 8], [3, 8]]); for (let x = -6; x <= 6; x += 4) g.fillRect(x - 0.8, 12, 1.6, 8); }); break;
+    case 'cat': g.beginPath(); g.arc(0, 4, 17, 0, TAU); g.fill(); P([[-16, -2], [-15, -22], [-4, -12]]); P([[16, -2], [15, -22], [4, -12]]); cut(() => { g.beginPath(); g.ellipse(-7, 2, 3, 5, 0, 0, TAU); g.ellipse(7, 2, 3, 5, 0, 0, TAU); g.fill(); P([[-2.5, 9], [2.5, 9], [0, 12]]); }); break;
+    case 'astronaut': g.beginPath(); g.arc(0, 0, 20, 0, TAU); g.fill(); cut(() => { g.beginPath(); g.moveTo(-14, -6); g.quadraticCurveTo(0, -14, 14, -6); g.quadraticCurveTo(15, 8, 0, 9); g.quadraticCurveTo(-15, 8, -14, -6); g.fill(); }); g.globalAlpha = 0.5; g.beginPath(); g.arc(-6, -4, 2.5, 0, TAU); g.fill(); g.globalAlpha = 1; g.fillRect(-12, 17, 24, 5); break;
+    case 'dino': g.beginPath(); g.moveTo(-18, 18); g.lineTo(-18, -2); g.quadraticCurveTo(-16, -16, 0, -16); g.quadraticCurveTo(18, -16, 22, -2); g.quadraticCurveTo(24, 8, 10, 8); g.lineTo(-6, 8); g.lineTo(-6, 18); g.closePath(); g.fill(); P([[-12, -12], [-8, -22], [-4, -15]]); P([[-2, -16], [2, -25], [6, -16]]); P([[8, -15], [13, -22], [14, -12]]); cut(() => { g.beginPath(); g.arc(6, -6, 3, 0, TAU); g.fill(); for (let x = -2; x < 18; x += 5) P([[x, 8], [x + 2.5, 4], [x + 5, 8]]); }); break;
+    case 'bee': g.globalAlpha = 0.55; g.beginPath(); g.ellipse(-8, -14, 8, 11, -0.5, 0, TAU); g.ellipse(8, -14, 8, 11, 0.5, 0, TAU); g.fill(); g.globalAlpha = 1; g.beginPath(); g.ellipse(0, 6, 15, 17, 0, 0, TAU); g.fill(); cut(() => { g.fillRect(-16, 0, 32, 4); g.fillRect(-16, 9, 32, 4); }); g.lineWidth = 2; g.beginPath(); g.moveTo(-4, -10); g.lineTo(-9, -22); g.moveTo(4, -10); g.lineTo(9, -22); g.stroke(); break;
+    case 'hero': g.beginPath(); for (let i = 0; i < 10; i++) { const r = i % 2 ? 9 : 22, a = -Math.PI / 2 + (i * Math.PI) / 5; g.lineTo(Math.cos(a) * r, Math.sin(a) * r + 2); } g.closePath(); g.fill(); break;
+  }
+}
