@@ -2,16 +2,18 @@
 //  JOURY — waits, wanders, stalks, teleports behind you, stares you down
 // =====================================================================
 const JOURY_LINES = ['GG? NOT GG.', 'Rematch, Vivek!', 'Five to four. FIVE. TO. FOUR.', "You can't spawn-camp me.", 'Trick or treat… or DEFEAT.', 'Nobody leaves until I win.', 'My controller still works. Mostly.', 'Bridge is MY game.', 'I see you.', 'One more round…', 'It was LAG. It was LAG!', 'Who said you could leave the lobby?', 'Say GG. I dare you.'];
-const JOURY_ANGRY = ['GIVE BACK MY CANDY!', 'NO BOATS. NO REMATCHES.', "YOU'RE NOT LEAVING MY SERVER!", "I'M NOT MAD. I'M NOT MAD!", 'NOT. GG.', 'THAT BOAT IS RIGGED!'];
+const JOURY_ANGRY = ["YOU LAUGHED TOO. DIDN'T YOU?", 'NO BOATS. NO REMATCHES.', "YOU'RE NOT LEAVING MY SERVER!", "I'M NOT MAD. I'M NOT MAD!", 'NOT. GG.', 'THAT BOAT IS RIGGED!'];
 const _jv = new THREE.Vector3(), _jv2 = new THREE.Vector3(), _jv3 = new THREE.Vector3();
 
 const Joury = {
   c: null, pos: new THREE.Vector3(), yaw: 0, state: 'dormant', t: 0, timer: 0, stare: 0, seen: false, looking: false, seenT: 0, unseenT: 0,
   tpT: 12, lineT: 18, stepT: 0, stunT: 0, enraged: false, dist: 99, danger: 0, stuckT: 0, moving: false, speed: 0, lastLine: '',
+  knowT: 0, heardT: 99, heardPos: new THREE.Vector3(), roam: new THREE.Vector3(), roamT: 0, mimicT: 70, revealT: 0, spotted: false,
   init(scene) { this.c = makeJoury(); this.c.root.visible = false; scene.add(this.c.root); },
   reset() {
     this.state = 'dormant'; this.timer = D().startDelay; this.stare = 0; this.seenT = this.unseenT = 0; this.enraged = false; this.danger = 0; this.seen = this.looking = false;
     this.tpT = rand(D().tpMin, D().tpMax); this.lineT = 22; this.stunT = 0; this.tipShown = false;
+    this.knowT = 0; this.heardT = 99; this.roamT = 0; this.mimicT = rand(55, 80); this.revealT = 0; this.spotted = false;
     const cb = World.cabin; this.pos.set(cb.x, cb.y, cb.z); this.c.root.visible = false; this.dist = 99;
   },
   wake() {
@@ -19,7 +21,7 @@ const Joury = {
     this.tpT = 6;
     const far = Math.hypot(Player.pos.x - d.x, Player.pos.z - d.z);
     SFX.slam(clamp(1 - far / 200, 0.15, 0.6));
-    HUD.toast('Somewhere in the woods, a cabin door slams.<br><b>Joury is awake.</b>', 4.5);
+    HUD.toast('Somewhere in the woods, a cabin door slams.<br><b>Joury is awake.</b> He hunts by sound — sprinting is loud, crouching (C) is quiet.', 5.5); Scare.onWake();
     setTimeout(() => this.say('…Who is on MY island?'), 1800);
   },
   speedFor() { const d = D(); return d.chaseBase + d.chasePerKid * Game.savedCount() + (this.enraged ? d.enrage : 0); },
@@ -42,17 +44,25 @@ const Joury = {
       let a, dist;
       if (mode === 'behind') { a = Player.yaw + Math.PI + rand(-1.0, 1.0); dist = rand(d.tpDist[0], d.tpDist[1]) * prog; }
       else if (mode === 'ahead') { a = Player.yaw + rand(-0.45, 0.45); dist = rand(22, 30); }
+      else if (mode === 'near') { a = rand(0, TAU); dist = rand(24, 36); }
+      else if (mode === 'reveal') { a = Player.yaw + rand(-0.35, 0.35); dist = rand(14, 20); }
       else { a = rand(0, TAU); dist = rand(55, 80); }
       const x = P.x - Math.sin(a) * dist, z = P.z - Math.cos(a) * dist;
       if (!World.walkable(x, z) || World.onBridge(x, z) || World.onDock(x, z)) continue;
       const p = { x, z }; World.resolve(p, 0.5); if (Math.hypot(p.x - x, p.z - z) > 0.2) continue;
-      if (mode === 'behind') { const fx = -Math.sin(Player.yaw), fz = -Math.cos(Player.yaw); if (((x - P.x) * fx + (z - P.z) * fz) / dist > 0.1) continue; }
+      if (mode === 'behind' || mode === 'near') { const fx = -Math.sin(Player.yaw), fz = -Math.cos(Player.yaw); if (((x - P.x) * fx + (z - P.z) * fz) / dist > (mode === 'near' ? 0.4 : 0.1)) continue; }
+      if ((mode === 'ahead' || mode === 'reveal') && World.blocked(P.x, P.z, x, z)) continue;
       this.pos.set(x, World.groundAt(x, z), z); this.stuckT = 0;
       if (mode !== 'far' && CFG.difficulty !== 'nightmare') SFX.whoosh(this.panFor(x, z));
       return true;
     }
     return false;
   },
+  // A flash of lightning shows him standing out in the trees — then he's gone
+  lightningReveal() {
+    if (this.teleport('reveal') || this.teleport('ahead')) { this.revealT = 1.5; this.yaw = Math.atan2(Player.pos.x - this.pos.x, Player.pos.z - this.pos.z); this.stare = Math.max(0, this.stare - 1); }
+  },
+  hear(radius) { if (this.state === 'hunt' && this.dist < radius) { this.heardT = 0; this.heardPos.set(Player.pos.x, 0, Player.pos.z); } },
   visibility() {
     const cam = World.cam; cam.getWorldDirection(_jv2);
     _jv.set(this.pos.x, this.pos.y + this.c.eyeY, this.pos.z).sub(cam.position);
@@ -85,7 +95,7 @@ const Joury = {
     if (vis.visible) {
       this.seenT += dt;
       const close = clamp(1 - this.dist / 25, 0, 1);
-      this.stare += dt * (vis.looking ? (0.4 + close * 1.8) * (Player.lightOn ? 1.15 : 1) : 0.22);
+      if (this.revealT <= 0) this.stare += dt * (vis.looking ? (0.4 + close * 1.8) * (Player.lightOn ? 1.15 : 1) : 0.22);
       if (!wasSeen && this.unseenT > 6 && Math.random() < 0.5) this.say();
       if (!wasSeen) SFX.sting();
       if (!this.tipShown && this.seenT > 0.4) { this.tipShown = true; HUD.toast("<b style='color:#ff5a4a'>That's Joury.</b> Don't stare at him — the static means he's coming for you.<br>Look away and <b>RUN</b> (Shift)!", 5); }
@@ -94,28 +104,49 @@ const Joury = {
       this.unseenT += dt; this.seenT = 0; this.stare = Math.max(0, this.stare - dt * 0.8);
     }
     if (this.stare >= d.stareLimit || this.dist < d.catchR + (this.enraged ? 0.2 : 0)) { Game.caught(); return; }
-    // movement
-    let speed = 0;
-    if (!vis.visible) speed = this.dist > 40 ? Math.max(this.speedFor(), 4.4) : this.speedFor();
-    else speed = d.creep + (this.enraged ? 0.3 : 0);
-    this.moving = speed > 0.05 && this.dist > 0.5;
+    // senses: does he see or hear you?
+    if (this.revealT > 0) { this.revealT -= dt; if (this.revealT <= 0 && this.state === 'hunt') { this.teleport('far'); SFX.whoosh(0); } }
+    const spotR = (Player.lightOn ? 30 : 12) * (Player.crouching ? 0.65 : 1) * (this.enraged ? 1.25 : 1);
+    if (this.dist < spotR && this.revealT <= 0) {
+      const facing = (dx * Math.sin(this.yaw) + dz * Math.cos(this.yaw)) / Math.max(this.dist, 0.01);
+      if ((facing > 0.2 || this.dist < 6) && !World.blocked(this.pos.x, this.pos.z, P.x, P.z)) { if (this.knowT <= 0) Scare.onSpotted(); this.knowT = 4; }
+    }
+    if (Player.noise > 0 && this.dist < Player.noise) { this.heardT = 0; this.heardPos.set(P.x, 0, P.z); }
+    this.knowT -= dt; this.heardT += dt;
+    let tx, tz, speed;
+    if (this.knowT > 0) { tx = P.x; tz = P.z; speed = this.speedFor(); }
+    else if (this.heardT < 9) { tx = this.heardPos.x; tz = this.heardPos.z; speed = this.speedFor() * 0.92; }
+    else {
+      this.roamT -= dt;
+      if (this.roamT <= 0 || Math.hypot(this.roam.x - this.pos.x, this.roam.z - this.pos.z) < 2) {
+        this.roamT = rand(7, 13);
+        for (let k = 0; k < 10; k++) { const a = rand(0, TAU), r = rand(10, 34), x = P.x + Math.cos(a) * r, z = P.z + Math.sin(a) * r; if (World.walkable(x, z)) { this.roam.set(x, 0, z); break; } }
+      }
+      tx = this.roam.x; tz = this.roam.z; speed = this.dist > 45 ? 4.4 : this.speedFor() * 0.7;
+    }
+    if (vis.visible || this.revealT > 0) speed = this.revealT > 0 ? 0 : d.creep + (this.enraged ? 0.3 : 0);
+    const gx = tx - this.pos.x, gz = tz - this.pos.z, gd = Math.hypot(gx, gz);
+    this.moving = speed > 0.05 && gd > 0.6;
     if (this.moving) {
-      const step = Math.min(speed * dt, this.dist), nx = this.pos.x + dx / this.dist * step, nz = this.pos.z + dz / this.dist * step;
+      const step = Math.min(speed * dt, gd), nx = this.pos.x + gx / gd * step, nz = this.pos.z + gz / gd * step;
       const p = { x: nx, z: nz }; World.resolve(p, 0.45);
       if (World.walkable(p.x, p.z)) { const moved = Math.hypot(p.x - this.pos.x, p.z - this.pos.z); this.stuckT = moved < step * 0.25 ? this.stuckT + dt : 0; this.pos.x = p.x; this.pos.z = p.z; }
       else this.stuckT += dt;
       this.pos.y = World.surfaceY(this.pos.x, this.pos.z);
-      if (this.stuckT > 2.5 && !vis.visible) this.teleport(this.dist > 30 ? 'behind' : 'far');
+      if (this.stuckT > 2.5 && !vis.visible) this.teleport(this.dist > 30 ? 'near' : 'far');
     }
-    this.yaw += angDiff(this.yaw, Math.atan2(dx, dz)) * Math.min(1, dt * (vis.visible ? 2 : 6));
-    // teleports & vanishing
-    if (!vis.visible) {
-      this.tpT -= dt * (this.enraged ? 1.6 : 1);
+    const faceA = this.moving && !vis.visible ? Math.atan2(gx, gz) : Math.atan2(dx, dz);
+    this.yaw += angDiff(this.yaw, faceA) * Math.min(1, dt * (vis.visible ? 2 : 6));
+    // teleports & vanishing: he closes in faster when he has heard you
+    if (!vis.visible && this.revealT <= 0) {
+      this.tpT -= dt * (this.enraged ? 1.6 : 1) * (this.heardT < 6 ? 1.5 : 1);
       if (this.tpT <= 0) {
         this.tpT = rand(d.tpMin, d.tpMax) * clamp(1 - Game.savedCount() * 0.04, 0.6, 1);
-        if (this.dist > d.tpDist[1] + 3) this.teleport(this.dist > 34 && Math.random() < 0.35 ? 'ahead' : 'behind');
+        if (this.dist > d.tpDist[1] + 3) this.teleport(this.heardT < 6 || this.knowT > 0 ? 'behind' : this.dist > 34 && Math.random() < 0.35 ? 'ahead' : 'near');
       }
-    } else if (this.seenT > 2.2 && this.dist > 14 && Math.random() < dt * 0.35) {
+      this.mimicT -= dt;
+      if (this.mimicT <= 0 && this.dist > 22 && this.dist < 65) { this.mimicT = rand(55, 95); Scare.mimic(); }
+    } else if (vis.visible && this.revealT <= 0 && this.seenT > 2.2 && this.dist > 14 && Math.random() < dt * 0.35) {
       this.teleport('far'); this.seenT = 0; GFX.fx.static = Math.max(GFX.fx.static, 0.8); SFX.whoosh(0);
     }
     // footsteps you can hear but not see

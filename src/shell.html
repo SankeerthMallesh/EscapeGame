@@ -46,7 +46,7 @@
     <div class="diff-note" id="diffNote"></div>
     <div class="controls">
       <div><b>WASD</b> move</div><div><b>Mouse</b> look</div><div><b>Shift</b> sprint</div><div><b>F</b> flashlight</div>
-      <div><b>E</b> interact</div><div><b>M</b> map</div><div><b>Esc</b> pause</div><div><b>🎧</b> headphones!</div>
+      <div><b>E</b> interact</div><div><b>C</b> crouch</div><div><b>M</b> map</div><div><b>Esc</b> pause</div>
     </div>
   </div>
 </div>
@@ -83,6 +83,7 @@
     <div class="bar-row"><span class="bar-ico">🔦</span><div class="bar"><div id="batFill"></div></div><span id="batPct"></span></div>
   </div>
   <div id="lookHint">Click and drag to look around</div>
+  <div id="chat"><div id="chatLines"></div><div id="chatTyping"></div></div>
 </div>
 
 <!-- Big map -->
@@ -154,6 +155,8 @@
     <button id="btnAgain" class="btn">PLAY AGAIN</button>
   </div>
 </div>
+
+<div id="crash" class="screen"><div class="crash-box"><div class="crash-title" id="crashTitle">Escape from Joury is not responding</div><div class="crash-body" id="crashBody">The program stopped working. Collecting crash data…</div><div class="crash-bar"><div id="crashFill"></div></div><div class="crash-btns"><span>Wait</span><span>Close the program</span></div></div></div>
 
 <div id="fatal" class="screen"><div class="panel"><div class="panel-title red">Can't start</div><div class="panel-text" id="fatalText"></div></div></div>
 

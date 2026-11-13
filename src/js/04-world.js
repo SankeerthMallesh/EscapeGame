@@ -134,6 +134,7 @@ const World = {
     progress(0.75, 'Carving jack-o\'-lanterns…');
     this.buildJacks(); this.buildGrass(); this.buildAtmosphere();
     this.findSpots();
+    Weather.init(this.scene);
     progress(0.85, 'Hiding the kids…');
     this.built = true;
   },
@@ -219,25 +220,25 @@ const World = {
       sh.fragmentShader = sh.fragmentShader
         .replace('#include <map_pars_fragment>', '#include <map_pars_fragment>\nuniform sampler2D tDirt, tLeaves, tStone, tDirtN, tLeavesN, tStoneN;\nvarying vec4 vSplat;')
         .replace('#include <normalmap_pars_fragment>', `#include <normalmap_pars_fragment>
-          vec4 splatNormal(vec2 uv){ vec3 n = texture2D(normalMap, uv).xyz; n = mix(n, texture2D(tLeavesN, uv * 1.1).xyz, vSplat.g); n = mix(n, texture2D(tDirtN, uv * 0.8).xyz, vSplat.r); n = mix(n, texture2D(tStoneN, uv * 0.45).xyz, vSplat.b); return vec4(n, 1.0); }`)
+          float puddle(){ float n = mN(vFogWorld.xz * 0.21) * 0.6 + mN(vFogWorld.xz * 0.55 + 3.1) * 0.4; return smoothstep(0.6, 0.7, n + vSplat.r * 0.12 - vSplat.b * 0.5 - vSplat.g * 0.15) * 0.9; }
+          vec4 splatNormal(vec2 uv){ float pd = puddle(); vec3 rp = normalize(vec3((mN(vFogWorld.xz * 7.0 + uTime * 1.7) - 0.5) * 0.06, (mN(vFogWorld.xz * 7.0 - uTime * 1.3 + 7.0) - 0.5) * 0.06, 1.0)) * 0.5 + 0.5; vec3 n = texture2D(normalMap, uv).xyz; n = mix(n, texture2D(tLeavesN, uv * 1.1).xyz, vSplat.g); n = mix(n, texture2D(tDirtN, uv * 0.8).xyz, vSplat.r); n = mix(n, texture2D(tStoneN, uv * 0.45).xyz, vSplat.b); n = mix(n, rp, pd); return vec4(n, 1.0); }`)
         .replace('#include <map_fragment>', `
           vec3 cg = mix(texture2D(map, vMapUv).rgb, texture2D(map, vMapUv * 0.27 + 0.31).rgb, 0.4);
           vec3 cl = texture2D(tLeaves, vMapUv * 1.1).rgb, cd = mix(texture2D(tDirt, vMapUv * 0.8).rgb, texture2D(tDirt, vMapUv * 0.21).rgb, 0.35), cs = texture2D(tStone, vMapUv * 0.45).rgb;
           vec3 cc = mix(cg, cl, vSplat.g); cc = mix(cc, cd, vSplat.r); cc = mix(cc, cs, vSplat.b);
-          diffuseColor.rgb *= cc * vSplat.a * 1.55;`)
+          float pdl = puddle(); diffuseColor.rgb *= cc * vSplat.a * 1.55 * (1.0 - pdl * 0.4);`)
         .replace(/texture2D\( normalMap, vNormalMapUv \)/g, 'splatNormal( vNormalMapUv )')
-        .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = roughness * (0.96 - vSplat.r * 0.1 - vSplat.b * 0.05);');
+        .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = mix(0.72 - vSplat.r * 0.12 - vSplat.b * 0.1, 0.14, puddle());');
     };
     fogify(mat);
     const m = new THREE.Mesh(geo, mat); m.receiveShadow = true; this.scene.add(m); this.terrain = m;
   },
   buildSkyWater() {
-    const sky = makeSky({ top: 0x020309, mid: 0x0c1320, bot: 0x05070b, sunDir: MOON_DIR, sunCol: 0x9fb4e0, sunSize: 0.99999, halo: 0.55, r: 400 });
+    const sky = makeSky({ top: 0x020309, mid: 0x0c1320, bot: 0x05070b, sunDir: MOON_DIR, sunCol: 0xc8d2ea, sunSize: 0.99982, halo: 0.55, r: 400, clouds: true });
     this.scene.add(sky); this.sky = sky;
-    this.stars = makeStars(1400, 370); this.scene.add(this.stars);
-    this.moon = makeMoon(MOON_DIR, 330, 28); this.scene.add(this.moon);
+    this.moon = new THREE.Object3D(); this.moon.position.copy(MOON_DIR).multiplyScalar(330);
     const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.glow, color: new THREE.Color(0.35, 0.4, 0.55), fog: false, depthWrite: false, blending: THREE.AdditiveBlending, transparent: true }));
-    halo.position.copy(this.moon.position); halo.scale.set(150, 150, 1); halo.renderOrder = -8; this.scene.add(halo);
+    halo.position.copy(this.moon.position); halo.scale.set(150, 150, 1); halo.renderOrder = -8;
     // reflection probe of the night sky for the lake
     const envScene = new THREE.Scene(); envScene.add(makeSky({ top: 0x05070d, mid: 0x182436, bot: 0x0a0e15, sunDir: MOON_DIR, sunCol: 0xc8d4f0, sunSize: 0.9996, halo: 1.2, r: 100 }));
     const pm = new THREE.PMREMGenerator(GFX.renderer); this.env = pm.fromScene(envScene, 0, 0.1, 500).texture; pm.dispose();
@@ -669,8 +670,9 @@ const World = {
       if (j.carved) {
         const fx = j.x + Math.sin(j.yaw) * j.s * 0.95, fz = j.z + Math.cos(j.yaw) * j.s * 0.95;
         _pv.set(fx, j.y + j.s * 0.05, fz); _sv.set(j.s, j.s * 0.85, j.s); _m4.compose(_pv, _q, _sv); faces.setMatrixAt(fi++, _m4);
-        this.glow.add(fx + Math.sin(j.yaw) * 0.1, j.y, fz + Math.cos(j.yaw) * 0.1, 0xff8a1a, j.s * 3.2, 0.55);
-        this.lights.add(fx + Math.sin(j.yaw) * 0.35, j.y + 0.2, fz + Math.cos(j.yaw) * 0.35, 0xff7a20, 4.5, 8, 0.45);
+        const gi = this.glow.add(fx + Math.sin(j.yaw) * 0.1, j.y, fz + Math.cos(j.yaw) * 0.1, 0xff8a1a, j.s * 3.2, 0.55);
+        const src = this.lights.add(fx + Math.sin(j.yaw) * 0.35, j.y + 0.2, fz + Math.cos(j.yaw) * 0.35, 0xff7a20, 4.5, 8, 0.45);
+        if (i < this.jacks.length) { this.jacks[i].gi = gi; this.jacks[i].src = src; }
       }
     });
     body.castShadow = true; body.receiveShadow = true; body.computeBoundingSphere(); this.scene.add(body);
@@ -805,6 +807,8 @@ const World = {
       if (dx * dx + dz * dz > 38 * 38) { const a = rand(0, TAU), r = rand(18, 34); s.position.x = camPos.x + Math.cos(a) * r; s.position.z = camPos.z + Math.sin(a) * r; }
       s.position.y = Math.max(0.3, this.groundAt(s.position.x, s.position.z)) + 0.9;
     });
+    { const cloud = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(t * 0.045) * Math.sin(t * 0.031 + 1.3)), L = this.lightningK || 0;
+      this.moonLight.intensity = 0.75 * cloud + L * 7; this.hemi.intensity = 0.45 + L * 2.2; }
     this.moonLight.target.position.set(camPos.x, 0, camPos.z); this.moonLight.position.copy(MOON_DIR).multiplyScalar(70).add(this.moonLight.target.position);
   },
 };

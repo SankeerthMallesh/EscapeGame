@@ -4,10 +4,10 @@
 const SLIDES = [
   { label: '1 · THE MATCH', scene: 'bridge', mode: 'match', text: 'Last summer, Joury and Vivek played Bridge in Minecraft.\nTwo islands. One bridge. First to five goals wins.' },
   { label: '2 · THE GOAL', scene: 'bridge', mode: 'goal', text: 'Four to four. Final point.\nVivek sprinted across the bridge… and jumped straight into Joury\'s goal.', big: '<span class="vb">VIVEK 5</span> – <span class="jr">4 JOURY</span>', bigAt: 3.3 },
-  { label: '3 · THE CRASH OUT', scene: 'room', text: 'Joury did not take it well.\nHe threw his controller. He never said GG.', big: 'NOT GG. NEVER GG.', bigRed: true, bigAt: 1.5 },
-  { label: '4 · HALLOWEEN', scene: 'street', mode: 'kids', text: 'One year later. Halloween night.\nTen kids went trick-or-treating down Hollow Lane.' },
-  { label: '5 · GONE', scene: 'street', mode: 'gone', text: 'By midnight, the street was empty.\nOnly their candy bags were left… and a candy trail leading into the dark woods.' },
-  { label: '6 · YOUR MISSION', scene: 'lake', text: 'The trail ends at a black lake. Across the water: Joury\'s island, and one lit window.\nFind all 10 kids. Find the boat parts. Don\'t let Joury catch you.' },
+  { label: '3 · THE CRASH OUT', scene: 'room', text: 'Joury did not take it well. He threw his controller across the room\nand swore he would never log off until he won.', big: 'NOT GG. NEVER GG.', bigRed: true, bigAt: 1.5 },
+  { label: '4 · HALLOWEEN', scene: 'street', mode: 'kids', text: 'He never did log off. For 365 days, his status said ONLINE.\nThen, on Halloween night, every kid on Hollow Lane got the same message.', big: '<span class="note">joury: who wants a rematch?</span>', bigAt: 4.2 },
+  { label: '5 · GONE', scene: 'street', mode: 'gone', text: 'By midnight, ten kids were gone. Every one of them had laughed when Joury lost.\nThey left their candy bags… and a trail leading into the woods.' },
+  { label: '6 · YOUR MISSION', scene: 'lake', text: 'The trail ends at a black lake. Across it: an island Joury built for his rematch.\nVivek won\'t come. So you will play instead.\nFind the 10 kids. Find the boat parts. Don\'t let Joury catch you.' },
 ];
 
 const Story = {
@@ -29,7 +29,7 @@ const Story = {
   },
   advance() { // click / space
     const S = SLIDES[this.idx]; if (!S) return;
-    if (!this.done) { this.typed = S.text.length; return; }
+    if (!this.done) { this.typed = S.text.length; this.done = true; $('storyText').textContent = S.text; $('storyNext').classList.add('on'); return; }
     SFX.uiClick(); this.next();
   },
   scene(name) {

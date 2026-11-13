@@ -69,14 +69,36 @@ const SFX = {
       const src = this.noiseSrc(true), lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 700;
       const g = ctx.createGain(); g.gain.value = 0; src.connect(lp); lp.connect(g); g.connect(this.amb); src.start(); L.fire = g;
     }
+    { // rain: a hiss over a soft roar, with patter
+      const src = this.noiseSrc(true), hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1200; const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 7000;
+      const src2 = this.noiseSrc(true); src2.playbackRate.value = 0.6; const lp2 = ctx.createBiquadFilter(); lp2.type = 'lowpass'; lp2.frequency.value = 600;
+      const g = ctx.createGain(); g.gain.value = 0; src.connect(hp); hp.connect(lp); lp.connect(g); const g2 = ctx.createGain(); g2.gain.value = 0.7; src2.connect(lp2); lp2.connect(g2); g2.connect(g); g.connect(this.amb); src.start(); src2.start(); L.rain = g;
+    }
     { // boat engine
       const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 48; const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 380;
       const am = ctx.createGain(); am.gain.value = 0.5; lfo(9, 0.4, am.gain, 'square');
       const g = ctx.createGain(); g.gain.value = 0; o.connect(lp); lp.connect(am); am.connect(g); g.connect(this.sfx); o.start(); L.engine = g;
     }
   },
+  chatPing(kind) { if (!this.ctx) return; const t = this.now; if (kind === 'joury') { this.osc('sine', 220, t, 0.35, 0.08, null, { slide: 160 }); this.osc('square', 440, t, 0.05, 0.03); } else this.osc('sine', kind === 'server' ? 1300 : 900, t, 0.12, 0.04, null, { slide: kind === 'server' ? 1500 : 1100 }); },
+  typing() { if (!this.ctx) return; const t = this.now; for (let i = 0; i < 9; i++) this.burst(t + i * 0.13 + Math.random() * 0.05, 0.02, 0.03, 'highpass', 3500, 1); },
+  kidCall(pan, vol, sob) {
+    if (!this.ctx) return; const t = this.now, ctx = this.ctx, dest = this.panner(pan);
+    const o = ctx.createOscillator(); o.type = 'triangle'; const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 3; f.frequency.value = 1400;
+    const base = sob ? 300 : 420; o.frequency.setValueAtTime(base, t);
+    const pts = sob ? [380, 300, 360, 280, 330] : [520, 470, 560, 430, 600, 380];
+    pts.forEach((v, i) => o.frequency.linearRampToValueAtTime(v * rand(0.95, 1.05), t + 0.18 * (i + 1)));
+    o.frequency.linearRampToValueAtTime(base * 0.5, t + 0.18 * (pts.length + 1)); // the last word drops much too low
+    const vib = ctx.createOscillator(); vib.frequency.value = 7; const vg = ctx.createGain(); vg.gain.value = 18; vib.connect(vg); vg.connect(o.frequency); vib.start(t); vib.stop(t + 1.6);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol * 0.5, t + 0.06); g.gain.setValueAtTime(vol * 0.5, t + 1.2); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
+    o.connect(f); f.connect(g); g.connect(dest); o.start(t); o.stop(t + 1.6);
+    this.burst(t, 1.3, 0.05 * vol, 'bandpass', 3000, 2, dest);
+  },
+  thunder(vol = 0.7) { if (!this.ctx) return; const t = this.now; this.burst(t, 0.25, vol * 0.6, 'lowpass', 2000, 0.5, null, 1, 0.005); this.burst(t + 0.1, 3.2, vol, 'lowpass', 160, 0.8, null, 0.45, 0.08); this.burst(t + 0.4, 2.4, vol * 0.5, 'lowpass', 90, 0.6, null, 0.35, 0.3); this.osc('sine', 48, t + 0.1, 2.2, vol * 0.4, null, { slide: 30, attack: 0.1 }); },
+  snuff() { if (!this.ctx) return; const t = this.now; this.burst(t, 0.35, 0.08, 'bandpass', 900, 1.5, null, 1, 0.01); },
+  pageTurn() { if (!this.ctx) return; const t = this.now; this.burst(t, 0.18, 0.12, 'highpass', 2500, 0.7); this.burst(t + 0.12, 0.12, 0.08, 'bandpass', 4000, 2); },
   setLoop(name, v, tc = 0.3) { if (!this.ctx) return; const g = this.loops[name]; if (g) g.gain.setTargetAtTime(Math.max(0, v), this.ctx.currentTime, tc); },
-  allLoopsOff(tc = 0.4) { ['wind', 'rumble', 'drone', 'static', 'water', 'fire', 'engine'].forEach((n) => this.setLoop(n, 0, tc)); },
+  allLoopsOff(tc = 0.4) { ['wind', 'rumble', 'drone', 'static', 'water', 'fire', 'engine', 'rain'].forEach((n) => this.setLoop(n, 0, tc)); },
 
   // ---- building blocks ----
   osc(type, f, t, dur, vol, dest, o = {}) {

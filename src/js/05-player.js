@@ -37,8 +37,9 @@ const Player = {
       if (Input.down('KeyA')) s -= 1; if (Input.down('KeyD')) s += 1;
     }
     const moving = f !== 0 || s !== 0, len = Math.hypot(f, s) || 1; f /= len; s /= len;
-    const wantRun = (Input.down('ShiftLeft') || Input.down('ShiftRight')) && moving && f >= 0 && !this.exhausted && this.stamina > 0;
-    const walk = opts.walk || 3.7, run = opts.run || 6.4;
+    this.crouching = !this.frozen && (Input.down('KeyC') || Input.down('ControlLeft'));
+    const wantRun = (Input.down('ShiftLeft') || Input.down('ShiftRight')) && moving && f >= 0 && !this.exhausted && this.stamina > 0 && !this.crouching;
+    const walk = this.crouching ? 1.8 : (opts.walk || 3.7), run = opts.run || 6.4;
     let speed = moving ? (wantRun ? run : walk) * (f < 0 ? 0.7 : 1) : 0;
     this.sprinting = wantRun;
     if (wantRun) { this.stamina = Math.max(0, this.stamina - dt / 5.5); if (this.stamina <= 0) { this.exhausted = true; this.breathT = 0; } }
@@ -62,9 +63,12 @@ const Player = {
       this.bobT += moved * (this.sprinting ? 2.3 : 2.6);
       this.stepAcc += moved;
       const stride = this.sprinting ? 1.05 : 0.78;
-      if (this.stepAcc > stride) { this.stepAcc = 0; SFX.step(env.surfaceKind(this.pos.x, this.pos.z), this.sprinting ? 1.2 : 0.8); }
+      if (this.stepAcc > stride) { this.stepAcc = 0; SFX.step(env.surfaceKind(this.pos.x, this.pos.z), this.sprinting ? 1.2 : this.crouching ? 0.3 : 0.8); }
     }
     this.fov = damp(this.fov, this.sprinting ? 76 : 70, 4, dt);
+    this.eye = damp(this.eye, this.crouching ? 1.05 : 1.62, 10, dt);
+    // how far away Joury can hear you
+    this.noise = !this.moving ? 0 : this.sprinting ? 32 : this.crouching ? 3 : (env.surfaceKind(this.pos.x, this.pos.z) === 'wood' ? 15 : 10);
     this.applyCam(dt);
   },
   applyCam() {

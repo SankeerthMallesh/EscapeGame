@@ -288,15 +288,15 @@ const MAT = {};
 function buildMaterials() {
   const L = (o) => fogify(new THREE.MeshLambertMaterial(o));
   const S = (o) => fogify(new THREE.MeshStandardMaterial(o));
-  MAT.plain = pbrMat('stoneN', { vertexColors: true, repeat: 0.6, normalScale: 0.35 });
-  MAT.wood = pbrMat('planksN', { vertexColors: true, repeat: 0.9 });
-  MAT.stone = pbrMat('stoneN', { vertexColors: true, repeat: 0.5 });
+  MAT.plain = pbrMat('stoneN', { vertexColors: true, repeat: 0.6, normalScale: 0.35, roughness: 0.8 });
+  MAT.wood = pbrMat('planksN', { vertexColors: true, repeat: 0.9, roughness: 0.7 });
+  MAT.stone = pbrMat('stoneN', { vertexColors: true, repeat: 0.5, roughness: 0.72 });
   MAT.metal = pbrMat('rustN', { vertexColors: true, repeat: 1, metalness: 0.35 });
   MAT.rust = pbrMat('rust', { repeat: 1, metalness: 0.5 });
   MAT.wallpaper = pbrMat('wallpaper', { vertexColors: true, repeat: 0.7 });
   MAT.glass = S({ vertexColors: true, roughness: 0.08, metalness: 0.4 });
   MAT.tree = pbrMat('barkN', { vertexColors: true, repeat: 1 });
-  MAT.bark = pbrMat('bark', { repeat: 1, normalScale: 1.4 });
+  MAT.bark = pbrMat('bark', { repeat: 1, normalScale: 1.4, roughness: 0.78 });
   MAT.rock = pbrMat('stoneN', { vertexColors: true, repeat: 0.8, normalScale: 1.3 });
   const foliage = (set, o = {}) => { const m = fogify(new THREE.MeshStandardMaterial({ map: PBR[set].map, alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.85, color: o.color || 0xffffff }), o.sway ? { sway: o.sway } : undefined); m.userData.depth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: PBR[set].map, alphaTest: 0.45 }); return m; };
   MAT.needles = foliage('needles', { color: 0xc8d6b8, sway: 0.012 });
@@ -484,7 +484,7 @@ class LightPool {
       const s = sl.src;
       if (!s || !s.on) { sl.L.intensity = 0; continue; }
       const f = 1 - s.flicker * (0.5 + 0.5 * Math.sin(time * 11 + s.phase) * Math.sin(time * 7.3 + s.phase * 2));
-      sl.L.position.copy(s.pos); sl.L.color.copy(s.color); sl.L.distance = s.dist; sl.L.intensity = s.intensity * sl.k * f;
+      sl.L.position.copy(s.pos); sl.L.color.copy(s.color); sl.L.distance = s.dist; sl.L.intensity = s.intensity * sl.k * f * (s.dim === undefined ? 1 : s.dim);
     }
   }
 }
@@ -492,14 +492,27 @@ class LightPool {
 // Sky dome with gradient and moon halo
 function makeSky(o) {
   const mat = new THREE.ShaderMaterial({
-    uniforms: { uTop: { value: new THREE.Color(o.top) }, uMid: { value: new THREE.Color(o.mid) }, uBot: { value: new THREE.Color(o.bot) }, uSunDir: { value: o.sunDir.clone().normalize() }, uSunCol: { value: new THREE.Color(o.sunCol) }, uSunSize: { value: o.sunSize || 0.9995 }, uHalo: { value: o.halo || 0.4 } },
+    uniforms: { uTop: { value: new THREE.Color(o.top) }, uMid: { value: new THREE.Color(o.mid) }, uBot: { value: new THREE.Color(o.bot) }, uSunDir: { value: o.sunDir.clone().normalize() }, uSunCol: { value: new THREE.Color(o.sunCol) }, uSunSize: { value: o.sunSize || 0.9995 }, uHalo: { value: o.halo || 0.4 }, uTime: FogU.uTime, uFlash: { value: 0 }, uClouds: { value: o.clouds ? 1 : 0 } },
     vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_Position = p.xyww; }',
-    fragmentShader: `uniform vec3 uTop, uMid, uBot, uSunDir, uSunCol; uniform float uSunSize, uHalo; varying vec3 vDir;
+    fragmentShader: `uniform vec3 uTop, uMid, uBot, uSunDir, uSunCol; uniform float uSunSize, uHalo, uTime, uFlash, uClouds; varying vec3 vDir;
+      float sh(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float sn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(sh(i), sh(i + vec2(1, 0)), f.x), mix(sh(i + vec2(0, 1)), sh(i + vec2(1, 1)), f.x), f.y); }
+      float sf(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { s += a * sn(p); p = p * 2.03 + 1.7; a *= 0.5; } return s; }
       void main(){ vec3 d = normalize(vDir); float h = d.y;
         vec3 c = h > 0.0 ? mix(uMid, uTop, pow(clamp(h, 0.0, 1.0), 0.55)) : mix(uMid, uBot, clamp(-h * 4.0, 0.0, 1.0));
         float s = max(dot(d, uSunDir), 0.0);
+        if (uClouds > 0.5 && h > 0.0) { vec3 sd = d * 380.0, cell = floor(sd); float r = sh(cell.xy + cell.z * 7.13); vec3 fr = fract(sd) - 0.5;
+          float star = step(0.9962, r) * smoothstep(0.45, 0.05, length(fr)) * smoothstep(0.05, 0.3, h) * (0.55 + 0.45 * sin(uTime * (1.0 + r * 3.0) + r * 60.0)); c += vec3(0.85, 0.9, 1.0) * star * 1.2; }
         c += uSunCol * (pow(s, 12.0) * 0.25 + pow(s, 120.0) * 0.6) * uHalo;
-        c += uSunCol * smoothstep(uSunSize, uSunSize + 0.0004, s) * 2.5;
+        float disk = smoothstep(uSunSize, uSunSize + 0.00004, s);
+        c += uSunCol * disk * (2.2 - 0.6 * sn(d.xy * 900.0) - 0.4 * sn(d.zy * 400.0));
+        if (uClouds > 0.5) {
+          vec2 uv = d.xz / max(h + 0.14, 0.06) * 0.85 + vec2(uTime * 0.006, uTime * 0.0035);
+          float cl = sf(uv * 1.3), cov = smoothstep(0.43, 0.72, cl) * smoothstep(-0.06, 0.2, h), edge = smoothstep(0.43, 0.6, cl) - smoothstep(0.6, 0.75, cl);
+          vec3 cc = mix(vec3(0.010, 0.012, 0.018), vec3(0.16, 0.18, 0.24), pow(s, 6.0) * (0.6 + edge)) + uFlash * vec3(0.9, 0.92, 1.05) * (0.4 + cl);
+          c = mix(c, cc, cov * 0.94);
+        }
+        c += uFlash * vec3(0.18, 0.2, 0.28) * (0.3 + 0.7 * max(h, 0.0));
         gl_FragColor = vec4(c, 1.0); }`,
     side: THREE.BackSide, depthWrite: false, fog: false,
   });

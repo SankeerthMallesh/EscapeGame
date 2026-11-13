@@ -154,6 +154,7 @@ input[type=checkbox]{accent-color:#c3242b;width:18px;height:18px}
 .end-lines .big{font-family:var(--display);font-size:clamp(34px,6vw,56px);color:#ffcf6a;letter-spacing:.08em;display:block;margin:6px 0;text-shadow:0 0 20px rgba(255,160,40,.5)}
 .end-lines .line{opacity:0;transition:opacity 1s;display:block}
 .end-lines .line.on{opacity:1}
+.end-lines .srv{display:inline-block;margin-top:14px;font-family:Inter,system-ui,sans-serif;font-size:14px;color:#e8c46a;background:rgba(0,0,0,.45);padding:3px 9px;border-radius:4px;letter-spacing:.01em}
 .stats{display:grid;grid-template-columns:auto auto;gap:6px 24px;font-family:var(--mono);font-size:16px;margin:12px 0;padding:12px 20px;border:1px solid var(--line);background:rgba(0,0,0,.4);opacity:0;transition:opacity 1s}
 .stats.on{opacity:1}
 .stats span:nth-child(odd){color:var(--dim)}
@@ -238,6 +239,27 @@ input[type=range]{accent-color:#b3141c}
 .end-lines .big{font-family:var(--display);color:#e7c98a}
 .stats{font-family:var(--ui)}
 .map-legend{font-family:var(--ui);font-size:12px}
+#storyBig .note{display:inline-block;font-family:var(--ui);font-size:clamp(16px,2.2vw,22px);letter-spacing:0;color:#e9e2d4;background:rgba(14,14,18,.92);border:1px solid rgba(233,226,212,.18);border-left:3px solid #c0141d;border-radius:6px;padding:12px 18px;text-shadow:none;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+#chat{position:absolute;left:18px;bottom:64px;width:min(380px,44vw);font-family:var(--ui);font-size:13px;line-height:1.45;pointer-events:none}
+#chatLines .cl{background:rgba(0,0,0,.42);padding:2px 8px;margin-top:2px;border-radius:2px;color:#d8d0c2;text-shadow:0 1px 2px #000;transition:opacity .5s;width:fit-content;max-width:100%}
+#chatLines .cl b{font-weight:600;margin-right:6px;color:#9fc4ff}
+#chatLines .cl.server{color:#e8d27a;font-size:12px}
+#chatLines .cl.joury{color:#ff6a5a}
+#chatLines .cl.joury b{color:#ff3a2a}
+#chatTyping{font-size:12px;color:#ff8a7a;font-style:italic;min-height:16px;margin-top:3px;text-shadow:0 1px 2px #000}
+#crash{align-items:center;justify-content:center;background:rgba(8,8,10,.55);z-index:40}
+.crash-box{width:min(520px,90vw);background:#f0f0f0;color:#1a1a1a;font-family:var(--ui);border:1px solid #9a9a9a;box-shadow:0 18px 50px rgba(0,0,0,.6);padding:18px 20px}
+.crash-title{font-weight:600;font-size:15px;margin-bottom:10px}
+.crash-body{font-size:13px;line-height:1.5;min-height:40px;white-space:pre-wrap}
+.crash-bar{height:14px;border:1px solid #9a9a9a;background:#fff;margin:12px 0}
+#crashFill{height:100%;width:0;background:#3a7bd5;transition:width .2s}
+.crash-btns{display:flex;justify-content:flex-end;gap:8px;font-size:13px}
+.crash-btns span{border:1px solid #9a9a9a;padding:4px 14px;background:#e4e4e4}
+#crash.evil .crash-box{background:#120404;color:#ff4a3a;border-color:#6a0a0a}
+#crash.evil .crash-title{font-family:var(--display);font-size:22px;letter-spacing:.06em}
+#crash.evil .crash-body{font-family:var(--mono);font-size:16px;color:#ffd0c8}
+#crash.evil #crashFill{background:#b3141c}
+#crash.evil .crash-btns span{background:#1a0606;border-color:#6a0a0a;color:#ff6a5a}
 
 </style>
 </head>
@@ -278,7 +300,7 @@ input[type=range]{accent-color:#b3141c}
     <div class="diff-note" id="diffNote"></div>
     <div class="controls">
       <div><b>WASD</b> move</div><div><b>Mouse</b> look</div><div><b>Shift</b> sprint</div><div><b>F</b> flashlight</div>
-      <div><b>E</b> interact</div><div><b>M</b> map</div><div><b>Esc</b> pause</div><div><b>🎧</b> headphones!</div>
+      <div><b>E</b> interact</div><div><b>C</b> crouch</div><div><b>M</b> map</div><div><b>Esc</b> pause</div>
     </div>
   </div>
 </div>
@@ -315,6 +337,7 @@ input[type=range]{accent-color:#b3141c}
     <div class="bar-row"><span class="bar-ico">🔦</span><div class="bar"><div id="batFill"></div></div><span id="batPct"></span></div>
   </div>
   <div id="lookHint">Click and drag to look around</div>
+  <div id="chat"><div id="chatLines"></div><div id="chatTyping"></div></div>
 </div>
 
 <!-- Big map -->
@@ -386,6 +409,8 @@ input[type=range]{accent-color:#b3141c}
     <button id="btnAgain" class="btn">PLAY AGAIN</button>
   </div>
 </div>
+
+<div id="crash" class="screen"><div class="crash-box"><div class="crash-title" id="crashTitle">Escape from Joury is not responding</div><div class="crash-body" id="crashBody">The program stopped working. Collecting crash data…</div><div class="crash-bar"><div id="crashFill"></div></div><div class="crash-btns"><span>Wait</span><span>Close the program</span></div></div></div>
 
 <div id="fatal" class="screen"><div class="panel"><div class="panel-title red">Can't start</div><div class="panel-text" id="fatalText"></div></div></div>
 
@@ -575,14 +600,36 @@ const SFX = {
       const src = this.noiseSrc(true), lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 700;
       const g = ctx.createGain(); g.gain.value = 0; src.connect(lp); lp.connect(g); g.connect(this.amb); src.start(); L.fire = g;
     }
+    { // rain: a hiss over a soft roar, with patter
+      const src = this.noiseSrc(true), hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1200; const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 7000;
+      const src2 = this.noiseSrc(true); src2.playbackRate.value = 0.6; const lp2 = ctx.createBiquadFilter(); lp2.type = 'lowpass'; lp2.frequency.value = 600;
+      const g = ctx.createGain(); g.gain.value = 0; src.connect(hp); hp.connect(lp); lp.connect(g); const g2 = ctx.createGain(); g2.gain.value = 0.7; src2.connect(lp2); lp2.connect(g2); g2.connect(g); g.connect(this.amb); src.start(); src2.start(); L.rain = g;
+    }
     { // boat engine
       const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 48; const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 380;
       const am = ctx.createGain(); am.gain.value = 0.5; lfo(9, 0.4, am.gain, 'square');
       const g = ctx.createGain(); g.gain.value = 0; o.connect(lp); lp.connect(am); am.connect(g); g.connect(this.sfx); o.start(); L.engine = g;
     }
   },
+  chatPing(kind) { if (!this.ctx) return; const t = this.now; if (kind === 'joury') { this.osc('sine', 220, t, 0.35, 0.08, null, { slide: 160 }); this.osc('square', 440, t, 0.05, 0.03); } else this.osc('sine', kind === 'server' ? 1300 : 900, t, 0.12, 0.04, null, { slide: kind === 'server' ? 1500 : 1100 }); },
+  typing() { if (!this.ctx) return; const t = this.now; for (let i = 0; i < 9; i++) this.burst(t + i * 0.13 + Math.random() * 0.05, 0.02, 0.03, 'highpass', 3500, 1); },
+  kidCall(pan, vol, sob) {
+    if (!this.ctx) return; const t = this.now, ctx = this.ctx, dest = this.panner(pan);
+    const o = ctx.createOscillator(); o.type = 'triangle'; const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 3; f.frequency.value = 1400;
+    const base = sob ? 300 : 420; o.frequency.setValueAtTime(base, t);
+    const pts = sob ? [380, 300, 360, 280, 330] : [520, 470, 560, 430, 600, 380];
+    pts.forEach((v, i) => o.frequency.linearRampToValueAtTime(v * rand(0.95, 1.05), t + 0.18 * (i + 1)));
+    o.frequency.linearRampToValueAtTime(base * 0.5, t + 0.18 * (pts.length + 1)); // the last word drops much too low
+    const vib = ctx.createOscillator(); vib.frequency.value = 7; const vg = ctx.createGain(); vg.gain.value = 18; vib.connect(vg); vg.connect(o.frequency); vib.start(t); vib.stop(t + 1.6);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol * 0.5, t + 0.06); g.gain.setValueAtTime(vol * 0.5, t + 1.2); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
+    o.connect(f); f.connect(g); g.connect(dest); o.start(t); o.stop(t + 1.6);
+    this.burst(t, 1.3, 0.05 * vol, 'bandpass', 3000, 2, dest);
+  },
+  thunder(vol = 0.7) { if (!this.ctx) return; const t = this.now; this.burst(t, 0.25, vol * 0.6, 'lowpass', 2000, 0.5, null, 1, 0.005); this.burst(t + 0.1, 3.2, vol, 'lowpass', 160, 0.8, null, 0.45, 0.08); this.burst(t + 0.4, 2.4, vol * 0.5, 'lowpass', 90, 0.6, null, 0.35, 0.3); this.osc('sine', 48, t + 0.1, 2.2, vol * 0.4, null, { slide: 30, attack: 0.1 }); },
+  snuff() { if (!this.ctx) return; const t = this.now; this.burst(t, 0.35, 0.08, 'bandpass', 900, 1.5, null, 1, 0.01); },
+  pageTurn() { if (!this.ctx) return; const t = this.now; this.burst(t, 0.18, 0.12, 'highpass', 2500, 0.7); this.burst(t + 0.12, 0.12, 0.08, 'bandpass', 4000, 2); },
   setLoop(name, v, tc = 0.3) { if (!this.ctx) return; const g = this.loops[name]; if (g) g.gain.setTargetAtTime(Math.max(0, v), this.ctx.currentTime, tc); },
-  allLoopsOff(tc = 0.4) { ['wind', 'rumble', 'drone', 'static', 'water', 'fire', 'engine'].forEach((n) => this.setLoop(n, 0, tc)); },
+  allLoopsOff(tc = 0.4) { ['wind', 'rumble', 'drone', 'static', 'water', 'fire', 'engine', 'rain'].forEach((n) => this.setLoop(n, 0, tc)); },
 
   // ---- building blocks ----
   osc(type, f, t, dur, vol, dest, o = {}) {
@@ -980,15 +1027,15 @@ const MAT = {};
 function buildMaterials() {
   const L = (o) => fogify(new THREE.MeshLambertMaterial(o));
   const S = (o) => fogify(new THREE.MeshStandardMaterial(o));
-  MAT.plain = pbrMat('stoneN', { vertexColors: true, repeat: 0.6, normalScale: 0.35 });
-  MAT.wood = pbrMat('planksN', { vertexColors: true, repeat: 0.9 });
-  MAT.stone = pbrMat('stoneN', { vertexColors: true, repeat: 0.5 });
+  MAT.plain = pbrMat('stoneN', { vertexColors: true, repeat: 0.6, normalScale: 0.35, roughness: 0.8 });
+  MAT.wood = pbrMat('planksN', { vertexColors: true, repeat: 0.9, roughness: 0.7 });
+  MAT.stone = pbrMat('stoneN', { vertexColors: true, repeat: 0.5, roughness: 0.72 });
   MAT.metal = pbrMat('rustN', { vertexColors: true, repeat: 1, metalness: 0.35 });
   MAT.rust = pbrMat('rust', { repeat: 1, metalness: 0.5 });
   MAT.wallpaper = pbrMat('wallpaper', { vertexColors: true, repeat: 0.7 });
   MAT.glass = S({ vertexColors: true, roughness: 0.08, metalness: 0.4 });
   MAT.tree = pbrMat('barkN', { vertexColors: true, repeat: 1 });
-  MAT.bark = pbrMat('bark', { repeat: 1, normalScale: 1.4 });
+  MAT.bark = pbrMat('bark', { repeat: 1, normalScale: 1.4, roughness: 0.78 });
   MAT.rock = pbrMat('stoneN', { vertexColors: true, repeat: 0.8, normalScale: 1.3 });
   const foliage = (set, o = {}) => { const m = fogify(new THREE.MeshStandardMaterial({ map: PBR[set].map, alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.85, color: o.color || 0xffffff }), o.sway ? { sway: o.sway } : undefined); m.userData.depth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: PBR[set].map, alphaTest: 0.45 }); return m; };
   MAT.needles = foliage('needles', { color: 0xc8d6b8, sway: 0.012 });
@@ -1176,7 +1223,7 @@ class LightPool {
       const s = sl.src;
       if (!s || !s.on) { sl.L.intensity = 0; continue; }
       const f = 1 - s.flicker * (0.5 + 0.5 * Math.sin(time * 11 + s.phase) * Math.sin(time * 7.3 + s.phase * 2));
-      sl.L.position.copy(s.pos); sl.L.color.copy(s.color); sl.L.distance = s.dist; sl.L.intensity = s.intensity * sl.k * f;
+      sl.L.position.copy(s.pos); sl.L.color.copy(s.color); sl.L.distance = s.dist; sl.L.intensity = s.intensity * sl.k * f * (s.dim === undefined ? 1 : s.dim);
     }
   }
 }
@@ -1184,14 +1231,27 @@ class LightPool {
 // Sky dome with gradient and moon halo
 function makeSky(o) {
   const mat = new THREE.ShaderMaterial({
-    uniforms: { uTop: { value: new THREE.Color(o.top) }, uMid: { value: new THREE.Color(o.mid) }, uBot: { value: new THREE.Color(o.bot) }, uSunDir: { value: o.sunDir.clone().normalize() }, uSunCol: { value: new THREE.Color(o.sunCol) }, uSunSize: { value: o.sunSize || 0.9995 }, uHalo: { value: o.halo || 0.4 } },
+    uniforms: { uTop: { value: new THREE.Color(o.top) }, uMid: { value: new THREE.Color(o.mid) }, uBot: { value: new THREE.Color(o.bot) }, uSunDir: { value: o.sunDir.clone().normalize() }, uSunCol: { value: new THREE.Color(o.sunCol) }, uSunSize: { value: o.sunSize || 0.9995 }, uHalo: { value: o.halo || 0.4 }, uTime: FogU.uTime, uFlash: { value: 0 }, uClouds: { value: o.clouds ? 1 : 0 } },
     vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_Position = p.xyww; }',
-    fragmentShader: `uniform vec3 uTop, uMid, uBot, uSunDir, uSunCol; uniform float uSunSize, uHalo; varying vec3 vDir;
+    fragmentShader: `uniform vec3 uTop, uMid, uBot, uSunDir, uSunCol; uniform float uSunSize, uHalo, uTime, uFlash, uClouds; varying vec3 vDir;
+      float sh(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float sn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(sh(i), sh(i + vec2(1, 0)), f.x), mix(sh(i + vec2(0, 1)), sh(i + vec2(1, 1)), f.x), f.y); }
+      float sf(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { s += a * sn(p); p = p * 2.03 + 1.7; a *= 0.5; } return s; }
       void main(){ vec3 d = normalize(vDir); float h = d.y;
         vec3 c = h > 0.0 ? mix(uMid, uTop, pow(clamp(h, 0.0, 1.0), 0.55)) : mix(uMid, uBot, clamp(-h * 4.0, 0.0, 1.0));
         float s = max(dot(d, uSunDir), 0.0);
+        if (uClouds > 0.5 && h > 0.0) { vec3 sd = d * 380.0, cell = floor(sd); float r = sh(cell.xy + cell.z * 7.13); vec3 fr = fract(sd) - 0.5;
+          float star = step(0.9962, r) * smoothstep(0.45, 0.05, length(fr)) * smoothstep(0.05, 0.3, h) * (0.55 + 0.45 * sin(uTime * (1.0 + r * 3.0) + r * 60.0)); c += vec3(0.85, 0.9, 1.0) * star * 1.2; }
         c += uSunCol * (pow(s, 12.0) * 0.25 + pow(s, 120.0) * 0.6) * uHalo;
-        c += uSunCol * smoothstep(uSunSize, uSunSize + 0.0004, s) * 2.5;
+        float disk = smoothstep(uSunSize, uSunSize + 0.00004, s);
+        c += uSunCol * disk * (2.2 - 0.6 * sn(d.xy * 900.0) - 0.4 * sn(d.zy * 400.0));
+        if (uClouds > 0.5) {
+          vec2 uv = d.xz / max(h + 0.14, 0.06) * 0.85 + vec2(uTime * 0.006, uTime * 0.0035);
+          float cl = sf(uv * 1.3), cov = smoothstep(0.43, 0.72, cl) * smoothstep(-0.06, 0.2, h), edge = smoothstep(0.43, 0.6, cl) - smoothstep(0.6, 0.75, cl);
+          vec3 cc = mix(vec3(0.010, 0.012, 0.018), vec3(0.16, 0.18, 0.24), pow(s, 6.0) * (0.6 + edge)) + uFlash * vec3(0.9, 0.92, 1.05) * (0.4 + cl);
+          c = mix(c, cc, cov * 0.94);
+        }
+        c += uFlash * vec3(0.18, 0.2, 0.28) * (0.3 + 0.7 * max(h, 0.0));
         gl_FragColor = vec4(c, 1.0); }`,
     side: THREE.BackSide, depthWrite: false, fog: false,
   });
@@ -2392,6 +2452,7 @@ const World = {
     progress(0.75, 'Carving jack-o\'-lanterns…');
     this.buildJacks(); this.buildGrass(); this.buildAtmosphere();
     this.findSpots();
+    Weather.init(this.scene);
     progress(0.85, 'Hiding the kids…');
     this.built = true;
   },
@@ -2477,25 +2538,25 @@ const World = {
       sh.fragmentShader = sh.fragmentShader
         .replace('#include <map_pars_fragment>', '#include <map_pars_fragment>\nuniform sampler2D tDirt, tLeaves, tStone, tDirtN, tLeavesN, tStoneN;\nvarying vec4 vSplat;')
         .replace('#include <normalmap_pars_fragment>', `#include <normalmap_pars_fragment>
-          vec4 splatNormal(vec2 uv){ vec3 n = texture2D(normalMap, uv).xyz; n = mix(n, texture2D(tLeavesN, uv * 1.1).xyz, vSplat.g); n = mix(n, texture2D(tDirtN, uv * 0.8).xyz, vSplat.r); n = mix(n, texture2D(tStoneN, uv * 0.45).xyz, vSplat.b); return vec4(n, 1.0); }`)
+          float puddle(){ float n = mN(vFogWorld.xz * 0.21) * 0.6 + mN(vFogWorld.xz * 0.55 + 3.1) * 0.4; return smoothstep(0.6, 0.7, n + vSplat.r * 0.12 - vSplat.b * 0.5 - vSplat.g * 0.15) * 0.9; }
+          vec4 splatNormal(vec2 uv){ float pd = puddle(); vec3 rp = normalize(vec3((mN(vFogWorld.xz * 7.0 + uTime * 1.7) - 0.5) * 0.06, (mN(vFogWorld.xz * 7.0 - uTime * 1.3 + 7.0) - 0.5) * 0.06, 1.0)) * 0.5 + 0.5; vec3 n = texture2D(normalMap, uv).xyz; n = mix(n, texture2D(tLeavesN, uv * 1.1).xyz, vSplat.g); n = mix(n, texture2D(tDirtN, uv * 0.8).xyz, vSplat.r); n = mix(n, texture2D(tStoneN, uv * 0.45).xyz, vSplat.b); n = mix(n, rp, pd); return vec4(n, 1.0); }`)
         .replace('#include <map_fragment>', `
           vec3 cg = mix(texture2D(map, vMapUv).rgb, texture2D(map, vMapUv * 0.27 + 0.31).rgb, 0.4);
           vec3 cl = texture2D(tLeaves, vMapUv * 1.1).rgb, cd = mix(texture2D(tDirt, vMapUv * 0.8).rgb, texture2D(tDirt, vMapUv * 0.21).rgb, 0.35), cs = texture2D(tStone, vMapUv * 0.45).rgb;
           vec3 cc = mix(cg, cl, vSplat.g); cc = mix(cc, cd, vSplat.r); cc = mix(cc, cs, vSplat.b);
-          diffuseColor.rgb *= cc * vSplat.a * 1.55;`)
+          float pdl = puddle(); diffuseColor.rgb *= cc * vSplat.a * 1.55 * (1.0 - pdl * 0.4);`)
         .replace(/texture2D\( normalMap, vNormalMapUv \)/g, 'splatNormal( vNormalMapUv )')
-        .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = roughness * (0.96 - vSplat.r * 0.1 - vSplat.b * 0.05);');
+        .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = mix(0.72 - vSplat.r * 0.12 - vSplat.b * 0.1, 0.14, puddle());');
     };
     fogify(mat);
     const m = new THREE.Mesh(geo, mat); m.receiveShadow = true; this.scene.add(m); this.terrain = m;
   },
   buildSkyWater() {
-    const sky = makeSky({ top: 0x020309, mid: 0x0c1320, bot: 0x05070b, sunDir: MOON_DIR, sunCol: 0x9fb4e0, sunSize: 0.99999, halo: 0.55, r: 400 });
+    const sky = makeSky({ top: 0x020309, mid: 0x0c1320, bot: 0x05070b, sunDir: MOON_DIR, sunCol: 0xc8d2ea, sunSize: 0.99982, halo: 0.55, r: 400, clouds: true });
     this.scene.add(sky); this.sky = sky;
-    this.stars = makeStars(1400, 370); this.scene.add(this.stars);
-    this.moon = makeMoon(MOON_DIR, 330, 28); this.scene.add(this.moon);
+    this.moon = new THREE.Object3D(); this.moon.position.copy(MOON_DIR).multiplyScalar(330);
     const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.glow, color: new THREE.Color(0.35, 0.4, 0.55), fog: false, depthWrite: false, blending: THREE.AdditiveBlending, transparent: true }));
-    halo.position.copy(this.moon.position); halo.scale.set(150, 150, 1); halo.renderOrder = -8; this.scene.add(halo);
+    halo.position.copy(this.moon.position); halo.scale.set(150, 150, 1); halo.renderOrder = -8;
     // reflection probe of the night sky for the lake
     const envScene = new THREE.Scene(); envScene.add(makeSky({ top: 0x05070d, mid: 0x182436, bot: 0x0a0e15, sunDir: MOON_DIR, sunCol: 0xc8d4f0, sunSize: 0.9996, halo: 1.2, r: 100 }));
     const pm = new THREE.PMREMGenerator(GFX.renderer); this.env = pm.fromScene(envScene, 0, 0.1, 500).texture; pm.dispose();
@@ -2927,8 +2988,9 @@ const World = {
       if (j.carved) {
         const fx = j.x + Math.sin(j.yaw) * j.s * 0.95, fz = j.z + Math.cos(j.yaw) * j.s * 0.95;
         _pv.set(fx, j.y + j.s * 0.05, fz); _sv.set(j.s, j.s * 0.85, j.s); _m4.compose(_pv, _q, _sv); faces.setMatrixAt(fi++, _m4);
-        this.glow.add(fx + Math.sin(j.yaw) * 0.1, j.y, fz + Math.cos(j.yaw) * 0.1, 0xff8a1a, j.s * 3.2, 0.55);
-        this.lights.add(fx + Math.sin(j.yaw) * 0.35, j.y + 0.2, fz + Math.cos(j.yaw) * 0.35, 0xff7a20, 4.5, 8, 0.45);
+        const gi = this.glow.add(fx + Math.sin(j.yaw) * 0.1, j.y, fz + Math.cos(j.yaw) * 0.1, 0xff8a1a, j.s * 3.2, 0.55);
+        const src = this.lights.add(fx + Math.sin(j.yaw) * 0.35, j.y + 0.2, fz + Math.cos(j.yaw) * 0.35, 0xff7a20, 4.5, 8, 0.45);
+        if (i < this.jacks.length) { this.jacks[i].gi = gi; this.jacks[i].src = src; }
       }
     });
     body.castShadow = true; body.receiveShadow = true; body.computeBoundingSphere(); this.scene.add(body);
@@ -3063,6 +3125,8 @@ const World = {
       if (dx * dx + dz * dz > 38 * 38) { const a = rand(0, TAU), r = rand(18, 34); s.position.x = camPos.x + Math.cos(a) * r; s.position.z = camPos.z + Math.sin(a) * r; }
       s.position.y = Math.max(0.3, this.groundAt(s.position.x, s.position.z)) + 0.9;
     });
+    { const cloud = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(t * 0.045) * Math.sin(t * 0.031 + 1.3)), L = this.lightningK || 0;
+      this.moonLight.intensity = 0.75 * cloud + L * 7; this.hemi.intensity = 0.45 + L * 2.2; }
     this.moonLight.target.position.set(camPos.x, 0, camPos.z); this.moonLight.position.copy(MOON_DIR).multiplyScalar(70).add(this.moonLight.target.position);
   },
 };
@@ -3112,8 +3176,9 @@ const Player = {
       if (Input.down('KeyA')) s -= 1; if (Input.down('KeyD')) s += 1;
     }
     const moving = f !== 0 || s !== 0, len = Math.hypot(f, s) || 1; f /= len; s /= len;
-    const wantRun = (Input.down('ShiftLeft') || Input.down('ShiftRight')) && moving && f >= 0 && !this.exhausted && this.stamina > 0;
-    const walk = opts.walk || 3.7, run = opts.run || 6.4;
+    this.crouching = !this.frozen && (Input.down('KeyC') || Input.down('ControlLeft'));
+    const wantRun = (Input.down('ShiftLeft') || Input.down('ShiftRight')) && moving && f >= 0 && !this.exhausted && this.stamina > 0 && !this.crouching;
+    const walk = this.crouching ? 1.8 : (opts.walk || 3.7), run = opts.run || 6.4;
     let speed = moving ? (wantRun ? run : walk) * (f < 0 ? 0.7 : 1) : 0;
     this.sprinting = wantRun;
     if (wantRun) { this.stamina = Math.max(0, this.stamina - dt / 5.5); if (this.stamina <= 0) { this.exhausted = true; this.breathT = 0; } }
@@ -3137,9 +3202,12 @@ const Player = {
       this.bobT += moved * (this.sprinting ? 2.3 : 2.6);
       this.stepAcc += moved;
       const stride = this.sprinting ? 1.05 : 0.78;
-      if (this.stepAcc > stride) { this.stepAcc = 0; SFX.step(env.surfaceKind(this.pos.x, this.pos.z), this.sprinting ? 1.2 : 0.8); }
+      if (this.stepAcc > stride) { this.stepAcc = 0; SFX.step(env.surfaceKind(this.pos.x, this.pos.z), this.sprinting ? 1.2 : this.crouching ? 0.3 : 0.8); }
     }
     this.fov = damp(this.fov, this.sprinting ? 76 : 70, 4, dt);
+    this.eye = damp(this.eye, this.crouching ? 1.05 : 1.62, 10, dt);
+    // how far away Joury can hear you
+    this.noise = !this.moving ? 0 : this.sprinting ? 32 : this.crouching ? 3 : (env.surfaceKind(this.pos.x, this.pos.z) === 'wood' ? 15 : 10);
     this.applyCam(dt);
   },
   applyCam() {
@@ -3178,16 +3246,18 @@ const Player = {
 //  JOURY — waits, wanders, stalks, teleports behind you, stares you down
 // =====================================================================
 const JOURY_LINES = ['GG? NOT GG.', 'Rematch, Vivek!', 'Five to four. FIVE. TO. FOUR.', "You can't spawn-camp me.", 'Trick or treat… or DEFEAT.', 'Nobody leaves until I win.', 'My controller still works. Mostly.', 'Bridge is MY game.', 'I see you.', 'One more round…', 'It was LAG. It was LAG!', 'Who said you could leave the lobby?', 'Say GG. I dare you.'];
-const JOURY_ANGRY = ['GIVE BACK MY CANDY!', 'NO BOATS. NO REMATCHES.', "YOU'RE NOT LEAVING MY SERVER!", "I'M NOT MAD. I'M NOT MAD!", 'NOT. GG.', 'THAT BOAT IS RIGGED!'];
+const JOURY_ANGRY = ["YOU LAUGHED TOO. DIDN'T YOU?", 'NO BOATS. NO REMATCHES.', "YOU'RE NOT LEAVING MY SERVER!", "I'M NOT MAD. I'M NOT MAD!", 'NOT. GG.', 'THAT BOAT IS RIGGED!'];
 const _jv = new THREE.Vector3(), _jv2 = new THREE.Vector3(), _jv3 = new THREE.Vector3();
 
 const Joury = {
   c: null, pos: new THREE.Vector3(), yaw: 0, state: 'dormant', t: 0, timer: 0, stare: 0, seen: false, looking: false, seenT: 0, unseenT: 0,
   tpT: 12, lineT: 18, stepT: 0, stunT: 0, enraged: false, dist: 99, danger: 0, stuckT: 0, moving: false, speed: 0, lastLine: '',
+  knowT: 0, heardT: 99, heardPos: new THREE.Vector3(), roam: new THREE.Vector3(), roamT: 0, mimicT: 70, revealT: 0, spotted: false,
   init(scene) { this.c = makeJoury(); this.c.root.visible = false; scene.add(this.c.root); },
   reset() {
     this.state = 'dormant'; this.timer = D().startDelay; this.stare = 0; this.seenT = this.unseenT = 0; this.enraged = false; this.danger = 0; this.seen = this.looking = false;
     this.tpT = rand(D().tpMin, D().tpMax); this.lineT = 22; this.stunT = 0; this.tipShown = false;
+    this.knowT = 0; this.heardT = 99; this.roamT = 0; this.mimicT = rand(55, 80); this.revealT = 0; this.spotted = false;
     const cb = World.cabin; this.pos.set(cb.x, cb.y, cb.z); this.c.root.visible = false; this.dist = 99;
   },
   wake() {
@@ -3195,7 +3265,7 @@ const Joury = {
     this.tpT = 6;
     const far = Math.hypot(Player.pos.x - d.x, Player.pos.z - d.z);
     SFX.slam(clamp(1 - far / 200, 0.15, 0.6));
-    HUD.toast('Somewhere in the woods, a cabin door slams.<br><b>Joury is awake.</b>', 4.5);
+    HUD.toast('Somewhere in the woods, a cabin door slams.<br><b>Joury is awake.</b> He hunts by sound — sprinting is loud, crouching (C) is quiet.', 5.5); Scare.onWake();
     setTimeout(() => this.say('…Who is on MY island?'), 1800);
   },
   speedFor() { const d = D(); return d.chaseBase + d.chasePerKid * Game.savedCount() + (this.enraged ? d.enrage : 0); },
@@ -3218,17 +3288,25 @@ const Joury = {
       let a, dist;
       if (mode === 'behind') { a = Player.yaw + Math.PI + rand(-1.0, 1.0); dist = rand(d.tpDist[0], d.tpDist[1]) * prog; }
       else if (mode === 'ahead') { a = Player.yaw + rand(-0.45, 0.45); dist = rand(22, 30); }
+      else if (mode === 'near') { a = rand(0, TAU); dist = rand(24, 36); }
+      else if (mode === 'reveal') { a = Player.yaw + rand(-0.35, 0.35); dist = rand(14, 20); }
       else { a = rand(0, TAU); dist = rand(55, 80); }
       const x = P.x - Math.sin(a) * dist, z = P.z - Math.cos(a) * dist;
       if (!World.walkable(x, z) || World.onBridge(x, z) || World.onDock(x, z)) continue;
       const p = { x, z }; World.resolve(p, 0.5); if (Math.hypot(p.x - x, p.z - z) > 0.2) continue;
-      if (mode === 'behind') { const fx = -Math.sin(Player.yaw), fz = -Math.cos(Player.yaw); if (((x - P.x) * fx + (z - P.z) * fz) / dist > 0.1) continue; }
+      if (mode === 'behind' || mode === 'near') { const fx = -Math.sin(Player.yaw), fz = -Math.cos(Player.yaw); if (((x - P.x) * fx + (z - P.z) * fz) / dist > (mode === 'near' ? 0.4 : 0.1)) continue; }
+      if ((mode === 'ahead' || mode === 'reveal') && World.blocked(P.x, P.z, x, z)) continue;
       this.pos.set(x, World.groundAt(x, z), z); this.stuckT = 0;
       if (mode !== 'far' && CFG.difficulty !== 'nightmare') SFX.whoosh(this.panFor(x, z));
       return true;
     }
     return false;
   },
+  // A flash of lightning shows him standing out in the trees — then he's gone
+  lightningReveal() {
+    if (this.teleport('reveal') || this.teleport('ahead')) { this.revealT = 1.5; this.yaw = Math.atan2(Player.pos.x - this.pos.x, Player.pos.z - this.pos.z); this.stare = Math.max(0, this.stare - 1); }
+  },
+  hear(radius) { if (this.state === 'hunt' && this.dist < radius) { this.heardT = 0; this.heardPos.set(Player.pos.x, 0, Player.pos.z); } },
   visibility() {
     const cam = World.cam; cam.getWorldDirection(_jv2);
     _jv.set(this.pos.x, this.pos.y + this.c.eyeY, this.pos.z).sub(cam.position);
@@ -3261,7 +3339,7 @@ const Joury = {
     if (vis.visible) {
       this.seenT += dt;
       const close = clamp(1 - this.dist / 25, 0, 1);
-      this.stare += dt * (vis.looking ? (0.4 + close * 1.8) * (Player.lightOn ? 1.15 : 1) : 0.22);
+      if (this.revealT <= 0) this.stare += dt * (vis.looking ? (0.4 + close * 1.8) * (Player.lightOn ? 1.15 : 1) : 0.22);
       if (!wasSeen && this.unseenT > 6 && Math.random() < 0.5) this.say();
       if (!wasSeen) SFX.sting();
       if (!this.tipShown && this.seenT > 0.4) { this.tipShown = true; HUD.toast("<b style='color:#ff5a4a'>That's Joury.</b> Don't stare at him — the static means he's coming for you.<br>Look away and <b>RUN</b> (Shift)!", 5); }
@@ -3270,28 +3348,49 @@ const Joury = {
       this.unseenT += dt; this.seenT = 0; this.stare = Math.max(0, this.stare - dt * 0.8);
     }
     if (this.stare >= d.stareLimit || this.dist < d.catchR + (this.enraged ? 0.2 : 0)) { Game.caught(); return; }
-    // movement
-    let speed = 0;
-    if (!vis.visible) speed = this.dist > 40 ? Math.max(this.speedFor(), 4.4) : this.speedFor();
-    else speed = d.creep + (this.enraged ? 0.3 : 0);
-    this.moving = speed > 0.05 && this.dist > 0.5;
+    // senses: does he see or hear you?
+    if (this.revealT > 0) { this.revealT -= dt; if (this.revealT <= 0 && this.state === 'hunt') { this.teleport('far'); SFX.whoosh(0); } }
+    const spotR = (Player.lightOn ? 30 : 12) * (Player.crouching ? 0.65 : 1) * (this.enraged ? 1.25 : 1);
+    if (this.dist < spotR && this.revealT <= 0) {
+      const facing = (dx * Math.sin(this.yaw) + dz * Math.cos(this.yaw)) / Math.max(this.dist, 0.01);
+      if ((facing > 0.2 || this.dist < 6) && !World.blocked(this.pos.x, this.pos.z, P.x, P.z)) { if (this.knowT <= 0) Scare.onSpotted(); this.knowT = 4; }
+    }
+    if (Player.noise > 0 && this.dist < Player.noise) { this.heardT = 0; this.heardPos.set(P.x, 0, P.z); }
+    this.knowT -= dt; this.heardT += dt;
+    let tx, tz, speed;
+    if (this.knowT > 0) { tx = P.x; tz = P.z; speed = this.speedFor(); }
+    else if (this.heardT < 9) { tx = this.heardPos.x; tz = this.heardPos.z; speed = this.speedFor() * 0.92; }
+    else {
+      this.roamT -= dt;
+      if (this.roamT <= 0 || Math.hypot(this.roam.x - this.pos.x, this.roam.z - this.pos.z) < 2) {
+        this.roamT = rand(7, 13);
+        for (let k = 0; k < 10; k++) { const a = rand(0, TAU), r = rand(10, 34), x = P.x + Math.cos(a) * r, z = P.z + Math.sin(a) * r; if (World.walkable(x, z)) { this.roam.set(x, 0, z); break; } }
+      }
+      tx = this.roam.x; tz = this.roam.z; speed = this.dist > 45 ? 4.4 : this.speedFor() * 0.7;
+    }
+    if (vis.visible || this.revealT > 0) speed = this.revealT > 0 ? 0 : d.creep + (this.enraged ? 0.3 : 0);
+    const gx = tx - this.pos.x, gz = tz - this.pos.z, gd = Math.hypot(gx, gz);
+    this.moving = speed > 0.05 && gd > 0.6;
     if (this.moving) {
-      const step = Math.min(speed * dt, this.dist), nx = this.pos.x + dx / this.dist * step, nz = this.pos.z + dz / this.dist * step;
+      const step = Math.min(speed * dt, gd), nx = this.pos.x + gx / gd * step, nz = this.pos.z + gz / gd * step;
       const p = { x: nx, z: nz }; World.resolve(p, 0.45);
       if (World.walkable(p.x, p.z)) { const moved = Math.hypot(p.x - this.pos.x, p.z - this.pos.z); this.stuckT = moved < step * 0.25 ? this.stuckT + dt : 0; this.pos.x = p.x; this.pos.z = p.z; }
       else this.stuckT += dt;
       this.pos.y = World.surfaceY(this.pos.x, this.pos.z);
-      if (this.stuckT > 2.5 && !vis.visible) this.teleport(this.dist > 30 ? 'behind' : 'far');
+      if (this.stuckT > 2.5 && !vis.visible) this.teleport(this.dist > 30 ? 'near' : 'far');
     }
-    this.yaw += angDiff(this.yaw, Math.atan2(dx, dz)) * Math.min(1, dt * (vis.visible ? 2 : 6));
-    // teleports & vanishing
-    if (!vis.visible) {
-      this.tpT -= dt * (this.enraged ? 1.6 : 1);
+    const faceA = this.moving && !vis.visible ? Math.atan2(gx, gz) : Math.atan2(dx, dz);
+    this.yaw += angDiff(this.yaw, faceA) * Math.min(1, dt * (vis.visible ? 2 : 6));
+    // teleports & vanishing: he closes in faster when he has heard you
+    if (!vis.visible && this.revealT <= 0) {
+      this.tpT -= dt * (this.enraged ? 1.6 : 1) * (this.heardT < 6 ? 1.5 : 1);
       if (this.tpT <= 0) {
         this.tpT = rand(d.tpMin, d.tpMax) * clamp(1 - Game.savedCount() * 0.04, 0.6, 1);
-        if (this.dist > d.tpDist[1] + 3) this.teleport(this.dist > 34 && Math.random() < 0.35 ? 'ahead' : 'behind');
+        if (this.dist > d.tpDist[1] + 3) this.teleport(this.heardT < 6 || this.knowT > 0 ? 'behind' : this.dist > 34 && Math.random() < 0.35 ? 'ahead' : 'near');
       }
-    } else if (this.seenT > 2.2 && this.dist > 14 && Math.random() < dt * 0.35) {
+      this.mimicT -= dt;
+      if (this.mimicT <= 0 && this.dist > 22 && this.dist < 65) { this.mimicT = rand(55, 95); Scare.mimic(); }
+    } else if (vis.visible && this.revealT <= 0 && this.seenT > 2.2 && this.dist > 14 && Math.random() < dt * 0.35) {
       this.teleport('far'); this.seenT = 0; GFX.fx.static = Math.max(GFX.fx.static, 0.8); SFX.whoosh(0);
     }
     // footsteps you can hear but not see
@@ -3310,6 +3409,162 @@ const Joury = {
     // fear level for the screen effects
     const near = clamp(1 - this.dist / 30, 0, 1);
     this.danger = Math.max(Math.pow(near, 1.4) * 0.8, vis.visible ? 0.35 + (this.stare / d.stareLimit) * 0.65 : 0);
+  },
+};
+
+// =====================================================================
+//  SCARES — the game itself turns against you: a live chat Joury types
+//  into, fake system messages, mimicked kid voices, pumpkins that die
+//  when he is near, lightning that shows where he stands, his diary,
+//  and a crash screen that won't let you quit.
+// =====================================================================
+const KID_NAMES = { ghost: 'lil_ghost', pumpkin: 'pumpkinpaul', witch: 'wanda.exe', vampire: 'count_vlad', skeleton: 'bones4', cat: 'midnight_cat', astronaut: 'astro_ava', dino: 'dinomite', bee: 'beeatrice', hero: 'captain_max' };
+const KID_CHAT = ['is someone there??', 'he took my candy', 'dont look at him. DONT look at him', 'i can see his eyes from here', 'please hurry', 'the pumpkins go dark when hes close', 'he talks to his controller', 'if you hear me calling for help… its not me', 'my lantern is almost out', 'is it morning yet', 'he keeps saying 5-4 5-4 5-4', 'crouch (C) if hes close. he listens'];
+const JOURY_CHAT = ['gg?', 'ur not vivek', 'i can hear u', 'found u', 'turn around', 'u cant spawn camp me', 'rematch. now.', 'my island. my rules.', 'theyre all watching u', 'stop running', '5-4. say it.', 'afk? :)', 'one more round', 'im not mad'];
+const DIARY = [
+  { day: 1, text: '5–4. He jumped right into my goal and everyone saw it.\nEveryone laughed.\n\nI am not logging off until I win.' },
+  { day: 40, text: 'Mom says I have to come down for dinner.\nI can eat at my desk. The bridge is always there.\nThe bridge is ALWAYS there.' },
+  { day: 97, text: 'I found a way to make the map real.\nIf I build it, they have to play on MY island.\nMy rules. My spawn. My goal.' },
+  { day: 180, text: 'I don\'t sleep anymore. I don\'t need to.\nThe controller is warm all the time now,\neven when the console is off.' },
+  { day: 266, text: 'My reflection didn\'t move when I did today.\nIt\'s fine.\nIt\'s just lag.' },
+  { day: 330, text: 'I made a list of everyone who laughed.\nTen names.\nThey get front-row seats.' },
+  { day: 364, text: 'Tomorrow is Halloween. Tomorrow is the rematch.\nVivek won\'t come. He never answers anymore.\nSo someone else will have to play.' },
+  { day: 365, text: 'If you are reading this, you are on my server.\n\nRule 1: Nobody leaves until I win.\nRule 2: I never lose.\n\n— J' },
+];
+const Chat = {
+  lines: [], queue: [], typingT: 0, nextKid: 30, nextJoury: 60, vivekDone: false,
+  reset() { $('chatLines').innerHTML = ''; $('chatTyping').textContent = ''; this.lines = []; this.queue = []; this.typingT = 0; this.nextKid = rand(25, 40); this.nextJoury = rand(55, 80); this.vivekDone = false; },
+  post(kind, who, text) {
+    const el = document.createElement('div'); el.className = 'cl ' + kind;
+    const b = document.createElement('b'); b.textContent = who; const sp = document.createElement('span'); sp.textContent = text;
+    if (who) el.appendChild(b); el.appendChild(sp); $('chatLines').appendChild(el);
+    this.lines.push({ el, sp, t: 0, text }); while (this.lines.length > 7) this.lines.shift().el.remove();
+    SFX.chatPing(kind);
+  },
+  server(text) { this.post('server', '', '[SERVER] ' + text); },
+  kid(id, text) { this.post('kid', KID_NAMES[id] + ':', text); },
+  joury(text, typing = 2.4) { this.queue.push({ text, typing }); },
+  update(dt, danger) {
+    this.lines.forEach((l) => { l.t += dt; l.el.style.opacity = l.t > 14 ? Math.max(0, 1 - (l.t - 14) / 2) : 1; if (danger > 0.55 && Math.random() < danger * 0.04) l.sp.textContent = l.text.replace(/[a-z]/gi, (c) => (Math.random() < 0.35 ? pick(['#', '%', '▓', '█', '?', 'j']) : c)); else if (Math.random() < 0.1) l.sp.textContent = l.text; });
+    if (this.queue.length) {
+      const q = this.queue[0]; if (this.typingT <= 0) { this.typingT = q.typing; SFX.typing(); }
+      this.typingT -= dt; $('chatTyping').textContent = 'Joury is typing…';
+      if (this.typingT <= 0) { this.queue.shift(); $('chatTyping').textContent = ''; this.post('joury', 'Joury:', q.text); }
+    }
+    if (Game.state !== 'play') return;
+    this.nextKid -= dt;
+    if (this.nextKid <= 0) { this.nextKid = rand(35, 65); const left = World.kids.filter((k) => !k.saved); if (left.length) this.kid(pick(left).c.def.id, pick(KID_CHAT)); }
+    if (Joury.state === 'hunt') {
+      this.nextJoury -= dt;
+      if (this.nextJoury <= 0) {
+        this.nextJoury = rand(45, 85) * (Joury.enraged ? 0.6 : 1);
+        let line = pick(JOURY_CHAT);
+        if (Player.sprinting) line = 'i can hear u running'; else if (Player.crouching) line = 'hiding? cute'; else if (Player.lightOn && Joury.dist < 30) line = 'i see ur light';
+        this.joury(line);
+      }
+    }
+    if (!this.vivekDone && Game.savedCount() >= 3) { this.vivekDone = true; this.server('Vivek joined the game.'); setTimeout(() => { this.server('Vivek left the game.'); this.joury('coward', 1.6); }, 1300); }
+  },
+};
+
+const Scare = {
+  revealPending: false,
+  reset() { Chat.reset(); this.pagesRead = new Set(); },
+  welcome() {
+    Chat.server('Welcome to JOURY_ISLAND.'); setTimeout(() => Chat.server('10 spectators are watching.'), 900);
+    setTimeout(() => Chat.server('Joury is offline… for now.'), 2200);
+  },
+  onWake() { Chat.server('Joury joined the game.'); Chat.joury('ready?', 3); },
+  onRescue(kid) { Chat.server(`${KID_NAMES[kid.c.def.id]} left the game.`); setTimeout(() => Chat.kid(kid.c.def.id, pick(['thank u!!! RUN', 'ty ty ty', 'GO. hes coming', 'i owe u my candy'])), 1500); },
+  onCaught() { Chat.server('You were eliminated by Joury.'); },
+  onSpotted() { if (Math.random() < 0.6) Chat.joury(pick(['found u', 'there u are', 'i see u']), 1.2); },
+  // He imitates the kids from wherever he is standing
+  mimic() {
+    const pan = Joury.panFor(Joury.pos.x, Joury.pos.z), vol = clamp(0.9 - Joury.dist / 70, 0.15, 0.6);
+    SFX.kidCall(pan, vol); HUD.kidSay(pick(['???: “help… please… over here…”', '???: “i\'m over here! come quick!”', '???: “it\'s safe… come this way…”']));
+    setTimeout(() => SFX.kidCall(pan, vol * 0.7, true), 2600);
+  },
+  // Joury's diary pages, pinned around the island
+  placePages() {
+    const at = ['camp', 'swing', 'grave', 'tower', 'fire', 'scare', 'bus', 'patch'];
+    this.pages = [];
+    const paper = (n) => { const c = makeCanvas(300, 380), g = c.getContext('2d'); g.fillStyle = '#d9cfb4'; g.fillRect(0, 0, 300, 380); for (let i = 0; i < 600; i++) { g.fillStyle = `rgba(80,60,30,${rand(0.02, 0.07)})`; g.fillRect(rand(0, 300), rand(0, 380), rand(1, 4), rand(1, 4)); }
+      g.strokeStyle = 'rgba(90,110,160,.25)'; for (let y = 70; y < 380; y += 26) { g.beginPath(); g.moveTo(14, y); g.lineTo(286, y); g.stroke(); }
+      g.fillStyle = 'rgba(120,20,20,.85)'; g.font = '26px "Special Elite", monospace'; g.fillText('DAY ' + DIARY[n].day, 20, 46);
+      g.fillStyle = '#2a2220'; g.font = '17px "Special Elite", monospace'; let y = 92; DIARY[n].text.split('\n').forEach((ln) => { const words = ln.split(' '); let cur = ''; words.forEach((w) => { if (g.measureText(cur + w).width > 255) { g.fillText(cur, 20, y); y += 26; cur = ''; } cur += w + ' '; }); g.fillText(cur, 20, y); y += 26; });
+      const grd = g.createRadialGradient(150, 190, 80, 150, 190, 260); grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(1, 'rgba(60,40,10,.35)'); g.fillStyle = grd; g.fillRect(0, 0, 300, 380); return c; };
+    at.forEach((id, n) => {
+      const l = World.landmarks.find((q) => q.id === id); if (!l) return;
+      let x = l.x, z = l.z; for (let k = 0; k < 24; k++) { const a = n * 1.7 + k * 0.6, r = (l.clear || 8) * 0.75 + (k % 4); const tx = l.x + Math.cos(a) * r, tz = l.z + Math.sin(a) * r, q = { x: tx, z: tz }; World.resolve(q, 0.5); if (World.walkable(tx, tz) && Math.hypot(q.x - tx, q.z - tz) < 0.01) { x = tx; z = tz; break; } }
+      const y = World.groundAt(x, z), canvas = paper(n), g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = Math.atan2(l.x - x, l.z - z) + Math.PI;
+      const post = mesh(new THREE.BoxGeometry(0.09, 1.3, 0.09), MAT.wood); post.position.y = 0.65; g.add(post);
+      const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace;
+      const sheet = mesh(new THREE.PlaneGeometry(0.26, 0.33), fogify(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, side: THREE.DoubleSide })), false); sheet.position.set(0, 1.12, 0.055); sheet.rotation.z = rand(-0.08, 0.08); g.add(sheet);
+      const pin = mesh(new THREE.SphereGeometry(0.012, 6, 5), plainMat(0xb01e24, 0.4), false); pin.position.set(0, 1.26, 0.06); g.add(pin);
+      World.scene.add(g); World.addCircle(x, z, 0.12);
+      const page = { n, canvas, pos: new THREE.Vector3(x, y + 0.5, z) }; this.pages.push(page);
+      World.interact.push({ kind: 'page', ref: page, pos: page.pos, r: 2.2, enabled: () => true, label: () => (this.pagesRead.has(n) ? 'Read diary page again' : 'Read the diary page') });
+    });
+  },
+  readPage(page) {
+    const first = !this.pagesRead.has(page.n); this.pagesRead.add(page.n);
+    HUD.inspect({ title: `Joury's diary — Day ${DIARY[page.n].day}`, text: DIARY[page.n].text + `\n\n<span style="color:#8f877a">Diary pages found: ${this.pagesRead.size} / ${DIARY.length}</span>`, img: page.canvas });
+    if (first) { SFX.pageTurn(); if (page.n === 7 || this.pagesRead.size === DIARY.length) Chat.joury('stop reading my stuff', 2); }
+  },
+  // Pumpkins die when he is near you
+  updatePumpkins(dt) {
+    const J = Joury, active = J.state === 'hunt' || J.state === 'stunned';
+    World.jacks.forEach((j) => {
+      if (j.gi === undefined) return;
+      const d = active ? Math.hypot(j.x - J.pos.x, j.z - J.pos.z) : 99, want = smoothstep(9, 20, d);
+      j.lit = j.lit === undefined ? 1 : damp(j.lit, want, want < j.lit ? 5 : 1.2, dt);
+      const fl = j.lit < 0.98 && j.lit > 0.05 && Math.random() < 0.3 ? rand(0.2, 1) : 1, k = j.lit * fl;
+      World.glow.setColor(j.gi, 0xff8a1a, k); if (j.src) j.src.dim = k;
+      if (j.lit < 0.15 && !j.wasOut && d < 12) { j.wasOut = true; if (Math.hypot(Player.pos.x - j.x, Player.pos.z - j.z) < 18) SFX.snuff(); } else if (j.lit > 0.6) j.wasOut = false;
+    });
+  },
+};
+
+// ---------------------------------------------------------------------
+//  WEATHER — rain, lightning and thunder (and lightning reveals)
+// ---------------------------------------------------------------------
+const Weather = {
+  bolt: 0, boltT: 0, nextBolt: 30, thunderAt: -1, rain: null,
+  init(scene) {
+    const N = 3200, pos = new Float32Array(N * 2 * 3), seed = new Float32Array(N * 2), end = new Float32Array(N * 2);
+    for (let i = 0; i < N; i++) { const x = rand(-16, 16), y = rand(0, 14), z = rand(-16, 16), s = Math.random(); for (let k = 0; k < 2; k++) { pos.set([x, y, z], (i * 2 + k) * 3); seed[i * 2 + k] = s; end[i * 2 + k] = k; } }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('aSeed', new THREE.BufferAttribute(seed, 1)); g.setAttribute('aEnd', new THREE.BufferAttribute(end, 1));
+    this.rainU = { uTime: FogU.uTime, uCam: { value: new THREE.Vector3() }, uFlash: { value: 0 }, uAmount: { value: 1 } };
+    const m = new THREE.ShaderMaterial({ uniforms: this.rainU, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      vertexShader: `attribute float aSeed; attribute float aEnd; uniform float uTime; uniform vec3 uCam; varying float vA;
+        void main(){ vec3 p = position; float fall = mod(p.y - uTime * (10.0 + aSeed * 4.0), 14.0);
+          vec3 w = vec3(uCam.x + mod(p.x - uCam.x + 16.0, 32.0) - 16.0, uCam.y - 5.0 + fall, uCam.z + mod(p.z - uCam.z + 16.0, 32.0) - 16.0);
+          w += vec3(0.08, 0.42, 0.03) * aEnd;
+          vec4 mv = modelViewMatrix * vec4(w, 1.0); vA = smoothstep(17.0, 1.5, -mv.z) * (0.5 + aSeed * 0.5); gl_Position = projectionMatrix * mv; }`,
+      fragmentShader: 'uniform float uFlash; uniform float uAmount; varying float vA; void main(){ gl_FragColor = vec4(vec3(0.42, 0.46, 0.55) * vA * (0.22 + uFlash * 2.0) * uAmount, 1.0); }' });
+    this.rain = new THREE.LineSegments(g, m); this.rain.frustumCulled = false; this.rain.renderOrder = 6; scene.add(this.rain);
+  },
+  reset() { this.bolt = 0; this.nextBolt = rand(35, 55); this.thunderAt = -1; this.flash = 0; },
+  strike(reveal) {
+    this.boltT = 0; this.bolt = 1; this.pulses = [0, rand(0.08, 0.14), rand(0.22, 0.35)]; this.thunderAt = rand(0.5, 2.2); this.thunderVol = rand(0.5, 0.9);
+    if (reveal && Joury.state === 'hunt' && !Joury.seen && Joury.dist > 14) Joury.lightningReveal();
+  },
+  update(dt, cam, active) {
+    this.rainU.uCam.value.copy(cam.position);
+    this.flash = 0;
+    if (active) {
+      this.nextBolt -= dt;
+      if (this.nextBolt <= 0) { this.nextBolt = rand(28, 55) * (Joury.enraged ? 0.6 : 1); this.strike(Math.random() < 0.45); }
+    }
+    if (this.bolt) {
+      this.boltT += dt;
+      this.pulses.forEach((p) => { const k = this.boltT - p; if (k > 0 && k < 0.12) this.flash = Math.max(this.flash, Math.sin(k / 0.12 * Math.PI)); });
+      if (this.boltT > 0.6) this.bolt = 0;
+    }
+    if (this.thunderAt >= 0) { this.thunderAt -= dt; if (this.thunderAt < 0) SFX.thunder(this.thunderVol); }
+    this.rainU.uFlash.value = this.flash;
+    World.sky.material.uniforms.uFlash.value = this.flash;
+    World.lightningK = this.flash;
   },
 };
 
@@ -3634,10 +3889,10 @@ const Cabin = {
 const SLIDES = [
   { label: '1 · THE MATCH', scene: 'bridge', mode: 'match', text: 'Last summer, Joury and Vivek played Bridge in Minecraft.\nTwo islands. One bridge. First to five goals wins.' },
   { label: '2 · THE GOAL', scene: 'bridge', mode: 'goal', text: 'Four to four. Final point.\nVivek sprinted across the bridge… and jumped straight into Joury\'s goal.', big: '<span class="vb">VIVEK 5</span> – <span class="jr">4 JOURY</span>', bigAt: 3.3 },
-  { label: '3 · THE CRASH OUT', scene: 'room', text: 'Joury did not take it well.\nHe threw his controller. He never said GG.', big: 'NOT GG. NEVER GG.', bigRed: true, bigAt: 1.5 },
-  { label: '4 · HALLOWEEN', scene: 'street', mode: 'kids', text: 'One year later. Halloween night.\nTen kids went trick-or-treating down Hollow Lane.' },
-  { label: '5 · GONE', scene: 'street', mode: 'gone', text: 'By midnight, the street was empty.\nOnly their candy bags were left… and a candy trail leading into the dark woods.' },
-  { label: '6 · YOUR MISSION', scene: 'lake', text: 'The trail ends at a black lake. Across the water: Joury\'s island, and one lit window.\nFind all 10 kids. Find the boat parts. Don\'t let Joury catch you.' },
+  { label: '3 · THE CRASH OUT', scene: 'room', text: 'Joury did not take it well. He threw his controller across the room\nand swore he would never log off until he won.', big: 'NOT GG. NEVER GG.', bigRed: true, bigAt: 1.5 },
+  { label: '4 · HALLOWEEN', scene: 'street', mode: 'kids', text: 'He never did log off. For 365 days, his status said ONLINE.\nThen, on Halloween night, every kid on Hollow Lane got the same message.', big: '<span class="note">joury: who wants a rematch?</span>', bigAt: 4.2 },
+  { label: '5 · GONE', scene: 'street', mode: 'gone', text: 'By midnight, ten kids were gone. Every one of them had laughed when Joury lost.\nThey left their candy bags… and a trail leading into the woods.' },
+  { label: '6 · YOUR MISSION', scene: 'lake', text: 'The trail ends at a black lake. Across it: an island Joury built for his rematch.\nVivek won\'t come. So you will play instead.\nFind the 10 kids. Find the boat parts. Don\'t let Joury catch you.' },
 ];
 
 const Story = {
@@ -3659,7 +3914,7 @@ const Story = {
   },
   advance() { // click / space
     const S = SLIDES[this.idx]; if (!S) return;
-    if (!this.done) { this.typed = S.text.length; return; }
+    if (!this.done) { this.typed = S.text.length; this.done = true; $('storyText').textContent = S.text; $('storyNext').classList.add('on'); return; }
     SFX.uiClick(); this.next();
   },
   scene(name) {
@@ -4100,7 +4355,7 @@ const Game = {
       .then(() => step(20, 'Carving pumpkins…', () => { buildTextures(); buildMaterials(); Input.init($('c')); HUD.init(); Story.init(); }))
       .then(() => step(30, 'Raising the island out of the lake…', () => { World.build(() => {}); }))
       .then(() => step(70, 'Waking up Joury (quietly)…', () => {
-        Joury.init(World.scene);
+        Joury.init(World.scene); Scare.placePages();
         this.worldFlash = makeFlashlight(World.cam, 0xfff1d6, Q().spotShadow, true);
         Cabin.build();
         HUD.buildMapImage();
@@ -4172,14 +4427,15 @@ const Game = {
     this.screen('story', false); $('storyBig').className = '';
     GFX.fx.red = 0; GFX.fx.shake = 0; GFX.fx.flash = 0; GFX.fx.fade = 1;
     World.scene.fog.density = D().fog; this.setRage(0);
-    World.reset(); Joury.reset(); Joury.c.eyeGlow.setSize(0, 0.2); Joury.c.eyeGlow.setSize(1, 0.2);
+    World.reset(); Joury.reset(); Joury.c.eyeGlow.setSize(0, 0.2); Joury.c.eyeGlow.setSize(1, 0.2); Scare.reset(); Weather.reset();
     this.phase = 'kids'; this.stats = { time: 0, caught: 0 }; this.attempt = 0; this.mapOpen = false;
     Player.attach(World.cam, World, this.worldFlash);
     Player.place(0, World.dock.start.z, 0); Player.stamina = 1; Player.battery = 1; Player.lightOn = true; Player.exhausted = false; Player.frozen = false;
     HUD.drawKidIcons([]); HUD.show(true); HUD.parts(false); HUD.stun(0); HUD.cabinTimer(null); HUD.lightHint(null);
     $('minimap').style.display = ''; $('kidsBar').style.display = ''; $('objective').style.display = '';
     this.state = 'play';
-    HUD.toast('<b>WASD</b> move · <b>Mouse</b> look · <b>Shift</b> sprint · <b>F</b> flashlight · <b>E</b> interact · <b>M</b> map<br>Free all 10 kids. Yellow dots on the map show where they are.', 7);
+    HUD.toast('<b>WASD</b> move · <b>Mouse</b> look · <b>Shift</b> sprint · <b>C</b> crouch · <b>F</b> flashlight · <b>E</b> interact · <b>M</b> map<br>Free all 10 kids. Yellow dots on the map show where they are.', 7);
+    setTimeout(() => { if (this.state === 'play') Scare.welcome(); }, 2500);
     Input.requestLock();
   },
   wantsLook() { return (this.state === 'play' || this.state === 'cabin') && !$('inspect').classList.contains('on') && !$('keypad').classList.contains('on'); },
@@ -4233,16 +4489,16 @@ const Game = {
   interact() {
     const it = this.target = this.findTarget(); if (!it) return;
     if (it.kind === 'kid') {
-      const kid = it.ref; World.rescue(kid); SFX.chime(); SFX.cheer();
+      const kid = it.ref; World.rescue(kid); SFX.chime(); SFX.cheer(); Scare.onRescue(kid); Joury.hear(25);
       const n = this.savedCount(); HUD.drawKidIcons(World.kids.filter((k) => k.saved).map((k) => k.idx)); HUD.popKid(kid.idx);
       HUD.toast(`You freed the <b>${kid.c.def.name}</b> kid! They ran to the dock. <b>${n}/10</b>` + (n < 10 && n > 0 ? '<br><span style="color:#ff8a7a">Joury is getting faster…</span>' : ''), 3.5);
       if (n === 10) setTimeout(() => this.startBoatPhase(), 1500);
     } else if (it.kind === 'battery') {
-      const b = it.ref; b.taken = true; b.g.visible = false; World.glow.setSize(b.gi, 0);
+      const b = it.ref; b.taken = true; b.g.visible = false; World.glow.setSize(b.gi, 0); Joury.hear(10);
       Player.battery = Math.min(1, Player.battery + 0.45); if (!Player.lightOn) { Player.lightOn = true; SFX.flashlight(true); }
       SFX.pickup(); HUD.toast('Battery! Flashlight recharged.', 2);
     } else if (it.kind === 'part') {
-      const p = it.ref; p.taken = true; p.g.visible = false; p.beam.visible = false; World.carried.add(p.id); SFX.pickup();
+      const p = it.ref; p.taken = true; p.g.visible = false; p.beam.visible = false; World.carried.add(p.id); SFX.pickup(); Joury.hear(18);
       HUD.toast(`You got the <b>${p.def.name}</b>! Bring it to the dock.`, 3); HUD.parts(true);
     } else if (it.kind === 'boat') {
       const missing = PARTS.filter((p) => !World.partsDelivered.has(p.id));
@@ -4255,6 +4511,7 @@ const Game = {
         HUD.toast(left.length ? `Added to the boat! Still needed: <b>${left.map((p) => p.name).join(', ')}</b>` : '<b>The boat is ready!</b> Press <b>E</b> to launch and escape!', 4);
         if (!left.length) { SFX.chime(); }
       } else HUD.toast(`The boat still needs: <b>${missing.map((p) => p.name).join(', ')}</b>. They're marked on your map.`, 3.5);
+    } else if (it.kind === 'page') { Scare.readPage(it.ref);
     } else if (it.kind === 'cabindoor') {
       HUD.toast(Joury.state === 'dormant' ? 'Locked. Inside, a controller is clicking. Very angrily. Better not knock.' : "Locked. This is Joury's cabin. You do NOT want to end up in there.", 3);
     }
@@ -4274,7 +4531,7 @@ const Game = {
   // ---------------- caught → cabin ----------------
   caught() {
     if (this.state !== 'play') return;
-    this.state = 'caught'; this.caughtT = 0; this.stats.caught++; this.mapOpen = false; this.screen('bigmap', false); this.closeInspect();
+    this.state = 'caught'; this.caughtT = 0; this.stats.caught++; this.crashShown = false; Scare.onCaught(); this.mapOpen = false; this.screen('bigmap', false); this.closeInspect(); $('toast').classList.remove('on'); HUD.toastT = 0; HUD.prompt(null);
     // put Joury right in your face
     const cam = World.cam, fwd = new THREE.Vector3(-Math.sin(Player.yaw), 0, -Math.cos(Player.yaw));
     Player.pitch = 0.05; Player.applyCam();
@@ -4292,11 +4549,21 @@ const Game = {
     World.cam.position.copy(this.scareCam); World.cam.position.x += (Math.random() - 0.5) * 0.04; World.cam.position.y += (Math.random() - 0.5) * 0.04;
     GFX.fx.static = t < 0.9 ? 0.3 + Math.random() * 0.25 : Math.min(1, 0.4 + (t - 0.9)); GFX.fx.red = 0.3 + Math.random() * 0.1; GFX.fx.shake = 1;
     if (t > 1.3) GFX.fx.fade = clamp((t - 1.3) / 0.4, 0, 1);
-    if (t > 1.75 && !$('caught').classList.contains('on')) {
+    if (this.stats.caught === 1) { // the first time, the game pretends to crash… then refuses to let you quit
+      if (t > 1.55 && !this.crashShown) { this.crashShown = true; GFX.fx.fade = 0; HUD.show(false); SFX.allLoopsOff(0.02); $('crash').className = 'screen on'; $('crashTitle').textContent = 'Escape from Joury is not responding'; $('crashBody').textContent = 'The program stopped working. Collecting crash data…'; $('crashFill').style.width = '0%'; SFX.beep(660); }
+      if (this.crashShown) {
+        $('crashFill').style.width = Math.min(100, (t - 1.55) / 2.2 * 100) + '%';
+        if (t > 3.5 && !$('crash').classList.contains('evil')) { $('crash').classList.add('evil'); $('crashTitle').textContent = 'JOURY IS NOT RESPONDING'; $('crashBody').textContent = 'no.\nyou don\'t get to quit.'; SFX.voice(0, 0.7, true); SFX.sting(); }
+        if (t > 4.9 && !this.crashLine2) { this.crashLine2 = true; $('crashBody').textContent += '\n\nREMATCH ACCEPTED.'; SFX.slam(0.5); }
+        if (t > 6.4) { $('crash').className = 'screen'; this.crashLine2 = false; this.enterCabin(true); }
+        return; // frozen frame behind the dialog
+      }
+    }
+    if (t > 1.75 && !$('caught').classList.contains('on') && this.stats.caught > 1) {
       $('caughtText').textContent = 'CAUGHT'; $('caughtSub').textContent = this.stats.caught > 1 ? 'Back to the cabin. Again.' : 'Joury drags you back to his cabin…';
       this.screen('caught', true); HUD.show(false); SFX.allLoopsOff(0.2);
     }
-    if (t > 4.2) { this.screen('caught', false); this.enterCabin(true); return; }
+    if (t > 4.2 && this.stats.caught > 1) { this.screen('caught', false); this.enterCabin(true); return; }
     GFX.render(World.scene, World.cam, dt);
   },
   enterCabin(newAttempt) {
@@ -4393,17 +4660,19 @@ const Game = {
       '<span class="big">“REMATCH!”</span>',
       'Vivek accepted the rematch…',
       '<span class="big">…and won 5–0.</span>',
-      'GG.',
+      'And for the first time in 366 days, Joury typed two letters: “gg”.',
+      'Then he logged off.',
+      '<span class="srv">[SERVER] Joury is online.</span>',
     ];
     $('endLines').innerHTML = lines.map((l) => `<span class="line">${l}</span>`).join('');
     const s = this.stats;
-    $('endStats').innerHTML = `<span>Time</span><span>${fmtTime(s.time)}</span><span>Times caught</span><span>${s.caught}</span><span>Kids saved</span><span>10 / 10</span><span>Difficulty</span><span>${D().name}</span>`;
+    $('endStats').innerHTML = `<span>Time</span><span>${fmtTime(s.time)}</span><span>Times caught</span><span>${s.caught}</span><span>Kids saved</span><span>10 / 10</span><span>Diary pages</span><span>${Scare.pagesRead ? Scare.pagesRead.size : 0} / 8</span><span>Difficulty</span><span>${D().name}</span>`;
     $('endStats').classList.remove('on'); $('btnAgain').classList.remove('on');
     this.screen('ending', true);
     const els = [...$('endLines').children];
-    els.forEach((el, i) => setTimeout(() => el.classList.add('on'), 400 + i * 1300));
-    setTimeout(() => { $('endStats').classList.add('on'); }, 400 + els.length * 1300);
-    setTimeout(() => { $('btnAgain').classList.add('on'); }, 900 + els.length * 1300);
+    els.forEach((el, i) => setTimeout(() => { el.classList.add('on'); if (el.querySelector('.srv')) SFX.chatPing('server'); }, 400 + i * 1300 + (i === els.length - 1 ? 1600 : 0)));
+    setTimeout(() => { $('endStats').classList.add('on'); }, 2400 + els.length * 1300);
+    setTimeout(() => { $('btnAgain').classList.add('on'); }, 2900 + els.length * 1300);
   },
 
   // ---------------- per-frame ----------------
@@ -4427,8 +4696,8 @@ const Game = {
         { const J = Joury.c; J.root.visible = true; J.eyeGlow.setSize(0, 0.6); J.eyeGlow.setSize(1, 0.6); J.root.position.set(-0.4, dk.y, dk.z1 - 2.2); J.root.rotation.y = Math.atan2(cam.position.x + 0.4, cam.position.z - dk.z1 + 2.2); animateJoury(J, this.t, false, 0, null); }
         Player.pos.set(cam.position.x, 0, cam.position.z);
         if (this.worldFlash) { this.worldFlash.intensity = 0; this.worldFlash.userData.fill.intensity = 0; }
-        World.update(dt, cam.position);
-        if (SFX.ctx) { SFX.setLoop('wind', 0.1); SFX.setLoop('water', 0.22); SFX.update(dt, 0); }
+        World.update(dt, cam.position); Weather.update(dt, cam, false);
+        if (SFX.ctx) { SFX.setLoop('wind', 0.1); SFX.setLoop('water', 0.22); SFX.setLoop('rain', 0.14); SFX.update(dt, 0); }
         GFX.render(World.scene, cam, dt);
         break;
       }
@@ -4460,7 +4729,7 @@ const Game = {
     Player.updateLight(dt, Joury.danger, d.drain);
     Joury.update(dt);
     if (this.state !== 'play') return; // caught during Joury.update
-    World.update(dt, World.cam.position);
+    World.update(dt, World.cam.position); Weather.update(dt, World.cam, true); Scare.updatePumpkins(dt); Chat.update(dt, Joury.danger);
     // interaction target
     this.target = this.findTarget();
     HUD.prompt(this.target ? this.target.label() : null);
@@ -4475,7 +4744,7 @@ const Game = {
     // sound
     if (SFX.ctx) {
       const shore = clamp((Math.hypot(Player.pos.x, Player.pos.z) - 100) / 30, 0, 1) + (World.onDock(Player.pos.x, Player.pos.z) ? 0.6 : 0);
-      SFX.setLoop('wind', 0.2); SFX.setLoop('rumble', 0.08); SFX.setLoop('water', 0.05 + shore * 0.25); SFX.setLoop('fire', 0);
+      SFX.setLoop('wind', 0.16); SFX.setLoop('rumble', 0.08); SFX.setLoop('rain', 0.2); SFX.setLoop('water', 0.05 + shore * 0.25); SFX.setLoop('fire', 0);
       SFX.setLoop('drone', 0.035 + danger * 0.3 + (this.phase === 'boat' ? 0.05 : 0)); SFX.setLoop('static', fx.static * 0.22, 0.08);
       SFX.update(dt, Joury.state === 'hunt' ? danger : 0);
       this.owlT -= dt; if (this.owlT <= 0) { this.owlT = rand(22, 45); SFX.owl(); }
@@ -4503,7 +4772,8 @@ const Game = {
     HUD.cabinTimer(Cabin.timer, Cabin.digitsLine());
     HUD.bars(Player.stamina, Player.battery, Player.exhausted, false);
     HUD.lightHint(Cabin.s.uvTaken ? `F: switch light (${Cabin.light === 'uv' ? 'UV' : Cabin.light === 'flash' ? 'flashlight' : 'off'})` : null);
-    if (SFX.ctx) { SFX.setLoop('wind', 0.04); SFX.setLoop('water', 0); SFX.setLoop('drone', low ? 0.18 : 0.05); SFX.setLoop('static', fx.static * 0.15); SFX.update(dt, low ? 0.5 : 0); }
+    Chat.update(dt, 0);
+    if (SFX.ctx) { SFX.setLoop('wind', 0.04); SFX.setLoop('water', 0); SFX.setLoop('rain', 0.07); SFX.setLoop('drone', low ? 0.18 : 0.05); SFX.setLoop('static', fx.static * 0.15); SFX.update(dt, low ? 0.5 : 0); }
     GFX.render(Cabin.scene, Cabin.cam, dt);
   },
 };
@@ -4532,6 +4802,7 @@ window.EFJ = {
   quality(q) { CFG.quality = q; Game.applyQuality(); },
   jouryAhead(dist) { Joury.state = 'hunt'; Joury.c.root.visible = true; const x = Player.pos.x - Math.sin(Player.yaw) * dist, z = Player.pos.z - Math.cos(Player.yaw) * dist; Joury.pos.set(x, World.groundAt(x, z), z); Joury.tpT = 99; },
   run(code) { return eval(code); },
+  lightning(reveal) { Weather.strike(reveal !== false); },
   look(yaw, pitch) { Player.yaw = yaw; Player.pitch = pitch || 0; Player.applyCam(); },
 };
 

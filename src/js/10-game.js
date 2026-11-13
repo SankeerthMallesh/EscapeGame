@@ -17,7 +17,7 @@ const Game = {
       .then(() => step(20, 'Carving pumpkins…', () => { buildTextures(); buildMaterials(); Input.init($('c')); HUD.init(); Story.init(); }))
       .then(() => step(30, 'Raising the island out of the lake…', () => { World.build(() => {}); }))
       .then(() => step(70, 'Waking up Joury (quietly)…', () => {
-        Joury.init(World.scene);
+        Joury.init(World.scene); Scare.placePages();
         this.worldFlash = makeFlashlight(World.cam, 0xfff1d6, Q().spotShadow, true);
         Cabin.build();
         HUD.buildMapImage();
@@ -89,14 +89,15 @@ const Game = {
     this.screen('story', false); $('storyBig').className = '';
     GFX.fx.red = 0; GFX.fx.shake = 0; GFX.fx.flash = 0; GFX.fx.fade = 1;
     World.scene.fog.density = D().fog; this.setRage(0);
-    World.reset(); Joury.reset(); Joury.c.eyeGlow.setSize(0, 0.2); Joury.c.eyeGlow.setSize(1, 0.2);
+    World.reset(); Joury.reset(); Joury.c.eyeGlow.setSize(0, 0.2); Joury.c.eyeGlow.setSize(1, 0.2); Scare.reset(); Weather.reset();
     this.phase = 'kids'; this.stats = { time: 0, caught: 0 }; this.attempt = 0; this.mapOpen = false;
     Player.attach(World.cam, World, this.worldFlash);
     Player.place(0, World.dock.start.z, 0); Player.stamina = 1; Player.battery = 1; Player.lightOn = true; Player.exhausted = false; Player.frozen = false;
     HUD.drawKidIcons([]); HUD.show(true); HUD.parts(false); HUD.stun(0); HUD.cabinTimer(null); HUD.lightHint(null);
     $('minimap').style.display = ''; $('kidsBar').style.display = ''; $('objective').style.display = '';
     this.state = 'play';
-    HUD.toast('<b>WASD</b> move · <b>Mouse</b> look · <b>Shift</b> sprint · <b>F</b> flashlight · <b>E</b> interact · <b>M</b> map<br>Free all 10 kids. Yellow dots on the map show where they are.', 7);
+    HUD.toast('<b>WASD</b> move · <b>Mouse</b> look · <b>Shift</b> sprint · <b>C</b> crouch · <b>F</b> flashlight · <b>E</b> interact · <b>M</b> map<br>Free all 10 kids. Yellow dots on the map show where they are.', 7);
+    setTimeout(() => { if (this.state === 'play') Scare.welcome(); }, 2500);
     Input.requestLock();
   },
   wantsLook() { return (this.state === 'play' || this.state === 'cabin') && !$('inspect').classList.contains('on') && !$('keypad').classList.contains('on'); },
@@ -150,16 +151,16 @@ const Game = {
   interact() {
     const it = this.target = this.findTarget(); if (!it) return;
     if (it.kind === 'kid') {
-      const kid = it.ref; World.rescue(kid); SFX.chime(); SFX.cheer();
+      const kid = it.ref; World.rescue(kid); SFX.chime(); SFX.cheer(); Scare.onRescue(kid); Joury.hear(25);
       const n = this.savedCount(); HUD.drawKidIcons(World.kids.filter((k) => k.saved).map((k) => k.idx)); HUD.popKid(kid.idx);
       HUD.toast(`You freed the <b>${kid.c.def.name}</b> kid! They ran to the dock. <b>${n}/10</b>` + (n < 10 && n > 0 ? '<br><span style="color:#ff8a7a">Joury is getting faster…</span>' : ''), 3.5);
       if (n === 10) setTimeout(() => this.startBoatPhase(), 1500);
     } else if (it.kind === 'battery') {
-      const b = it.ref; b.taken = true; b.g.visible = false; World.glow.setSize(b.gi, 0);
+      const b = it.ref; b.taken = true; b.g.visible = false; World.glow.setSize(b.gi, 0); Joury.hear(10);
       Player.battery = Math.min(1, Player.battery + 0.45); if (!Player.lightOn) { Player.lightOn = true; SFX.flashlight(true); }
       SFX.pickup(); HUD.toast('Battery! Flashlight recharged.', 2);
     } else if (it.kind === 'part') {
-      const p = it.ref; p.taken = true; p.g.visible = false; p.beam.visible = false; World.carried.add(p.id); SFX.pickup();
+      const p = it.ref; p.taken = true; p.g.visible = false; p.beam.visible = false; World.carried.add(p.id); SFX.pickup(); Joury.hear(18);
       HUD.toast(`You got the <b>${p.def.name}</b>! Bring it to the dock.`, 3); HUD.parts(true);
     } else if (it.kind === 'boat') {
       const missing = PARTS.filter((p) => !World.partsDelivered.has(p.id));
@@ -172,6 +173,7 @@ const Game = {
         HUD.toast(left.length ? `Added to the boat! Still needed: <b>${left.map((p) => p.name).join(', ')}</b>` : '<b>The boat is ready!</b> Press <b>E</b> to launch and escape!', 4);
         if (!left.length) { SFX.chime(); }
       } else HUD.toast(`The boat still needs: <b>${missing.map((p) => p.name).join(', ')}</b>. They're marked on your map.`, 3.5);
+    } else if (it.kind === 'page') { Scare.readPage(it.ref);
     } else if (it.kind === 'cabindoor') {
       HUD.toast(Joury.state === 'dormant' ? 'Locked. Inside, a controller is clicking. Very angrily. Better not knock.' : "Locked. This is Joury's cabin. You do NOT want to end up in there.", 3);
     }
@@ -191,7 +193,7 @@ const Game = {
   // ---------------- caught → cabin ----------------
   caught() {
     if (this.state !== 'play') return;
-    this.state = 'caught'; this.caughtT = 0; this.stats.caught++; this.mapOpen = false; this.screen('bigmap', false); this.closeInspect();
+    this.state = 'caught'; this.caughtT = 0; this.stats.caught++; this.crashShown = false; Scare.onCaught(); this.mapOpen = false; this.screen('bigmap', false); this.closeInspect(); $('toast').classList.remove('on'); HUD.toastT = 0; HUD.prompt(null);
     // put Joury right in your face
     const cam = World.cam, fwd = new THREE.Vector3(-Math.sin(Player.yaw), 0, -Math.cos(Player.yaw));
     Player.pitch = 0.05; Player.applyCam();
@@ -209,11 +211,21 @@ const Game = {
     World.cam.position.copy(this.scareCam); World.cam.position.x += (Math.random() - 0.5) * 0.04; World.cam.position.y += (Math.random() - 0.5) * 0.04;
     GFX.fx.static = t < 0.9 ? 0.3 + Math.random() * 0.25 : Math.min(1, 0.4 + (t - 0.9)); GFX.fx.red = 0.3 + Math.random() * 0.1; GFX.fx.shake = 1;
     if (t > 1.3) GFX.fx.fade = clamp((t - 1.3) / 0.4, 0, 1);
-    if (t > 1.75 && !$('caught').classList.contains('on')) {
+    if (this.stats.caught === 1) { // the first time, the game pretends to crash… then refuses to let you quit
+      if (t > 1.55 && !this.crashShown) { this.crashShown = true; GFX.fx.fade = 0; HUD.show(false); SFX.allLoopsOff(0.02); $('crash').className = 'screen on'; $('crashTitle').textContent = 'Escape from Joury is not responding'; $('crashBody').textContent = 'The program stopped working. Collecting crash data…'; $('crashFill').style.width = '0%'; SFX.beep(660); }
+      if (this.crashShown) {
+        $('crashFill').style.width = Math.min(100, (t - 1.55) / 2.2 * 100) + '%';
+        if (t > 3.5 && !$('crash').classList.contains('evil')) { $('crash').classList.add('evil'); $('crashTitle').textContent = 'JOURY IS NOT RESPONDING'; $('crashBody').textContent = 'no.\nyou don\'t get to quit.'; SFX.voice(0, 0.7, true); SFX.sting(); }
+        if (t > 4.9 && !this.crashLine2) { this.crashLine2 = true; $('crashBody').textContent += '\n\nREMATCH ACCEPTED.'; SFX.slam(0.5); }
+        if (t > 6.4) { $('crash').className = 'screen'; this.crashLine2 = false; this.enterCabin(true); }
+        return; // frozen frame behind the dialog
+      }
+    }
+    if (t > 1.75 && !$('caught').classList.contains('on') && this.stats.caught > 1) {
       $('caughtText').textContent = 'CAUGHT'; $('caughtSub').textContent = this.stats.caught > 1 ? 'Back to the cabin. Again.' : 'Joury drags you back to his cabin…';
       this.screen('caught', true); HUD.show(false); SFX.allLoopsOff(0.2);
     }
-    if (t > 4.2) { this.screen('caught', false); this.enterCabin(true); return; }
+    if (t > 4.2 && this.stats.caught > 1) { this.screen('caught', false); this.enterCabin(true); return; }
     GFX.render(World.scene, World.cam, dt);
   },
   enterCabin(newAttempt) {
@@ -310,17 +322,19 @@ const Game = {
       '<span class="big">“REMATCH!”</span>',
       'Vivek accepted the rematch…',
       '<span class="big">…and won 5–0.</span>',
-      'GG.',
+      'And for the first time in 366 days, Joury typed two letters: “gg”.',
+      'Then he logged off.',
+      '<span class="srv">[SERVER] Joury is online.</span>',
     ];
     $('endLines').innerHTML = lines.map((l) => `<span class="line">${l}</span>`).join('');
     const s = this.stats;
-    $('endStats').innerHTML = `<span>Time</span><span>${fmtTime(s.time)}</span><span>Times caught</span><span>${s.caught}</span><span>Kids saved</span><span>10 / 10</span><span>Difficulty</span><span>${D().name}</span>`;
+    $('endStats').innerHTML = `<span>Time</span><span>${fmtTime(s.time)}</span><span>Times caught</span><span>${s.caught}</span><span>Kids saved</span><span>10 / 10</span><span>Diary pages</span><span>${Scare.pagesRead ? Scare.pagesRead.size : 0} / 8</span><span>Difficulty</span><span>${D().name}</span>`;
     $('endStats').classList.remove('on'); $('btnAgain').classList.remove('on');
     this.screen('ending', true);
     const els = [...$('endLines').children];
-    els.forEach((el, i) => setTimeout(() => el.classList.add('on'), 400 + i * 1300));
-    setTimeout(() => { $('endStats').classList.add('on'); }, 400 + els.length * 1300);
-    setTimeout(() => { $('btnAgain').classList.add('on'); }, 900 + els.length * 1300);
+    els.forEach((el, i) => setTimeout(() => { el.classList.add('on'); if (el.querySelector('.srv')) SFX.chatPing('server'); }, 400 + i * 1300 + (i === els.length - 1 ? 1600 : 0)));
+    setTimeout(() => { $('endStats').classList.add('on'); }, 2400 + els.length * 1300);
+    setTimeout(() => { $('btnAgain').classList.add('on'); }, 2900 + els.length * 1300);
   },
 
   // ---------------- per-frame ----------------
@@ -344,8 +358,8 @@ const Game = {
         { const J = Joury.c; J.root.visible = true; J.eyeGlow.setSize(0, 0.6); J.eyeGlow.setSize(1, 0.6); J.root.position.set(-0.4, dk.y, dk.z1 - 2.2); J.root.rotation.y = Math.atan2(cam.position.x + 0.4, cam.position.z - dk.z1 + 2.2); animateJoury(J, this.t, false, 0, null); }
         Player.pos.set(cam.position.x, 0, cam.position.z);
         if (this.worldFlash) { this.worldFlash.intensity = 0; this.worldFlash.userData.fill.intensity = 0; }
-        World.update(dt, cam.position);
-        if (SFX.ctx) { SFX.setLoop('wind', 0.1); SFX.setLoop('water', 0.22); SFX.update(dt, 0); }
+        World.update(dt, cam.position); Weather.update(dt, cam, false);
+        if (SFX.ctx) { SFX.setLoop('wind', 0.1); SFX.setLoop('water', 0.22); SFX.setLoop('rain', 0.14); SFX.update(dt, 0); }
         GFX.render(World.scene, cam, dt);
         break;
       }
@@ -377,7 +391,7 @@ const Game = {
     Player.updateLight(dt, Joury.danger, d.drain);
     Joury.update(dt);
     if (this.state !== 'play') return; // caught during Joury.update
-    World.update(dt, World.cam.position);
+    World.update(dt, World.cam.position); Weather.update(dt, World.cam, true); Scare.updatePumpkins(dt); Chat.update(dt, Joury.danger);
     // interaction target
     this.target = this.findTarget();
     HUD.prompt(this.target ? this.target.label() : null);
@@ -392,7 +406,7 @@ const Game = {
     // sound
     if (SFX.ctx) {
       const shore = clamp((Math.hypot(Player.pos.x, Player.pos.z) - 100) / 30, 0, 1) + (World.onDock(Player.pos.x, Player.pos.z) ? 0.6 : 0);
-      SFX.setLoop('wind', 0.2); SFX.setLoop('rumble', 0.08); SFX.setLoop('water', 0.05 + shore * 0.25); SFX.setLoop('fire', 0);
+      SFX.setLoop('wind', 0.16); SFX.setLoop('rumble', 0.08); SFX.setLoop('rain', 0.2); SFX.setLoop('water', 0.05 + shore * 0.25); SFX.setLoop('fire', 0);
       SFX.setLoop('drone', 0.035 + danger * 0.3 + (this.phase === 'boat' ? 0.05 : 0)); SFX.setLoop('static', fx.static * 0.22, 0.08);
       SFX.update(dt, Joury.state === 'hunt' ? danger : 0);
       this.owlT -= dt; if (this.owlT <= 0) { this.owlT = rand(22, 45); SFX.owl(); }
@@ -420,7 +434,8 @@ const Game = {
     HUD.cabinTimer(Cabin.timer, Cabin.digitsLine());
     HUD.bars(Player.stamina, Player.battery, Player.exhausted, false);
     HUD.lightHint(Cabin.s.uvTaken ? `F: switch light (${Cabin.light === 'uv' ? 'UV' : Cabin.light === 'flash' ? 'flashlight' : 'off'})` : null);
-    if (SFX.ctx) { SFX.setLoop('wind', 0.04); SFX.setLoop('water', 0); SFX.setLoop('drone', low ? 0.18 : 0.05); SFX.setLoop('static', fx.static * 0.15); SFX.update(dt, low ? 0.5 : 0); }
+    Chat.update(dt, 0);
+    if (SFX.ctx) { SFX.setLoop('wind', 0.04); SFX.setLoop('water', 0); SFX.setLoop('rain', 0.07); SFX.setLoop('drone', low ? 0.18 : 0.05); SFX.setLoop('static', fx.static * 0.15); SFX.update(dt, low ? 0.5 : 0); }
     GFX.render(Cabin.scene, Cabin.cam, dt);
   },
 };
@@ -449,6 +464,7 @@ window.EFJ = {
   quality(q) { CFG.quality = q; Game.applyQuality(); },
   jouryAhead(dist) { Joury.state = 'hunt'; Joury.c.root.visible = true; const x = Player.pos.x - Math.sin(Player.yaw) * dist, z = Player.pos.z - Math.cos(Player.yaw) * dist; Joury.pos.set(x, World.groundAt(x, z), z); Joury.tpT = 99; },
   run(code) { return eval(code); },
+  lightning(reveal) { Weather.strike(reveal !== false); },
   look(yaw, pitch) { Player.yaw = yaw; Player.pitch = pitch || 0; Player.applyCam(); },
 };
 
