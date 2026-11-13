@@ -5,6 +5,10 @@ Three.js is packed inside the file and every sound is made in code, so it plays 
 
 ## How to play
 
+**Play online:** https://sankeerthmallesh.github.io/EscapeGame/ (works once GitHub Pages is turned on for this repo; see *Publishing* below)
+
+Or play offline:
+
 1. Download `escape-from-joury.html`.
 2. Double-click it to open it in Chrome, Edge, Firefox or Safari.
 3. Click **PLAY**. Headphones make it much scarier.
@@ -81,3 +85,11 @@ npm test
 ```
 
 Screenshots from the test run are saved in `tests/shots/`. The tests wait generously because headless browsers draw 3D in software, which can be a hundred times slower than a real graphics card, so a full run can take an hour.
+
+## Publishing
+
+The game is hosted for free with GitHub Pages. `index.html` sends visitors straight to the game, and `.nojekyll` tells GitHub to serve the files as they are.
+
+1. The repository must be public (Settings → General → Danger Zone → Change visibility). Pages on private repositories needs a paid GitHub plan.
+2. Settings → Pages → Build and deployment → Source: **Deploy from a branch**, Branch: **main**, folder **/ (root)** → Save.
+3. After a minute or two the game is live at https://sankeerthmallesh.github.io/EscapeGame/. Every push to `main` updates it.
