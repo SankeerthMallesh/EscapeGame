@@ -78,9 +78,10 @@ function makeBlocky(o) {
 function poseWalk(c, t, amt) {
   const s = Math.sin(t) * 0.75 * amt;
   c.armL.rotation.x = s; c.armR.rotation.x = -s; c.legL.rotation.x = -s; c.legR.rotation.x = s;
+  if (c.kneeL) { c.kneeL.rotation.x = Math.max(0, Math.sin(t + 1.4)) * 0.9 * amt; c.kneeR.rotation.x = Math.max(0, Math.sin(t + 1.4 + Math.PI)) * 0.9 * amt; c.elbowL.rotation.x = -0.25 * amt - Math.max(0, s) * 0.4; c.elbowR.rotation.x = -0.25 * amt - Math.max(0, -s) * 0.4; }
   c.torso.position.y = c.P.legH + Math.abs(Math.cos(t)) * 0.03 * amt;
 }
-function poseReset(c) { ['armL', 'armR', 'legL', 'legR', 'head', 'torso'].forEach((k) => { c[k].rotation.set(0, 0, 0); }); c.torso.position.y = c.P.legH; }
+function poseReset(c) { ['armL', 'armR', 'legL', 'legR', 'head', 'torso', 'kneeL', 'kneeR', 'elbowL', 'elbowR'].forEach((k) => { if (c[k]) c[k].rotation.set(0, 0, 0); }); c.torso.position.y = c.P.legH; }
 
 // --- costume kids ---
 const KID_TYPES = [
@@ -108,7 +109,7 @@ function candyPail() {
   return g;
 }
 
-function makeKid(type) {
+function makeKidBlocky(type) {
   const T = KID_TYPES.find((k) => k.id === type);
   let c;
   const skins = [0xe0ac84, 0xb57d55, 0xf0c9a5, 0x8a5a3a, 0xd49b70];
@@ -207,7 +208,7 @@ function makeKid(type) {
   const pail = candyPail(); c.handR.add(pail); c.pail = pail;
   return c;
 }
-function animateKid(c, t, mode) {
+function animateKidBlocky(c, t, mode) {
   // mode: 'scared' | 'wave' | 'cheer' | 'idle' | 'walk'
   const k = c.walkT + t;
   if (mode === 'walk') { poseWalk(c, k * 7, 1); c.armR.rotation.x = -0.35; c.head.rotation.y = Math.sin(k) * 0.1; }
@@ -256,7 +257,7 @@ function makeController(broken) {
 }
 
 // --- Joury: tall figure in a dark hoodie with glowing red eyes ---
-function makeJoury() {
+function makeJouryBlocky() {
   const P = { legH: 1.0, legW: 0.22, bodyH: 0.95, bodyW: 0.6, bodyD: 0.34, head: 0.5, armW: 0.17, armH: 1.08 };
   const grin = (P2) => { P2(3, 11, 1, 1, '#c01010'); P2(12, 11, 1, 1, '#c01010'); P2(4, 12, 8, 1, '#c01010'); for (let x = 4; x < 12; x += 2) P2(x, 13, 1, 1, '#801010'); };
   const blackFace = faceCanvas('#050506', grin), grinEm = faceCanvas('#000000', grin);
@@ -284,7 +285,7 @@ function makeJoury() {
   c.torso.rotation.x = 0.12; c.head.rotation.x = 0.1;
   return c;
 }
-function animateJoury(c, t, moving, speed, mode) {
+function animateJouryBlocky(c, t, moving, speed, mode) {
   if (mode === 'stunned') {
     poseReset(c); c.torso.rotation.x = 0.45; c.head.rotation.x = 0.6; c.head.rotation.z = Math.sin(t * 2) * 0.2;
     c.armL.rotation.x = 0.2; c.armR.rotation.x = 0.3; c.legL.rotation.x = 0.1; c.legR.rotation.x = -0.1;

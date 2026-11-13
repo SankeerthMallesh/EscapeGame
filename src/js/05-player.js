@@ -2,17 +2,17 @@
 //  PLAYER — first-person movement, stamina, flashlight & battery
 // =====================================================================
 function makeFlashlight(cam, color = 0xfff1d6, shadowSize = 1024, cookie = true) {
-  const L = new THREE.SpotLight(color, 26, 46, 0.42, 0.45, 0.75);
-  L.position.set(0.16, -0.16, 0.05);
+  const L = new THREE.SpotLight(color, 11, 48, 0.4, 0.45, 0.5);
+  L.position.set(0.12, -0.12, 1.4); // a little behind the eyes: long throw without glare on close faces
   L.castShadow = shadowSize > 0;
-  L.shadow.mapSize.set(shadowSize || 512, shadowSize || 512); L.shadow.camera.near = 0.3; L.shadow.camera.far = 42; L.shadow.bias = -0.0004; L.shadow.normalBias = 0.03;
+  L.shadow.mapSize.set(shadowSize || 512, shadowSize || 512); L.shadow.camera.near = 1.3; L.shadow.camera.far = 50; L.shadow.bias = -0.0004; L.shadow.normalBias = 0.03;
   if (cookie && L.castShadow) L.map = TEX.cookie;
   const tgt = new THREE.Object3D(); tgt.position.set(0.05, -0.12, -6); cam.add(tgt); L.target = tgt;
   cam.add(L);
   // a faint fill so the player's immediate surroundings never go fully black
   const fill = new THREE.PointLight(color, 0.6, 6, 2); fill.position.set(0, 0, 0.5); cam.add(fill);
-  L.userData.fill = fill; L.userData.base = 26;
-  const beam = makeBeam(color); beam.position.copy(L.position); beam.rotation.x = -0.02; cam.add(beam); L.userData.beam = beam; L.userData.beamK = 0.07;
+  L.userData.fill = fill; L.userData.base = 11;
+  const beam = makeBeam(color); beam.position.set(0.16, -0.16, 0.05); beam.rotation.x = -0.02; cam.add(beam); L.userData.beam = beam; L.userData.beamK = 0.07;
   return L;
 }
 function setShadowSize(L, size) { if (!L) return; L.shadow.mapSize.set(size, size); if (L.shadow.map) { L.shadow.map.dispose(); L.shadow.map = null; } }

@@ -147,7 +147,7 @@ const Story = {
   build_room() {
     const scene = new THREE.Scene(); scene.background = new THREE.Color(0x05060a); scene.fog = new THREE.FogExp2(0x05060a, 0.02);
     const b = new Builder();
-    b.box(8, 0.1, 7, 0, -0.05, 0, 0x4a3a2e, 'wood'); b.box(8, 3, 0.1, 0, 1.5, -3, 0x2c3448, 'plain'); b.box(0.1, 3, 7, -4, 1.5, 0, 0x2a3244, 'plain'); b.box(0.1, 3, 7, 4, 1.5, 0, 0x2a3244, 'plain');
+    b.box(8, 0.1, 7, 0, -0.05, 0, 0x8a7a6a, 'wood'); b.box(8, 3, 0.1, 0, 1.5, -3, 0x7a8aa0, 'wallpaper'); b.box(0.1, 3, 7, -4, 1.5, 0, 0x7a8aa0, 'wallpaper'); b.box(0.1, 3, 7, 4, 1.5, 0, 0x7a8aa0, 'wallpaper');
     b.box(2.4, 0.08, 1.0, 0, 0.8, -2.4, 0x2a2018, 'wood'); [[-1.1, -2.8], [1.1, -2.8], [-1.1, -2.0], [1.1, -2.0]].forEach(([x, z]) => b.box(0.06, 0.8, 0.06, x, 0.4, z, 0x222222, 'metal'));
     b.box(1.6, 0.05, 0.5, 0, 0.86, -2.25, 0x18181c, 'plain'); b.box(0.1, 0.45, 0.1, 0, 1.08, -2.75, 0x18181c, 'metal');
     b.box(1.8, 0.4, 2.2, 3.0, 0.25, 1.5, 0x4a2a2a, 'plain'); b.box(1.7, 0.15, 2.1, 3.0, 0.5, 1.5, 0x2f62d6, 'plain'); // bed (team blue sheets… he hates that)
@@ -161,7 +161,7 @@ const Story = {
     scene.add(new THREE.HemisphereLight(0x8a9ac0, 0x302020, 1.3));
     const chair = new Builder(); chair.box(0.6, 0.08, 0.6, 0, 0.5, 0, 0x16161a, 'plain'); chair.box(0.6, 0.9, 0.08, 0, 1.0, 0.3, 0x16161a, 'plain'); chair.box(0.12, 0.6, 0.1, 0, 1.0, 0.34, 0xc0262b, 'plain'); chair.cyl(0.04, 0.04, 0.5, 0, 0.25, 0, 0x333333, 'metal', 6);
     const chairG = chair.build(); scene.add(chairG);
-    const Jn = makeGamer('joury', 'neutral'), Ja = makeGamer('joury', 'angry'); scene.add(Jn.root, Ja.root);
+    const Jn = makeGamerHuman('joury', 'neutral'), Ja = makeGamerHuman('joury', 'angry'); scene.add(Jn.root, Ja.root);
     const ctrl = makeController(false); const broken = makeController(true); scene.add(ctrl, broken);
     return {
       scene,
@@ -172,7 +172,7 @@ const Story = {
         const J = rage ? Ja : Jn;
         J.root.position.set(0, rage ? 0 : 0.06, -1.25); J.root.rotation.y = Math.PI;
         if (!rage) { // sitting, staring at DEFEAT
-          J.legL.rotation.x = J.legR.rotation.x = -1.5; J.root.position.y = 0.06 - 0.0; J.torso.position.y = J.P.legH; J.root.position.y = 0.5 - J.P.legH + 0.03;
+          poseReset(J); J.legL.rotation.x = J.legR.rotation.x = -1.5; J.kneeL.rotation.x = J.kneeR.rotation.x = 1.5; J.root.position.y = 0.58 - J.P.legH;
           J.armL.rotation.x = J.armR.rotation.x = -1.1; J.head.rotation.z = Math.sin(t * 9) * 0.03;
           ctrl.visible = true; broken.visible = false; ctrl.position.set(0, 0.95, -1.62); ctrl.rotation.set(0.3, 0, 0);
         } else {

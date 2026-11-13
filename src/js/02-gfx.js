@@ -3,7 +3,7 @@
 //  materials, ground-mist fog patch, geometry builder, glow sprites
 // =====================================================================
 const POST_FS = `
-uniform sampler2D tDiffuse; uniform sampler2D tBloom; uniform vec2 uRes; uniform float uTime, uGrain, uStatic, uVignette, uRed, uFade, uFlash, uAberr, uExposure, uWarm, uShake, uBloom, uSat, uLift;
+uniform sampler2D tDiffuse; uniform sampler2D tBloom; uniform sampler2D tAdapt; uniform float uAuto, uKey, uMinE, uMaxE; uniform vec2 uRes; uniform float uTime, uGrain, uStatic, uVignette, uRed, uFade, uFlash, uAberr, uExposure, uWarm, uShake, uBloom, uSat, uLift;
 uniform vec3 uShadowTint, uHighTint;
 varying vec2 vUv;
 float h1(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -23,7 +23,8 @@ void main(){
   col.g = texture2D(tDiffuse, uv).g;
   col.b = texture2D(tDiffuse, uv - dir * ab).b;
   col += texture2D(tBloom, uv).rgb * uBloom;
-  col *= uExposure;
+  float autoE = clamp(uKey / exp(texture2D(tAdapt, vec2(0.5)).r), uMinE, uMaxE);
+  col *= uExposure * mix(1.0, autoE, uAuto);
   col = aces(col);
   // film grade: gentle desaturation, cold shadows, warm highlights, lifted blacks
   float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
@@ -47,6 +48,13 @@ void main(){
   col *= 1.0 - uFade;
   gl_FragColor = vec4(col, 1.0);
 }`;
+const LUM_FS = `uniform sampler2D tSrc; varying vec2 vUv;
+void main(){ float acc = 0.0, wsum = 0.0;
+  for (int i = 0; i < 8; i++) for (int j = 0; j < 8; j++) { vec2 uv = 0.12 + 0.76 * (vec2(float(i), float(j)) + 0.5) / 8.0; float w = max(0.04, 1.0 - length(uv - 0.5) * 2.4);
+    float l = dot(texture2D(tSrc, uv).rgb, vec3(0.2126, 0.7152, 0.0722)); acc += w * log(l + 0.0005); wsum += w; }
+  gl_FragColor = vec4(acc / wsum, 0.0, 0.0, 1.0); }`;
+const ADAPT_FS = `uniform sampler2D tPrev; uniform sampler2D tCur; uniform float uRate; varying vec2 vUv;
+void main(){ float p = texture2D(tPrev, vec2(0.5)).r, c = texture2D(tCur, vec2(0.5)).r; gl_FragColor = vec4(mix(p, c, uRate), 0.0, 0.0, 1.0); }`;
 const BLOOM_VS = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
 const BLOOM_DOWN = `uniform sampler2D tSrc; uniform vec2 uTexel; uniform float uThreshold; uniform float uPrefilter; uniform float uExposure; varying vec2 vUv;
 void main(){ vec3 s = texture2D(tSrc, vUv).rgb * 4.0; s += texture2D(tSrc, vUv - uTexel).rgb; s += texture2D(tSrc, vUv + uTexel).rgb; s += texture2D(tSrc, vUv + vec2(uTexel.x, -uTexel.y)).rgb; s += texture2D(tSrc, vUv - vec2(uTexel.x, -uTexel.y)).rgb; s /= 8.0;
@@ -59,7 +67,7 @@ void main(){ vec2 t = uTexel; vec3 s = texture2D(tSrc, vUv + vec2(-t.x * 2.0, 0.
 
 const GFX = {
   renderer: null, rt: null, postMat: null, postScene: null, postCam: null, w: 1, h: 1, time: 0, cams: [], bloomRTs: [],
-  fx: { grain: 0.06, static: 0, vignette: 1, red: 0, fade: 0, flash: 0, aberr: 0.5, exposure: 1.0, warm: 0, shake: 0, bloom: 0.9, sat: 0.92, lift: 0.006 },
+  fx: { grain: 0.06, static: 0, vignette: 1, red: 0, fade: 0, flash: 0, aberr: 0.5, exposure: 1.0, warm: 0, shake: 0, bloom: 0.9, sat: 0.92, lift: 0.006, auto: 0, key: 0.05 },
   init() {
     const canvas = $('c');
     let r;
@@ -71,11 +79,15 @@ const GFX = {
     this.postScene = new THREE.Scene();
     this.postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     this.postMat = new THREE.ShaderMaterial({
-      uniforms: { tDiffuse: { value: null }, tBloom: { value: null }, uRes: { value: new THREE.Vector2(1, 1) }, uTime: { value: 0 }, uGrain: { value: 0 }, uStatic: { value: 0 }, uVignette: { value: 1 }, uRed: { value: 0 }, uFade: { value: 0 }, uFlash: { value: 0 }, uAberr: { value: 0 }, uExposure: { value: 1 }, uWarm: { value: 0 }, uShake: { value: 0 }, uBloom: { value: 0 }, uSat: { value: 0.85 }, uLift: { value: 0.01 }, uShadowTint: { value: new THREE.Vector3(0.95, 1.0, 1.04) }, uHighTint: { value: new THREE.Vector3(1.06, 1.0, 0.9) } },
+      uniforms: { tDiffuse: { value: null }, tBloom: { value: null }, uRes: { value: new THREE.Vector2(1, 1) }, uTime: { value: 0 }, uGrain: { value: 0 }, uStatic: { value: 0 }, uVignette: { value: 1 }, uRed: { value: 0 }, uFade: { value: 0 }, uFlash: { value: 0 }, uAberr: { value: 0 }, uExposure: { value: 1 }, uWarm: { value: 0 }, uShake: { value: 0 }, uBloom: { value: 0 }, uSat: { value: 0.85 }, uLift: { value: 0.01 }, tAdapt: { value: null }, uAuto: { value: 1 }, uKey: { value: 0.05 }, uMinE: { value: 0.3 }, uMaxE: { value: 1.25 }, uShadowTint: { value: new THREE.Vector3(0.95, 1.0, 1.04) }, uHighTint: { value: new THREE.Vector3(1.06, 1.0, 0.9) } },
       vertexShader: BLOOM_VS, fragmentShader: POST_FS, depthTest: false, depthWrite: false,
     });
     this.downMat = new THREE.ShaderMaterial({ uniforms: { tSrc: { value: null }, uTexel: { value: new THREE.Vector2() }, uThreshold: { value: 1.0 }, uPrefilter: { value: 0 }, uExposure: { value: 1 } }, vertexShader: BLOOM_VS, fragmentShader: BLOOM_DOWN, depthTest: false, depthWrite: false });
     this.upMat = new THREE.ShaderMaterial({ uniforms: { tSrc: { value: null }, uTexel: { value: new THREE.Vector2() } }, vertexShader: BLOOM_VS, fragmentShader: BLOOM_UP, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending, transparent: true });
+    this.lumMat = new THREE.ShaderMaterial({ uniforms: { tSrc: { value: null } }, vertexShader: BLOOM_VS, fragmentShader: LUM_FS, depthTest: false, depthWrite: false });
+    this.adaptMat = new THREE.ShaderMaterial({ uniforms: { tPrev: { value: null }, tCur: { value: null }, uRate: { value: 1 } }, vertexShader: BLOOM_VS, fragmentShader: ADAPT_FS, depthTest: false, depthWrite: false });
+    const one = () => new THREE.WebGLRenderTarget(1, 1, { type: THREE.FloatType, depthBuffer: false, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
+    this.lumRT = one(); this.adaptRT = [one(), one()]; this.adaptI = 0; this.adaptFresh = true;
     this.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.postMat);
     this.quad.frustumCulled = false; this.postScene.add(this.quad);
     this.resize();
@@ -105,7 +117,7 @@ const GFX = {
   bloom() {
     const B = this.bloomRTs; if (!B.length) return null;
     const d = this.downMat.uniforms;
-    d.tSrc.value = this.rt.texture; d.uTexel.value.set(1 / this.rt.width, 1 / this.rt.height); d.uPrefilter.value = 1; d.uExposure.value = this.fx.exposure; d.uThreshold.value = 0.9;
+    d.tSrc.value = this.rt.texture; d.uTexel.value.set(1 / this.rt.width, 1 / this.rt.height); d.uPrefilter.value = 1; d.uExposure.value = this.fx.exposure; d.uThreshold.value = 1.8;
     this.pass(this.downMat, B[0]); d.uPrefilter.value = 0;
     for (let i = 1; i < B.length; i++) { d.tSrc.value = B[i - 1].texture; d.uTexel.value.set(1 / B[i - 1].width, 1 / B[i - 1].height); this.pass(this.downMat, B[i]); }
     const u = this.upMat.uniforms;
@@ -118,6 +130,13 @@ const GFX = {
     r.info.autoReset = false; r.info.reset();
     r.setRenderTarget(this.rt); r.render(scene, cam);
     this.stats = { calls: r.info.render.calls, tris: r.info.render.triangles };
+    if (f.auto > 0) {
+      this.lumMat.uniforms.tSrc.value = this.rt.texture; this.pass(this.lumMat, this.lumRT);
+      const prev = this.adaptRT[this.adaptI], next = this.adaptRT[1 - this.adaptI];
+      this.adaptMat.uniforms.tPrev.value = prev.texture; this.adaptMat.uniforms.tCur.value = this.lumRT.texture; this.adaptMat.uniforms.uRate.value = this.adaptFresh ? 1 : 1 - Math.exp(-Math.min(dt, 0.1) * 2.2);
+      this.pass(this.adaptMat, next); this.adaptI = 1 - this.adaptI; this.adaptFresh = false;
+    }
+    u.tAdapt.value = this.adaptRT[this.adaptI].texture; u.uAuto.value = f.auto; u.uKey.value = f.key || 0.05;
     const bloomTex = this.bloom();
     u.tDiffuse.value = this.rt.texture; u.tBloom.value = bloomTex || this.rt.texture; u.uBloom.value = bloomTex ? f.bloom * 0.12 : 0; u.uTime.value = this.time;
     u.uGrain.value = f.grain; u.uStatic.value = f.static; u.uVignette.value = f.vignette; u.uRed.value = f.red; u.uFade.value = f.fade;
@@ -274,6 +293,7 @@ function buildMaterials() {
   MAT.stone = pbrMat('stoneN', { vertexColors: true, repeat: 0.5 });
   MAT.metal = pbrMat('rustN', { vertexColors: true, repeat: 1, metalness: 0.35 });
   MAT.rust = pbrMat('rust', { repeat: 1, metalness: 0.5 });
+  MAT.wallpaper = pbrMat('wallpaper', { vertexColors: true, repeat: 0.7 });
   MAT.glass = S({ vertexColors: true, roughness: 0.08, metalness: 0.4 });
   MAT.tree = pbrMat('barkN', { vertexColors: true, repeat: 1 });
   MAT.bark = pbrMat('bark', { repeat: 1, normalScale: 1.4 });

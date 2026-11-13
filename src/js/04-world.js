@@ -224,7 +224,7 @@ const World = {
           vec3 cg = mix(texture2D(map, vMapUv).rgb, texture2D(map, vMapUv * 0.27 + 0.31).rgb, 0.4);
           vec3 cl = texture2D(tLeaves, vMapUv * 1.1).rgb, cd = mix(texture2D(tDirt, vMapUv * 0.8).rgb, texture2D(tDirt, vMapUv * 0.21).rgb, 0.35), cs = texture2D(tStone, vMapUv * 0.45).rgb;
           vec3 cc = mix(cg, cl, vSplat.g); cc = mix(cc, cd, vSplat.r); cc = mix(cc, cs, vSplat.b);
-          diffuseColor.rgb *= cc * vSplat.a;`)
+          diffuseColor.rgb *= cc * vSplat.a * 1.55;`)
         .replace(/texture2D\( normalMap, vNormalMapUv \)/g, 'splatNormal( vNormalMapUv )')
         .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = roughness * (0.96 - vSplat.r * 0.1 - vSplat.b * 0.05);');
     };

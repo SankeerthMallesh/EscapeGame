@@ -55,7 +55,7 @@ const Joury = {
   },
   visibility() {
     const cam = World.cam; cam.getWorldDirection(_jv2);
-    _jv.set(this.pos.x, this.pos.y + 2.05, this.pos.z).sub(cam.position);
+    _jv.set(this.pos.x, this.pos.y + this.c.eyeY, this.pos.z).sub(cam.position);
     const d = _jv.length(); _jv.divideScalar(d);
     const cosA = _jv.dot(_jv2);
     const range = Math.min(Player.lightOn ? 36 : 24, 1.35 / D().fog);

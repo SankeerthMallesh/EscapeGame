@@ -195,7 +195,7 @@ const Game = {
     const cam = World.cam, fwd = new THREE.Vector3(-Math.sin(Player.yaw), 0, -Math.cos(Player.yaw));
     Player.pitch = 0.05; Player.applyCam();
     const jp = cam.position.clone().addScaledVector(fwd, 1.05);
-    Joury.c.root.visible = true; Joury.c.root.position.set(jp.x, cam.position.y - 2.32, jp.z); Joury.c.root.rotation.y = Math.atan2(cam.position.x - jp.x, cam.position.z - jp.z); Joury.c.root.scale.setScalar(1.05);
+    Joury.c.root.visible = true; Joury.c.root.position.set(jp.x, cam.position.y - Joury.c.eyeY * 1.05, jp.z); Joury.c.root.rotation.y = Math.atan2(cam.position.x - jp.x, cam.position.z - jp.z); Joury.c.root.scale.setScalar(1.05);
     animateJoury(Joury.c, 0, false, 0, 'scare');
     SFX.jumpscare(); GFX.fx.flash = 0.8; GFX.fx.static = 0.45; GFX.fx.red = 0.3; this.scareFrom = jp; this.scareCam = cam.position.clone(); this.scareFwd = fwd;
     HUD.prompt(null);
@@ -267,7 +267,7 @@ const Game = {
     const db = new Builder(); for (let z = 38; z < 48; z += 0.35) db.box(3, 0.08, 0.3, 0, 0.9, z, 0x5a4026, 'wood'); scene.add(db.build());
     const J = makeJoury(); J.root.position.set(0, 0.95, 39); J.root.rotation.y = Math.PI; J.root.scale.setScalar(1.0); scene.add(J.root);
     const boat = makeBoat(); scene.add(boat);
-    const kids = KID_TYPES.map((k, i) => { const c = makeKid(k.id); c.root.scale.setScalar(0.72); c.legL.rotation.x = c.legR.rotation.x = -1.4; boat.add(c.root); const row = Math.floor(i / 2), side = i % 2 ? 1 : -1; c.root.position.set(side * 0.33, 0.12, 1.5 - row * 0.62); c.root.rotation.y = Math.PI + side * 0.3; return c; });
+    const kids = KID_TYPES.map((k, i) => { const c = makeKid(k.id); c.root.scale.setScalar(0.72); animateKid(c, 0, 'sit'); boat.add(c.root); const row = Math.floor(i / 2), side = i % 2 ? 1 : -1; c.root.position.set(side * 0.33, 0.06, 1.5 - row * 0.62); c.root.rotation.y = Math.PI + side * 0.3; return c; });
     const wake = []; for (let i = 0; i < 16; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.mist, color: 0xffffff, transparent: true, opacity: 0.3, depthWrite: false })); s.scale.set(2, 0.6, 1); scene.add(s); wake.push(s); }
     const cam = GFX.camera(55, 0.1, 1200);
     return {
@@ -295,7 +295,7 @@ const Game = {
   },
   updateEnding(dt) {
     this.endT += dt; const t = this.endT, E = this.ending;
-    GFX.fx.fade = Math.max(t > 14 ? 0.45 * smoothstep(14, 16, t) : 0, 1 - t * 0.7); GFX.fx.warm = 0.4; GFX.fx.exposure = 1.0; GFX.fx.vignette = 0.7; GFX.fx.grain = 0.04;
+    GFX.fx.fade = Math.max(t > 14 ? 0.45 * smoothstep(14, 16, t) : 0, 1 - t * 0.7); GFX.fx.warm = 0.4; GFX.fx.exposure = 1.0; GFX.fx.auto = 0; GFX.fx.vignette = 0.7; GFX.fx.grain = 0.04;
     E.update(t, dt);
     if (t > 14.5 && !this.endShown) this.showEpilogue();
     GFX.render(E.scene, E.cam, dt);
@@ -336,7 +336,7 @@ const Game = {
     fx.flash = Math.max(0, fx.flash - dt * 2.5);
     switch (this.state) {
       case 'title': {
-        this.t += dt; fx.fade = Math.max(0, fx.fade - dt * 0.6); fx.static = 0.02 + (Math.random() < 0.01 ? 0.4 : 0); fx.vignette = 1; fx.grain = 0.07; fx.red = 0; fx.warm = 0; fx.exposure = 1.8;
+        this.t += dt; fx.fade = Math.max(0, fx.fade - dt * 0.6); fx.static = 0.02 + (Math.random() < 0.01 ? 0.4 : 0); fx.vignette = 1; fx.grain = 0.07; fx.red = 0; fx.warm = 0; fx.exposure = 1.8; fx.auto = 0;
         FogU.uMistAmt.value = 0.8;
         const sz = World.shoreZ, cam = World.cam, a = this.t * 0.05, dk = World.dock;
         cam.position.set(-6.5 + Math.sin(a) * 1.5, 2.1 + Math.sin(this.t * 0.4) * 0.1, dk.z1 + 7.5 + Math.cos(a) * 1.0); cam.lookAt(-11, 3.4, sz - 24);
@@ -349,7 +349,7 @@ const Game = {
         break;
       }
       case 'story': {
-        FogU.uMistAmt.value = 0; fx.grain = 0.06; fx.vignette = 0.9; fx.static = 0; fx.exposure = 1.0;
+        FogU.uMistAmt.value = 0; fx.grain = 0.06; fx.vignette = 0.9; fx.static = 0; fx.exposure = 1.0; fx.auto = 0;
         if (SFX.ctx) { const night = Story.idx >= 3; SFX.setLoop('wind', night ? 0.08 : 0); SFX.setLoop('water', Story.idx === 5 ? 0.2 : 0); SFX.update(dt, 0); }
         Story.update(dt);
         break;
@@ -385,7 +385,7 @@ const Game = {
     const targetStatic = Math.max(0, danger * 0.48 + (Joury.seen ? 0.06 : 0) - 0.06);
     fx.static = damp(fx.static, targetStatic, fx.static > targetStatic ? 2.5 : 8, dt);
     fx.red = damp(fx.red, (this.phase === 'boat' ? 0.16 : 0) + (Joury.seen ? Joury.stare / d.stareLimit * 0.35 : 0), 4, dt);
-    fx.exposure = 1.5; fx.vignette = 1 + danger * 0.3; fx.grain = 0.07 + danger * 0.05; fx.aberr = 0.5 + danger * 1.5; fx.warm = 0; fx.shake = Joury.seen ? danger * 0.4 : 0;
+    fx.exposure = 1.5; fx.auto = 1; fx.key = 0.03; fx.vignette = 1 + danger * 0.3; fx.grain = 0.07 + danger * 0.05; fx.aberr = 0.5 + danger * 1.5; fx.warm = 0; fx.shake = Joury.seen ? danger * 0.4 : 0;
     if (this.fadeIn > 0) { this.fadeIn -= dt * 0.8; fx.fade = Math.max(0, this.fadeIn); } else fx.fade = 0;
     this.setRage(this.phase === 'boat' ? 1 : 0);
     // sound
@@ -413,7 +413,7 @@ const Game = {
     Cabin.update(dt);
     if (this.state !== 'cabin') return;
     const low = Cabin.timer < 30 && Cabin.wakeT <= 0;
-    fx.static = damp(fx.static, low ? 0.12 : 0.03, 2, dt); fx.red = damp(fx.red, low ? 0.2 + Math.sin(GFX.time * 4) * 0.08 : 0, 3, dt); fx.vignette = 1.1; fx.grain = 0.08; fx.aberr = 0.5; fx.warm = 0.15; fx.shake = 0; fx.exposure = 1.3;
+    fx.static = damp(fx.static, low ? 0.12 : 0.03, 2, dt); fx.red = damp(fx.red, low ? 0.2 + Math.sin(GFX.time * 4) * 0.08 : 0, 3, dt); fx.vignette = 1.1; fx.grain = 0.08; fx.aberr = 0.5; fx.warm = 0.15; fx.shake = 0; fx.exposure = 1.3; fx.auto = 1; fx.key = 0.05;
     const it = Cabin.wakeT <= 0 && !$('inspect').classList.contains('on') ? Cabin.aimed() : null;
     HUD.prompt(it ? Cabin.label(it.id) : null);
     HUD.cabinTimer(Cabin.timer, Cabin.digitsLine());
