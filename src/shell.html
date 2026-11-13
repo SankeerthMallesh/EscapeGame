@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escape from Joury</title>
+<meta name="description" content="A first-person Halloween horror game. Rescue 10 kids, find the boat parts, and don't let Joury catch you.">
+<style>
+/*CSS*/
+</style>
+</head>
+<body>
+<canvas id="c" tabindex="0"></canvas>
+
+<!-- Loading -->
+<div id="loading" class="screen on">
+  <div class="load-box">
+    <div class="load-title">ESCAPE FROM <span>JOURY</span></div>
+    <div class="load-bar"><div id="loadFill"></div></div>
+    <div id="loadText">Carving pumpkins…</div>
+  </div>
+</div>
+
+<!-- Title -->
+<div id="title" class="screen">
+  <div class="title-col">
+    <div class="logo">
+      <div class="logo-top">ESCAPE FROM</div>
+      <div class="logo-main" data-text="JOURY">JOURY</div>
+      <div class="logo-sub">a Halloween horror game</div>
+      <div class="sound-hint" id="soundHint">🔊 click anywhere to turn on the music</div>
+    </div>
+    <button id="btnPlay" class="btn big">PLAY</button>
+    <div class="opt-row"><span class="opt-label">Difficulty</span>
+      <div class="seg" id="segDiff">
+        <button data-v="easy">Easy</button><button data-v="normal">Normal</button><button data-v="nightmare">Nightmare</button>
+      </div>
+    </div>
+    <div class="opt-row"><span class="opt-label">Graphics</span>
+      <div class="seg" id="segQual">
+        <button data-v="low">Low</button><button data-v="medium">Medium</button><button data-v="high">High</button>
+      </div>
+    </div>
+    <div class="opt-row"><span class="opt-label">Volume</span><input type="range" id="optVol" min="0" max="1" step="0.05"></div>
+    <div class="opt-row"><span class="opt-label">Mouse</span><input type="range" id="optSens" min="0.3" max="2.5" step="0.05"></div>
+    <div class="diff-note" id="diffNote"></div>
+    <div class="controls">
+      <div><b>WASD</b> move</div><div><b>Mouse</b> look</div><div><b>Shift</b> sprint</div><div><b>F</b> flashlight</div>
+      <div><b>E</b> interact</div><div><b>C</b> crouch</div><div><b>M</b> map</div><div><b>Esc</b> pause</div>
+    </div>
+  </div>
+</div>
+
+<!-- Story -->
+<div id="story" class="screen">
+  <div class="story-top">
+    <div id="storyLabel"></div>
+    <button id="btnSkip" class="btn small">SKIP ▸▸</button>
+  </div>
+  <div id="storyBig"></div>
+  <div class="story-box">
+    <div id="storyText"></div>
+    <div id="storyNext">click or press Space ▸</div>
+  </div>
+  <div class="story-dots" id="storyDots"></div>
+</div>
+
+<!-- HUD -->
+<div id="hud" class="screen">
+  <div id="kidsBar"></div>
+  <div id="objective"></div>
+  <div id="partsBar"></div>
+  <canvas id="minimap" width="200" height="200"></canvas>
+  <div id="crosshair"></div>
+  <div id="prompt"></div>
+  <div id="subtitle"></div>
+  <div id="toast"></div>
+  <div id="stun"></div>
+  <div id="cabinTimer"></div>
+  <div id="lightHint"></div>
+  <div id="bars">
+    <div class="bar-row"><span class="bar-ico">⚡</span><div class="bar"><div id="stamFill"></div></div></div>
+    <div class="bar-row"><span class="bar-ico">🔦</span><div class="bar"><div id="batFill"></div></div><span id="batPct"></span></div>
+  </div>
+  <div id="lookHint">Click and drag to look around</div>
+  <div id="chat"><div id="chatLines"></div><div id="chatTyping"></div></div>
+</div>
+
+<!-- Big map -->
+<div id="bigmap" class="screen">
+  <div class="map-wrap">
+    <canvas id="bigmapCanvas" width="640" height="640"></canvas>
+    <div class="map-legend">
+      <div><i class="lg you"></i>You</div><div><i class="lg joury"></i>Joury</div><div><i class="lg kid"></i>Kid</div><div><i class="lg saved"></i>Saved</div>
+      <div><i class="lg cabin"></i>Cabin</div><div><i class="lg dock"></i>Dock</div><div><i class="lg part"></i>Boat part</div>
+      <div class="map-close">M to close</div>
+    </div>
+  </div>
+</div>
+
+<!-- Inspect panel -->
+<div id="inspect" class="screen">
+  <div class="inspect-card">
+    <div id="inspectImg"></div>
+    <div class="inspect-body">
+      <div id="inspectTitle"></div>
+      <div id="inspectText"></div>
+      <div class="inspect-close">E / Esc / click to close</div>
+    </div>
+  </div>
+</div>
+
+<!-- Keypad -->
+<div id="keypad" class="screen">
+  <div class="keypad-box">
+    <div class="kp-head">DOOR LOCK</div>
+    <div id="kpDisplay">_ _ _ _</div>
+    <div class="kp-grid" id="kpGrid"></div>
+    <div class="kp-foot">Type the 4 digits · wrong code costs time · Esc to step back</div>
+  </div>
+</div>
+
+<!-- Pause -->
+<div id="pause" class="screen">
+  <div class="panel">
+    <div class="panel-title">PAUSED</div>
+    <button id="btnResume" class="btn">RESUME</button>
+    <div class="opt-row"><span class="opt-label">Graphics</span>
+      <div class="seg" id="segQual2">
+        <button data-v="low">Low</button><button data-v="medium">Medium</button><button data-v="high">High</button>
+      </div>
+    </div>
+    <div class="opt-row"><span class="opt-label">Volume</span><input type="range" id="optVol2" min="0" max="1" step="0.05"></div>
+    <div class="opt-row"><span class="opt-label">Mouse</span><input type="range" id="optSens2" min="0.3" max="2.5" step="0.05"></div>
+    <div class="opt-row"><span class="opt-label">Invert Y</span><input type="checkbox" id="optInvert"></div>
+    <button id="btnQuit" class="btn ghost">QUIT TO TITLE</button>
+  </div>
+</div>
+
+<!-- Caught / timeout -->
+<div id="caught" class="screen"><div class="caught-text" id="caughtText">CAUGHT</div><div class="caught-sub" id="caughtSub"></div></div>
+<div id="timeout" class="screen">
+  <div class="panel">
+    <div class="panel-title red">JOURY CAME BACK.</div>
+    <div class="panel-text">The door creaks. A controller clicks. He's home.</div>
+    <button id="btnRetry" class="btn">RETRY</button>
+  </div>
+</div>
+
+<!-- Ending -->
+<div id="ending" class="screen">
+  <div class="panel wide">
+    <div class="end-lines" id="endLines"></div>
+    <div class="stats" id="endStats"></div>
+    <button id="btnAgain" class="btn">PLAY AGAIN</button>
+  </div>
+</div>
+
+<div id="crash" class="screen"><div class="crash-box"><div class="crash-title" id="crashTitle">Escape from Joury is not responding</div><div class="crash-body" id="crashBody">The program stopped working. Collecting crash data…</div><div class="crash-bar"><div id="crashFill"></div></div><div class="crash-btns"><span>Wait</span><span>Close the program</span></div></div></div>
+
+<div id="fatal" class="screen"><div class="panel"><div class="panel-title red">Can't start</div><div class="panel-text" id="fatalText"></div></div></div>
+
+<script>
+/*GAME*/
+</script>
+<script>
+/*THREE*/
+</script>
+</body>
+</html>
