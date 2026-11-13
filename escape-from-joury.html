@@ -448,7 +448,7 @@ const DIFFS = {
 };
 const QUALITY = {
   low: { pr: 0.75, spotShadow: 512, moonShadow: 0, msaa: 0, bloom: false, pointLights: 1, grassFrac: 0.35, fireflyFrac: 0.4, viewDist: 58, fireShadow: false },
-  medium: { pr: 1.0, spotShadow: 1024, moonShadow: 1024, msaa: 0, bloom: true, pointLights: 3, grassFrac: 0.7, fireflyFrac: 0.75, viewDist: 70, fireShadow: true },
+  medium: { pr: 1.0, spotShadow: 1024, moonShadow: 0, msaa: 0, bloom: true, pointLights: 3, grassFrac: 0.7, fireflyFrac: 0.75, viewDist: 70, fireShadow: true },
   high: { pr: Math.min(window.devicePixelRatio || 1, 1.5), spotShadow: 2048, moonShadow: 2048, msaa: 4, bloom: true, pointLights: 4, grassFrac: 1, fireflyFrac: 1, viewDist: 85, fireShadow: true },
 };
 const D = () => DIFFS[CFG.difficulty] || DIFFS.normal;
@@ -2197,9 +2197,9 @@ function makeJoury() {
   const P = { legH: 1.06, thigh: 0.52, shin: 0.52, hipW: 0.085, legR: 0.068, torsoH: 0.74, chestW: 0.2, waistW: 0.16, depth: 0.62, neck: 0.1, headR: 0.125, upper: 0.44, fore: 0.44, armR: 0.045 };
   const hoodie = clothMat(0x26252b, 1.0), jeans = clothMat(0x1b2230, 0.95), skin = skinMat(0x8b8c8f);
   const grin = (g, cx, cy) => { g.strokeStyle = 'rgba(150,10,10,.9)'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(cx - 34, cy + 18); g.quadraticCurveTo(cx, cy + 40, cx + 34, cy + 18); g.stroke(); g.fillStyle = '#d8d0c0'; for (let x = -26; x <= 26; x += 6.5) { g.beginPath(); g.moveTo(cx + x - 2.5, cy + 22 + Math.abs(x) * -0.18 + 6); g.lineTo(cx + x + 2.5, cy + 22 + Math.abs(x) * -0.18 + 6); g.lineTo(cx + x, cy + 30 - Math.abs(x) * 0.25); g.fill(); } };
-  const faceTex = faceTexture({ skin: 0x6e6f72, noEyes: true, mouth: false, blush: false, after: (g, cx, cy) => { g.fillStyle = 'rgba(0,0,0,.85)'; [-1, 1].forEach((s) => { g.beginPath(); g.ellipse(cx + s * 22, cy - 4, 15, 13, 0, 0, TAU); g.fill(); }); grin(g, cx, cy); } });
+  const faceTex = faceTexture({ skin: 0x5a5b5f, noEyes: true, mouth: false, blush: false, after: (g, cx, cy) => { g.fillStyle = 'rgba(0,0,0,.85)'; [-1, 1].forEach((s) => { g.beginPath(); g.ellipse(cx + s * 22, cy - 4, 15, 13, 0, 0, TAU); g.fill(); }); grin(g, cx, cy); } });
   const emTex = (() => { const cv = makeCanvas(512, 256), g = cv.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, 512, 256); grin(g, 128, 128); g.fillStyle = '#000'; for (let x = -26; x <= 26; x += 6.5) g.fillRect(128 + x - 3, 128 + 20, 6, 12); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; })();
-  const faceMat = fogify(new THREE.MeshStandardMaterial({ map: faceTex, normalMap: PBR.skin.normalMap, roughness: 0.55, emissive: 0xffffff, emissiveMap: emTex, emissiveIntensity: 0.6 }));
+  const faceMat = fogify(new THREE.MeshStandardMaterial({ map: faceTex, normalMap: PBR.skin.normalMap, roughness: 0.55, emissive: 0xffffff, emissiveMap: emTex, emissiveIntensity: 2.2 }));
   const c = makeHuman({ prop: P, shirtMat: hoodie, pantsMat: jeans, skin: 0x8b8c8f, shoes: 0x0c0c0c, handMat: skin, faceMat, noEars: true });
   const hr = P.headR;
   // hood: a shell around the head, open at the front, with a drape down the back
@@ -2232,7 +2232,7 @@ function animateJoury(c, t, moving, speed, mode) {
     const f = Math.random() < 0.2 ? 0.2 : 1; c.eyeMat.color.setRGB(3.2 * f, 0.12 * f, 0.06 * f); return;
   }
   c.eyeMat.color.setRGB(3.2, 0.12, 0.06);
-  if (mode === 'scare') { c.eyeMat.color.setRGB(2.4, 0.05, 0.02); c.armL.rotation.set(-2.0, 0, -0.35); c.armR.rotation.set(-2.0, 0, 0.35); c.elbowL.rotation.x = -0.5; c.elbowR.rotation.x = -0.5; c.head.rotation.x = -0.15; c.head.rotation.z = Math.sin(t * 50) * 0.08; c.torso.rotation.x = 0.3; return; }
+  if (mode === 'scare') { c.eyeMat.color.setRGB(2.4, 0.05, 0.02); c.armL.rotation.set(-2.0, 0, -0.35); c.armR.rotation.set(-2.0, 0, 0.35); c.elbowL.rotation.x = -0.5; c.elbowR.rotation.x = -0.5; c.head.rotation.x = -0.12; c.head.rotation.z = Math.sin(t * 50) * 0.08; c.torso.rotation.x = 0.12; return; }
   if (moving) {
     c.walkT += speed * 0.016 * 2.6;
     const s = Math.sin(c.walkT) * 0.5;
@@ -4172,7 +4172,7 @@ const Game = {
     this.screen('story', false); $('storyBig').className = '';
     GFX.fx.red = 0; GFX.fx.shake = 0; GFX.fx.flash = 0; GFX.fx.fade = 1;
     World.scene.fog.density = D().fog; this.setRage(0);
-    World.reset(); Joury.reset();
+    World.reset(); Joury.reset(); Joury.c.eyeGlow.setSize(0, 0.2); Joury.c.eyeGlow.setSize(1, 0.2);
     this.phase = 'kids'; this.stats = { time: 0, caught: 0 }; this.attempt = 0; this.mapOpen = false;
     Player.attach(World.cam, World, this.worldFlash);
     Player.place(0, World.dock.start.z, 0); Player.stamina = 1; Player.battery = 1; Player.lightOn = true; Player.exhausted = false; Player.frozen = false;
@@ -4279,15 +4279,15 @@ const Game = {
     const cam = World.cam, fwd = new THREE.Vector3(-Math.sin(Player.yaw), 0, -Math.cos(Player.yaw));
     Player.pitch = 0.05; Player.applyCam();
     const jp = cam.position.clone().addScaledVector(fwd, 1.05);
-    Joury.c.root.visible = true; Joury.c.root.position.set(jp.x, cam.position.y - Joury.c.eyeY * 1.05, jp.z); Joury.c.root.rotation.y = Math.atan2(cam.position.x - jp.x, cam.position.z - jp.z); Joury.c.root.scale.setScalar(1.05);
+    Joury.c.root.visible = true; Joury.c.root.position.set(jp.x, cam.position.y - Joury.c.eyeY + 0.02, jp.z); Joury.c.root.rotation.y = Math.atan2(cam.position.x - jp.x, cam.position.z - jp.z); Joury.c.root.scale.setScalar(1.05);
     animateJoury(Joury.c, 0, false, 0, 'scare');
-    SFX.jumpscare(); GFX.fx.fade = 0; this.fadeIn = 0; GFX.fx.flash = 0.8; GFX.fx.static = 0.45; GFX.fx.red = 0.3; this.scareFrom = jp; this.scareCam = cam.position.clone(); this.scareFwd = fwd;
+    SFX.jumpscare(); GFX.fx.fade = 0; this.fadeIn = 0; GFX.fx.auto = 0; GFX.fx.exposure = 1.7; GFX.fx.flash = 0.8; GFX.fx.static = 0.45; GFX.fx.red = 0.3; this.scareFrom = jp; this.scareCam = cam.position.clone(); this.scareFwd = fwd;
     HUD.prompt(null);
   },
   updateCaught(dt) {
     this.caughtT += dt; const t = this.caughtT;
     animateJoury(Joury.c, t, false, 0, 'scare');
-    const lunge = lerp(1.9, 0.95, smoothstep(0, 0.22, t)), jp = this.scareCam.clone().addScaledVector(this.scareFwd, lunge);
+    const lunge = lerp(2.0, 1.05, smoothstep(0, 0.22, t)), jp = this.scareCam.clone().addScaledVector(this.scareFwd, lunge);
     Joury.c.root.position.x = jp.x; Joury.c.root.position.z = jp.z;
     World.cam.position.copy(this.scareCam); World.cam.position.x += (Math.random() - 0.5) * 0.04; World.cam.position.y += (Math.random() - 0.5) * 0.04;
     GFX.fx.static = t < 0.9 ? 0.3 + Math.random() * 0.25 : Math.min(1, 0.4 + (t - 0.9)); GFX.fx.red = 0.3 + Math.random() * 0.1; GFX.fx.shake = 1;
@@ -4424,7 +4424,7 @@ const Game = {
         FogU.uMistAmt.value = 0.8;
         const sz = World.shoreZ, cam = World.cam, a = this.t * 0.05, dk = World.dock;
         cam.position.set(-6.5 + Math.sin(a) * 1.5, 2.1 + Math.sin(this.t * 0.4) * 0.1, dk.z1 + 7.5 + Math.cos(a) * 1.0); cam.lookAt(-11, 3.4, sz - 24);
-        { const J = Joury.c; J.root.visible = true; J.root.position.set(-0.4, dk.y, dk.z1 - 2.2); J.root.rotation.y = Math.atan2(cam.position.x + 0.4, cam.position.z - dk.z1 + 2.2); animateJoury(J, this.t, false, 0, null); }
+        { const J = Joury.c; J.root.visible = true; J.eyeGlow.setSize(0, 0.6); J.eyeGlow.setSize(1, 0.6); J.root.position.set(-0.4, dk.y, dk.z1 - 2.2); J.root.rotation.y = Math.atan2(cam.position.x + 0.4, cam.position.z - dk.z1 + 2.2); animateJoury(J, this.t, false, 0, null); }
         Player.pos.set(cam.position.x, 0, cam.position.z);
         if (this.worldFlash) { this.worldFlash.intensity = 0; this.worldFlash.userData.fill.intensity = 0; }
         World.update(dt, cam.position);

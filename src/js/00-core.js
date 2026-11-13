@@ -53,7 +53,7 @@ const DIFFS = {
 };
 const QUALITY = {
   low: { pr: 0.75, spotShadow: 512, moonShadow: 0, msaa: 0, bloom: false, pointLights: 1, grassFrac: 0.35, fireflyFrac: 0.4, viewDist: 58, fireShadow: false },
-  medium: { pr: 1.0, spotShadow: 1024, moonShadow: 1024, msaa: 0, bloom: true, pointLights: 3, grassFrac: 0.7, fireflyFrac: 0.75, viewDist: 70, fireShadow: true },
+  medium: { pr: 1.0, spotShadow: 1024, moonShadow: 0, msaa: 0, bloom: true, pointLights: 3, grassFrac: 0.7, fireflyFrac: 0.75, viewDist: 70, fireShadow: true },
   high: { pr: Math.min(window.devicePixelRatio || 1, 1.5), spotShadow: 2048, moonShadow: 2048, msaa: 4, bloom: true, pointLights: 4, grassFrac: 1, fireflyFrac: 1, viewDist: 85, fireShadow: true },
 };
 const D = () => DIFFS[CFG.difficulty] || DIFFS.normal;

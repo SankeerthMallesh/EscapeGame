@@ -3,7 +3,7 @@ const results = []; const check = (n, ok, x = '') => results.push(`${ok ? 'PASS'
 (async () => {
   const { browser, page, logs } = await L.open();
   const until = (expr, ms = 60000) => page.waitForFunction((e) => EFJ.run(e), expr, { timeout: ms, polling: 100 }).then(() => true).catch(() => false);
-  const shot = (n) => page.screenshot({ path: L.SHOTS + n + '.png' });
+  const shot = (n) => page.screenshot({ path: L.SHOTS + n + '.png', timeout: 240000 });
   await page.click('#btnPlay'); await page.waitForTimeout(300); await page.click('#btnSkip'); await until("Game.state === 'play'");
   await page.evaluate(() => { EFJ.rescueAll(); EFJ.holdJoury(9999); EFJ.run('Game.stats.caught = 2'); });
   await until("Game.phase === 'boat'");

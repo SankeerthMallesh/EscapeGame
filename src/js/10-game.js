@@ -89,7 +89,7 @@ const Game = {
     this.screen('story', false); $('storyBig').className = '';
     GFX.fx.red = 0; GFX.fx.shake = 0; GFX.fx.flash = 0; GFX.fx.fade = 1;
     World.scene.fog.density = D().fog; this.setRage(0);
-    World.reset(); Joury.reset();
+    World.reset(); Joury.reset(); Joury.c.eyeGlow.setSize(0, 0.2); Joury.c.eyeGlow.setSize(1, 0.2);
     this.phase = 'kids'; this.stats = { time: 0, caught: 0 }; this.attempt = 0; this.mapOpen = false;
     Player.attach(World.cam, World, this.worldFlash);
     Player.place(0, World.dock.start.z, 0); Player.stamina = 1; Player.battery = 1; Player.lightOn = true; Player.exhausted = false; Player.frozen = false;
@@ -196,15 +196,15 @@ const Game = {
     const cam = World.cam, fwd = new THREE.Vector3(-Math.sin(Player.yaw), 0, -Math.cos(Player.yaw));
     Player.pitch = 0.05; Player.applyCam();
     const jp = cam.position.clone().addScaledVector(fwd, 1.05);
-    Joury.c.root.visible = true; Joury.c.root.position.set(jp.x, cam.position.y - Joury.c.eyeY * 1.05, jp.z); Joury.c.root.rotation.y = Math.atan2(cam.position.x - jp.x, cam.position.z - jp.z); Joury.c.root.scale.setScalar(1.05);
+    Joury.c.root.visible = true; Joury.c.root.position.set(jp.x, cam.position.y - Joury.c.eyeY + 0.02, jp.z); Joury.c.root.rotation.y = Math.atan2(cam.position.x - jp.x, cam.position.z - jp.z); Joury.c.root.scale.setScalar(1.05);
     animateJoury(Joury.c, 0, false, 0, 'scare');
-    SFX.jumpscare(); GFX.fx.fade = 0; this.fadeIn = 0; GFX.fx.flash = 0.8; GFX.fx.static = 0.45; GFX.fx.red = 0.3; this.scareFrom = jp; this.scareCam = cam.position.clone(); this.scareFwd = fwd;
+    SFX.jumpscare(); GFX.fx.fade = 0; this.fadeIn = 0; GFX.fx.auto = 0; GFX.fx.exposure = 1.7; GFX.fx.flash = 0.8; GFX.fx.static = 0.45; GFX.fx.red = 0.3; this.scareFrom = jp; this.scareCam = cam.position.clone(); this.scareFwd = fwd;
     HUD.prompt(null);
   },
   updateCaught(dt) {
     this.caughtT += dt; const t = this.caughtT;
     animateJoury(Joury.c, t, false, 0, 'scare');
-    const lunge = lerp(1.9, 0.95, smoothstep(0, 0.22, t)), jp = this.scareCam.clone().addScaledVector(this.scareFwd, lunge);
+    const lunge = lerp(2.0, 1.05, smoothstep(0, 0.22, t)), jp = this.scareCam.clone().addScaledVector(this.scareFwd, lunge);
     Joury.c.root.position.x = jp.x; Joury.c.root.position.z = jp.z;
     World.cam.position.copy(this.scareCam); World.cam.position.x += (Math.random() - 0.5) * 0.04; World.cam.position.y += (Math.random() - 0.5) * 0.04;
     GFX.fx.static = t < 0.9 ? 0.3 + Math.random() * 0.25 : Math.min(1, 0.4 + (t - 0.9)); GFX.fx.red = 0.3 + Math.random() * 0.1; GFX.fx.shake = 1;
@@ -341,7 +341,7 @@ const Game = {
         FogU.uMistAmt.value = 0.8;
         const sz = World.shoreZ, cam = World.cam, a = this.t * 0.05, dk = World.dock;
         cam.position.set(-6.5 + Math.sin(a) * 1.5, 2.1 + Math.sin(this.t * 0.4) * 0.1, dk.z1 + 7.5 + Math.cos(a) * 1.0); cam.lookAt(-11, 3.4, sz - 24);
-        { const J = Joury.c; J.root.visible = true; J.root.position.set(-0.4, dk.y, dk.z1 - 2.2); J.root.rotation.y = Math.atan2(cam.position.x + 0.4, cam.position.z - dk.z1 + 2.2); animateJoury(J, this.t, false, 0, null); }
+        { const J = Joury.c; J.root.visible = true; J.eyeGlow.setSize(0, 0.6); J.eyeGlow.setSize(1, 0.6); J.root.position.set(-0.4, dk.y, dk.z1 - 2.2); J.root.rotation.y = Math.atan2(cam.position.x + 0.4, cam.position.z - dk.z1 + 2.2); animateJoury(J, this.t, false, 0, null); }
         Player.pos.set(cam.position.x, 0, cam.position.z);
         if (this.worldFlash) { this.worldFlash.intensity = 0; this.worldFlash.userData.fill.intensity = 0; }
         World.update(dt, cam.position);

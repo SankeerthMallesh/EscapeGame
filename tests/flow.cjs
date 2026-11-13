@@ -5,7 +5,7 @@ const check = (name, ok, extra = '') => { results.push(`${ok ? 'PASS' : 'FAIL'} 
 (async () => {
   const { browser, page, logs } = await L.open(); global.__logs = logs;
   const info = () => L.info(page);
-  const shot = (n) => page.screenshot({ path: S + n + '.png' });
+  const shot = (n) => page.screenshot({ path: S + n + '.png', timeout: 240000 });
   const wait = (ms) => page.waitForTimeout(ms);
   const waitState = (st, ms = 30000) => page.waitForFunction((st) => EFJ.state === st, st, { timeout: Math.max(ms, 90000) }).then(() => true).catch(() => false);
   const until = (expr, ms = 45000) => page.waitForFunction((e) => EFJ.run(e), expr, { timeout: ms, polling: 100 }).then(() => true).catch(() => false);

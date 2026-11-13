@@ -226,9 +226,9 @@ function makeJoury() {
   const P = { legH: 1.06, thigh: 0.52, shin: 0.52, hipW: 0.085, legR: 0.068, torsoH: 0.74, chestW: 0.2, waistW: 0.16, depth: 0.62, neck: 0.1, headR: 0.125, upper: 0.44, fore: 0.44, armR: 0.045 };
   const hoodie = clothMat(0x26252b, 1.0), jeans = clothMat(0x1b2230, 0.95), skin = skinMat(0x8b8c8f);
   const grin = (g, cx, cy) => { g.strokeStyle = 'rgba(150,10,10,.9)'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(cx - 34, cy + 18); g.quadraticCurveTo(cx, cy + 40, cx + 34, cy + 18); g.stroke(); g.fillStyle = '#d8d0c0'; for (let x = -26; x <= 26; x += 6.5) { g.beginPath(); g.moveTo(cx + x - 2.5, cy + 22 + Math.abs(x) * -0.18 + 6); g.lineTo(cx + x + 2.5, cy + 22 + Math.abs(x) * -0.18 + 6); g.lineTo(cx + x, cy + 30 - Math.abs(x) * 0.25); g.fill(); } };
-  const faceTex = faceTexture({ skin: 0x6e6f72, noEyes: true, mouth: false, blush: false, after: (g, cx, cy) => { g.fillStyle = 'rgba(0,0,0,.85)'; [-1, 1].forEach((s) => { g.beginPath(); g.ellipse(cx + s * 22, cy - 4, 15, 13, 0, 0, TAU); g.fill(); }); grin(g, cx, cy); } });
+  const faceTex = faceTexture({ skin: 0x5a5b5f, noEyes: true, mouth: false, blush: false, after: (g, cx, cy) => { g.fillStyle = 'rgba(0,0,0,.85)'; [-1, 1].forEach((s) => { g.beginPath(); g.ellipse(cx + s * 22, cy - 4, 15, 13, 0, 0, TAU); g.fill(); }); grin(g, cx, cy); } });
   const emTex = (() => { const cv = makeCanvas(512, 256), g = cv.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, 512, 256); grin(g, 128, 128); g.fillStyle = '#000'; for (let x = -26; x <= 26; x += 6.5) g.fillRect(128 + x - 3, 128 + 20, 6, 12); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; })();
-  const faceMat = fogify(new THREE.MeshStandardMaterial({ map: faceTex, normalMap: PBR.skin.normalMap, roughness: 0.55, emissive: 0xffffff, emissiveMap: emTex, emissiveIntensity: 0.6 }));
+  const faceMat = fogify(new THREE.MeshStandardMaterial({ map: faceTex, normalMap: PBR.skin.normalMap, roughness: 0.55, emissive: 0xffffff, emissiveMap: emTex, emissiveIntensity: 2.2 }));
   const c = makeHuman({ prop: P, shirtMat: hoodie, pantsMat: jeans, skin: 0x8b8c8f, shoes: 0x0c0c0c, handMat: skin, faceMat, noEars: true });
   const hr = P.headR;
   // hood: a shell around the head, open at the front, with a drape down the back
@@ -261,7 +261,7 @@ function animateJoury(c, t, moving, speed, mode) {
     const f = Math.random() < 0.2 ? 0.2 : 1; c.eyeMat.color.setRGB(3.2 * f, 0.12 * f, 0.06 * f); return;
   }
   c.eyeMat.color.setRGB(3.2, 0.12, 0.06);
-  if (mode === 'scare') { c.eyeMat.color.setRGB(2.4, 0.05, 0.02); c.armL.rotation.set(-2.0, 0, -0.35); c.armR.rotation.set(-2.0, 0, 0.35); c.elbowL.rotation.x = -0.5; c.elbowR.rotation.x = -0.5; c.head.rotation.x = -0.15; c.head.rotation.z = Math.sin(t * 50) * 0.08; c.torso.rotation.x = 0.3; return; }
+  if (mode === 'scare') { c.eyeMat.color.setRGB(2.4, 0.05, 0.02); c.armL.rotation.set(-2.0, 0, -0.35); c.armR.rotation.set(-2.0, 0, 0.35); c.elbowL.rotation.x = -0.5; c.elbowR.rotation.x = -0.5; c.head.rotation.x = -0.12; c.head.rotation.z = Math.sin(t * 50) * 0.08; c.torso.rotation.x = 0.12; return; }
   if (moving) {
     c.walkT += speed * 0.016 * 2.6;
     const s = Math.sin(c.walkT) * 0.5;
