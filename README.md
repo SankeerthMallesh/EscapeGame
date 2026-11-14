@@ -18,6 +18,9 @@ Or play offline:
 | WASD | Move |
 | Mouse | Look (click the game to lock the mouse; if your browser blocks that, click and drag) |
 | Shift | Sprint (uses stamina, and it's loud) |
+| Right mouse | Aim: focus the flashlight into a long, bright beam (slower movement) |
+| Space | Jump |
+| Shift + C | Slide (while sprinting) |
 | C | Crouch (slow, quiet, harder to spot) |
 | F | Flashlight on/off (in the cabin it also switches to the UV light once you find it) |
 | E | Free a kid, pick something up, inspect, use the keypad |
@@ -106,6 +109,8 @@ Everything you see is generated in code when the game loads. There are no image 
 - **Weather:** heavy rain, wet ground that turns shiny under the flashlight, and puddles that ripple.
 - **Camera:** eye adaptation (the picture adjusts when you shine the light on something close), film color grading, grain, vignette, and TV static when Joury is near.
 - **Forest:** 950 trees with bark and needle or leaf foliage, plus bushes, stumps, fallen logs, rocks, swaying grass, fireflies and ground mist.
+- **First-person view:** your arm and flashlight on screen, like a shooter's weapon view: it sways, bobs, drops when you sprint and steadies when you aim. A compass strip at the top marks the kids, boat parts and dock.
+- **Ambient occlusion** (Medium and High graphics): soft contact shadows in corners and where things meet the ground.
 - **Characters:** jointed people with faces, in fabric costumes. The flashback slides about the block game stay blocky on purpose.
 
 **Difficulty:** Easy, Normal or Nightmare. **Graphics:** Low, Medium or High. Use Low if the game feels slow on an older laptop.
@@ -121,7 +126,7 @@ Everything you see is generated in code when the game loads. There are no image 
 | `vendor/peerjs.min.js` | PeerJS 1.5.4 (MIT license) for online play, packed in the same way. |
 | `vendor/fonts/` | The three fonts the game uses (open licenses, see the README there), embedded by the build. |
 | `build.mjs` | Joins everything into `escape-from-joury.html`. |
-| `tests/` | Automated play-throughs in a headless browser: `flow.cjs` (story → game → rescue → caught → cabin puzzle → escape), `flow2.cjs` (boat parts → ending → Play Again), `flow3.cjs` (caught again → timer runs out → Retry → escape), `house.cjs` (story 2 from start to finish), `admin.cjs` and `admin2.cjs` (every admin button, island and house), `mp.cjs`, `mp2.cjs` and `mp3.cjs` (online: 2–3 players, lobby, sync, chat, caught, door knocking, late joining, leaving), `scares.cjs`, `crash.cjs` and `stare.cjs` (storm, chat, diary pages, pumpkins, stare-to-catch, fake crash). |
+| `tests/` | Automated play-throughs in a headless browser: `flow.cjs` (story → game → rescue → caught → cabin puzzle → escape), `flow2.cjs` (boat parts → ending → Play Again), `flow3.cjs` (caught again → timer runs out → Retry → escape), `house.cjs` (story 2 from start to finish), `admin.cjs` and `admin2.cjs` (every admin button, island and house), `feel.cjs` (hands, jump, aim, slide, compass), `mp.cjs`, `mp2.cjs` and `mp3.cjs` (online: 2–3 players, lobby, sync, chat, caught, door knocking, late joining, leaving), `scares.cjs`, `crash.cjs` and `stare.cjs` (storm, chat, diary pages, pumpkins, stare-to-catch, fake crash). |
 
 ## Changing the game
 
