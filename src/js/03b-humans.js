@@ -226,13 +226,36 @@ function makeJoury() {
   const P = { legH: 1.06, thigh: 0.52, shin: 0.52, hipW: 0.085, legR: 0.068, torsoH: 0.74, chestW: 0.2, waistW: 0.16, depth: 0.62, neck: 0.1, headR: 0.125, upper: 0.44, fore: 0.44, armR: 0.045 };
   const hoodie = clothMat(0x26252b, 1.0), jeans = clothMat(0x1b2230, 0.95), skin = skinMat(0x8b8c8f);
   const grin = (g, cx, cy) => { g.strokeStyle = 'rgba(150,10,10,.9)'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(cx - 34, cy + 18); g.quadraticCurveTo(cx, cy + 40, cx + 34, cy + 18); g.stroke(); g.fillStyle = '#d8d0c0'; for (let x = -26; x <= 26; x += 6.5) { g.beginPath(); g.moveTo(cx + x - 2.5, cy + 22 + Math.abs(x) * -0.18 + 6); g.lineTo(cx + x + 2.5, cy + 22 + Math.abs(x) * -0.18 + 6); g.lineTo(cx + x, cy + 30 - Math.abs(x) * 0.25); g.fill(); } };
-  const faceTex = faceTexture({ skin: 0x5a5b5f, noEyes: true, mouth: false, blush: false, after: (g, cx, cy) => { g.fillStyle = 'rgba(0,0,0,.85)'; [-1, 1].forEach((s) => { g.beginPath(); g.ellipse(cx + s * 22, cy - 4, 15, 13, 0, 0, TAU); g.fill(); }); grin(g, cx, cy); } });
+  const faceTex = faceTexture({ skin: 0x5a5b5f, noEyes: true, mouth: false, blush: false, after: (g, cx, cy) => {
+    const R = mulberry32(666), rr = (a, b) => a + R() * (b - a);
+    // mottled, bloodless skin
+    for (let i = 0; i < 260; i++) { g.fillStyle = `rgba(${R() < 0.5 ? '30,34,30' : '120,110,100'},${rr(0.03, 0.09)})`; g.beginPath(); g.ellipse(cx + rr(-120, 120), cy + rr(-110, 110), rr(2, 14), rr(2, 10), rr(0, 3), 0, TAU); g.fill(); }
+    // veins: thin dark branches that spread out from the eyes and temples
+    const vein = (x, y, a, len, w) => { for (let k = 0; k < len; k++) { const nx = x + Math.cos(a) * 3, ny = y + Math.sin(a) * 3; g.strokeStyle = `rgba(40,20,40,${0.55 * (1 - k / len)})`; g.lineWidth = w * (1 - k / len) + 0.4; g.beginPath(); g.moveTo(x, y); g.lineTo(nx, ny); g.stroke(); x = nx; y = ny; a += rr(-0.5, 0.5); if (R() < 0.08 && w > 0.8) vein(x, y, a + rr(-1.2, 1.2), (len - k) * 0.6, w * 0.6); } };
+    [-1, 1].forEach((sd) => { for (let i = 0; i < 4; i++) vein(cx + sd * 34, cy - 8 + rr(-6, 6), sd > 0 ? rr(-1.2, 0.6) : Math.PI + rr(-0.6, 1.2), rr(10, 20), 1.6); });
+    for (let i = 0; i < 3; i++) vein(cx + rr(-30, 30), cy - 50, -Math.PI / 2 + rr(-0.8, 0.8), rr(8, 16), 1.4);
+    // cracks in the skin
+    g.strokeStyle = 'rgba(15,10,10,.55)'; g.lineWidth = 1.2; for (let i = 0; i < 6; i++) { let x = cx + rr(-60, 60), y = cy + rr(-60, 50); g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 6; k++) { x += rr(-7, 7); y += rr(-7, 7); g.lineTo(x, y); } g.stroke(); }
+    // deep, sunken sockets with raw red rims
+    [-1, 1].forEach((sd) => {
+      const ex = cx + sd * 22, ey = cy - 4;
+      const rim = g.createRadialGradient(ex, ey, 6, ex, ey, 24); rim.addColorStop(0, 'rgba(0,0,0,1)'); rim.addColorStop(0.55, 'rgba(10,0,0,.95)'); rim.addColorStop(0.75, 'rgba(110,20,25,.55)'); rim.addColorStop(1, 'rgba(60,30,40,0)');
+      g.fillStyle = rim; g.beginPath(); g.ellipse(ex, ey, 24, 21, 0, 0, TAU); g.fill();
+      g.fillStyle = 'rgba(0,0,0,.95)'; g.beginPath(); g.ellipse(ex, ey, 14, 12, 0, 0, TAU); g.fill();
+      g.fillStyle = 'rgba(40,10,10,.45)'; g.beginPath(); g.ellipse(ex, ey + 18, 16, 6, 0, 0, TAU); g.fill(); // dark bags under them
+    });
+    grin(g, cx, cy);
+    // stains running down from the grin
+    for (let i = 0; i < 5; i++) { const x = cx + rr(-26, 26), y0 = cy + 30, len = rr(10, 34); const gr = g.createLinearGradient(0, y0, 0, y0 + len); gr.addColorStop(0, 'rgba(70,5,8,.75)'); gr.addColorStop(1, 'rgba(70,5,8,0)'); g.fillStyle = gr; g.fillRect(x - 1.2, y0, 2.4, len); }
+  } });
   const emTex = (() => { const cv = makeCanvas(512, 256), g = cv.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, 512, 256); grin(g, 128, 128); g.fillStyle = '#000'; for (let x = -26; x <= 26; x += 6.5) g.fillRect(128 + x - 3, 128 + 20, 6, 12); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; })();
   const faceMat = fogify(new THREE.MeshStandardMaterial({ map: faceTex, normalMap: PBR.skin.normalMap, roughness: 0.55, emissive: 0xffffff, emissiveMap: emTex, emissiveIntensity: 2.2 }));
   const c = makeHuman({ prop: P, shirtMat: hoodie, pantsMat: jeans, skin: 0x8b8c8f, shoes: 0x0c0c0c, handMat: skin, faceMat, noEars: true });
   const hr = P.headR;
   // hood: a shell around the head, open at the front, with a drape down the back
   const hood = mesh(geoCache('hood', () => { const g = new THREE.SphereGeometry(hr * 1.5, 28, 18, Math.PI * 0.5 + 0.75, TAU - 1.5, 0, 2.35); g.scale(1, 1.15, 1.08); return g; }), clothMat(0x26252b, 1.0, { side: THREE.DoubleSide })); hood.position.set(0, hr * 1.05, -0.015); c.head.add(hood);
+  // the same messy brown fringe he had before, now hanging out of the hood
+  const fr = mesh(geoCache('jFringeM', () => { const g = new THREE.SphereGeometry(hr * 1.1, 20, 8, Math.PI * 0.2, Math.PI * 0.62, 0.5, 0.5); g.scale(0.96, 1.08, 1.05); return g; }), clothMat(0x3a2416, 0.8)); fr.position.set(0, hr * 1.05, 0); fr.rotation.y = 0.1; c.head.add(fr);
   const rim = mesh(geoCache('hoodRim', () => new THREE.TorusGeometry(hr * 1.32, 0.025, 6, 20, Math.PI * 1.3)), hoodie); rim.position.set(0, hr * 1.1, hr * 0.85); rim.rotation.set(0.15, 0, -Math.PI * 0.15 - Math.PI * 0.5 + Math.PI * 0.35); c.head.add(rim);
   const drape = mesh(geoCache('hoodDrape', () => { const g = lathe([[0.17, 0], [0.19, 0.08], [0.15, 0.16]], 18, 0.8); return g; }), hoodie); drape.position.y = P.torsoH - 0.06; c.torso.add(drape);
   const pocket = mesh(geoCache('pocket', () => { const g = new THREE.CylinderGeometry(0.17, 0.165, 0.2, 16, 1, true, -0.9, 1.8); return g; }), clothMat(0x1f1e24, 1.0, { side: THREE.DoubleSide })); pocket.scale.z = 0.66; pocket.position.y = P.torsoH * 0.28; c.torso.add(pocket);
@@ -278,8 +301,15 @@ function animateJoury(c, t, moving, speed, mode) {
 // Realistic versions of Joury and Vivek as regular kids (story slide 3)
 function makeGamerHuman(who, mood) {
   if (who === 'joury') {
-    const c = makeHuman({ skin: 0xc98f62, shirt: 0xb0242a, pants: 0x2b2b33, shoes: 0x111111, hair: 0x3b2618, face: { angry: mood === 'angry', happy: mood === 'happy', look: 1.5 } });
-    const hood = mesh(geoCache('kidHood', () => lathe([[0.13, 0], [0.15, 0.06], [0.11, 0.12]], 16, 0.8)), clothMat(0x8a1a20)); hood.position.y = c.P.torsoH - 0.05; c.torso.add(hood);
+    // before he "crashed out": wavy brown hair with a fringe, a big grin, white tee with an orange stripe
+    const c = makeHuman({ skin: 0xd6a07a, shirt: 0xeceae6, pants: 0x2b2b33, shoes: 0x111111, hair: 0x4a2e1c, face: { angry: mood === 'angry', happy: mood !== 'angry', look: 1.5, brow: 0x3a2414,
+      after: mood === 'angry' ? null : (g, cx, cy) => { g.fillStyle = '#f4efe6'; g.beginPath(); g.moveTo(cx - 12, cy + 21); g.quadraticCurveTo(cx, cy + 31, cx + 12, cy + 21); g.quadraticCurveTo(cx, cy + 25, cx - 12, cy + 21); g.fill(); } } });
+    const hr = c.P.headR, hm = clothMat(0x4a2e1c, 0.75);
+    // fringe swept to one side, and wavy tufts over the ears
+    const fringe = mesh(geoCache('jFringe', () => { const g = new THREE.SphereGeometry(hr * 1.09, 24, 10, Math.PI * 0.18, Math.PI * 0.75, 0.55, 0.62); g.scale(0.96, 1.08, 1.06); return g; }), hm);
+    fringe.position.set(0, hr * 1.05, 0); fringe.rotation.y = 0.12; c.head.add(fringe);
+    [-1, 1].forEach((sd) => { const tuft = mesh(geoCache('jTuft', () => { const g = new THREE.SphereGeometry(hr * 0.42, 10, 8); g.scale(0.55, 1, 0.9); return g; }), hm); tuft.position.set(sd * hr * 0.86, hr * 0.98, -hr * 0.1); c.head.add(tuft); });
+    const stripe = mesh(geoCache('jStripe', () => new THREE.BoxGeometry(0.06, 0.012, 0.01)), plainMat(0xff6a1a, 0.6)); stripe.position.set(0.05, c.P.torsoH * 0.78, c.P.chestW * c.P.depth * 0.98); stripe.rotation.z = 0.25; c.torso.add(stripe);
     return c;
   }
   return makeHuman({ skin: 0xa8714a, shirt: 0x2f6fd6, pants: 0x2c3446, shoes: 0xe8e8e8, hair: 0x15120f, face: { happy: true, look: -1.5 } });

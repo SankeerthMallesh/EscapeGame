@@ -30,24 +30,65 @@
       <div class="logo-sub">a Halloween horror game</div>
       <div class="sound-hint" id="soundHint">🔊 click anywhere to turn on the music</div>
     </div>
-    <button id="btnPlay" class="btn big">PLAY</button>
-    <div class="opt-row"><span class="opt-label">Difficulty</span>
-      <div class="seg" id="segDiff">
-        <button data-v="easy">Easy</button><button data-v="normal">Normal</button><button data-v="nightmare">Nightmare</button>
+    <nav class="menu" aria-label="Main menu">
+      <button id="btnPlay" class="menu-item"><span>Play alone</span><small>the story · one player</small></button>
+      <button id="btnTogether" class="menu-item"><span>Play together</span><small>online · 2–4 players · one Joury</small></button>
+      <button id="btnSettings" class="menu-item" aria-expanded="false" aria-controls="setPanel"><span>Settings</span><small id="setSummary"></small></button>
+      <button id="btnHow" class="menu-item" aria-expanded="false" aria-controls="howPanel"><span>How to play</span><small>controls &amp; tips</small></button>
+    </nav>
+    <div class="title-panel" id="setPanel" hidden>
+      <div class="opt-row"><span class="opt-label">Difficulty</span>
+        <div class="seg" id="segDiff">
+          <button data-v="easy">Easy</button><button data-v="normal">Normal</button><button data-v="nightmare">Nightmare</button>
+        </div>
       </div>
-    </div>
-    <div class="opt-row"><span class="opt-label">Graphics</span>
-      <div class="seg" id="segQual">
-        <button data-v="low">Low</button><button data-v="medium">Medium</button><button data-v="high">High</button>
+      <div class="diff-note" id="diffNote"></div>
+      <div class="opt-row"><span class="opt-label">Graphics</span>
+        <div class="seg" id="segQual">
+          <button data-v="low">Low</button><button data-v="medium">Medium</button><button data-v="high">High</button>
+        </div>
       </div>
+      <div class="opt-row"><span class="opt-label">Volume</span><input type="range" id="optVol" min="0" max="1" step="0.05"></div>
+      <div class="opt-row"><span class="opt-label">Mouse</span><input type="range" id="optSens" min="0.3" max="2.5" step="0.05"></div>
     </div>
-    <div class="opt-row"><span class="opt-label">Volume</span><input type="range" id="optVol" min="0" max="1" step="0.05"></div>
-    <div class="opt-row"><span class="opt-label">Mouse</span><input type="range" id="optSens" min="0.3" max="2.5" step="0.05"></div>
-    <div class="diff-note" id="diffNote"></div>
-    <div class="controls">
-      <div><b>WASD</b> move</div><div><b>Mouse</b> look</div><div><b>Shift</b> sprint</div><div><b>F</b> flashlight</div>
-      <div><b>E</b> interact</div><div><b>C</b> crouch</div><div><b>M</b> map</div><div><b>Esc</b> pause</div>
+    <div class="title-panel" id="howPanel" hidden>
+      <div class="controls">
+        <div><b>WASD</b> move</div><div><b>Mouse</b> look</div><div><b>Shift</b> sprint</div><div><b>C</b> crouch</div>
+        <div><b>F</b> flashlight</div><div><b>E</b> interact</div><div><b>M</b> map</div><div><b>Esc</b> menu</div>
+        <div><b>T</b> chat (online)</div>
+      </div>
+      <ul class="tips">
+        <li>Free the 10 kids, then find the 4 boat parts and get to the dock.</li>
+        <li>Don't stare at Joury. The static means he's coming.</li>
+        <li>He hunts by sound and light. Crouch with your flashlight off to hide.</li>
+        <li>Jack-o'-lanterns go dark when he walks past them.</li>
+        <li>Online: if a friend is locked in the cabin, bang on its door to buy them time.</li>
+      </ul>
     </div>
+    <div class="title-foot">Headphones recommended · v4</div>
+  </div>
+</div>
+
+<!-- Multiplayer lobby -->
+<div id="lobby" class="screen">
+  <div class="panel wide lobby">
+    <div class="panel-title">PLAY TOGETHER</div>
+    <div class="panel-text" id="lobbyIntro">Up to 4 players on the same island, with one Joury hunting all of you. One player hosts and shares the room code. The others join with it.</div>
+    <div class="opt-row"><label class="opt-label" for="mpName">Your name</label><input type="text" id="mpName" maxlength="14" autocomplete="off" spellcheck="false" placeholder="Player"></div>
+    <div id="lobbyChoose">
+      <button id="btnHost" class="btn">HOST A GAME</button>
+      <div class="lobby-or">or join one</div>
+      <div class="join-row"><input type="text" id="mpCode" maxlength="5" autocomplete="off" spellcheck="false" placeholder="CODE" aria-label="Room code"><button id="btnJoin" class="btn">JOIN</button></div>
+    </div>
+    <div id="lobbyRoom">
+      <div class="room-code-label">ROOM CODE</div>
+      <div class="room-code" id="roomCode">-----</div>
+      <div class="panel-text" id="roomHelp"></div>
+      <div class="lobby-players" id="lobbyPlayers"></div>
+      <button id="btnStartMp" class="btn big">START</button>
+    </div>
+    <div class="lobby-status" id="lobbyStatus" role="status" aria-live="polite"></div>
+    <button id="btnLobbyBack" class="btn ghost">BACK</button>
   </div>
 </div>
 
@@ -83,7 +124,8 @@
     <div class="bar-row"><span class="bar-ico">🔦</span><div class="bar"><div id="batFill"></div></div><span id="batPct"></span></div>
   </div>
   <div id="lookHint">Click and drag to look around</div>
-  <div id="chat"><div id="chatLines"></div><div id="chatTyping"></div></div>
+  <div id="roster"></div>
+  <div id="chat"><div id="chatLines"></div><div id="chatTyping"></div><div id="chatInput"></div></div>
 </div>
 
 <!-- Big map -->
@@ -91,7 +133,7 @@
   <div class="map-wrap">
     <canvas id="bigmapCanvas" width="640" height="640"></canvas>
     <div class="map-legend">
-      <div><i class="lg you"></i>You</div><div><i class="lg joury"></i>Joury</div><div><i class="lg kid"></i>Kid</div><div><i class="lg saved"></i>Saved</div>
+      <div><i class="lg you"></i>You</div><div><i class="lg joury"></i>Joury</div><div id="lgFriend"><i class="lg friend"></i>Friend</div><div><i class="lg kid"></i>Kid</div><div><i class="lg saved"></i>Saved</div>
       <div><i class="lg cabin"></i>Cabin</div><div><i class="lg dock"></i>Dock</div><div><i class="lg part"></i>Boat part</div>
       <div class="map-close">M to close</div>
     </div>
@@ -123,7 +165,8 @@
 <!-- Pause -->
 <div id="pause" class="screen">
   <div class="panel">
-    <div class="panel-title">PAUSED</div>
+    <div class="panel-title" id="pauseTitle">PAUSED</div>
+    <div class="panel-text" id="pauseNote"></div>
     <button id="btnResume" class="btn">RESUME</button>
     <div class="opt-row"><span class="opt-label">Graphics</span>
       <div class="seg" id="segQual2">
@@ -152,11 +195,14 @@
   <div class="panel wide">
     <div class="end-lines" id="endLines"></div>
     <div class="stats" id="endStats"></div>
+    <div class="scoreboard" id="endBoard"></div>
     <button id="btnAgain" class="btn">PLAY AGAIN</button>
   </div>
 </div>
 
 <div id="crash" class="screen"><div class="crash-box"><div class="crash-title" id="crashTitle">Escape from Joury is not responding</div><div class="crash-body" id="crashBody">The program stopped working. Collecting crash data…</div><div class="crash-bar"><div id="crashFill"></div></div><div class="crash-btns"><span>Wait</span><span>Close the program</span></div></div></div>
+
+<div id="netlost" class="screen"><div class="panel"><div class="panel-title red">CONNECTION LOST</div><div class="panel-text" id="netlostText"></div><button id="btnNetlost" class="btn">BACK TO TITLE</button></div></div>
 
 <div id="fatal" class="screen"><div class="panel"><div class="panel-title red">Can't start</div><div class="panel-text" id="fatalText"></div></div></div>
 
@@ -165,6 +211,9 @@
 </script>
 <script>
 /*THREE*/
+</script>
+<script>
+/*PEER*/
 </script>
 </body>
 </html>

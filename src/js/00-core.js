@@ -18,6 +18,11 @@ function damp(cur, target, lambda, dt) { return lerp(cur, target, 1 - Math.exp(-
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 let srand = mulberry32(31337);
 const srnd = (a = 0, b = 1) => a + srand() * (b - a);
+// Run fn with Math.random replaced by a seeded generator, so every player in an online game rolls the same dice.
+function withSeed(seed, fn) { const real = Math.random; Math.random = mulberry32(seed); try { return fn(); } finally { Math.random = real; } }
+// Text that came from another player is never trusted as HTML.
+function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function cleanName(s) { return String(s || '').replace(/[^A-Za-z0-9 _.\-]/g, '').trim().slice(0, 14) || 'Player'; }
 
 // Value noise
 function hash2(ix, iy, seed) { let h = Math.imul(ix | 0, 374761393) ^ Math.imul(iy | 0, 668265263) ^ Math.imul((seed | 0) + 1, 2147483647); h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return (h >>> 0) / 4294967296; }
@@ -41,7 +46,7 @@ function tileFbm(u, v, base, oct, seed = 0) { let s = 0, a = 0.5, n = 0, P = bas
 //  Settings
 // ---------------------------------------------------------------------
 const CFG = (() => {
-  const d = { difficulty: 'normal', quality: 'medium', volume: 0.8, sens: 1.0, invert: false };
+  const d = { difficulty: 'normal', quality: 'medium', volume: 0.8, sens: 1.0, invert: false, name: '' };
   try { const s = JSON.parse(localStorage.getItem('efj-settings') || '{}'); return Object.assign(d, s); } catch (e) { return d; }
 })();
 function saveSettings() { try { localStorage.setItem('efj-settings', JSON.stringify(CFG)); } catch (e) { /* storage blocked */ } }
@@ -67,6 +72,8 @@ const Input = {
   init(canvas) {
     this.canvas = canvas;
     addEventListener('keydown', (e) => {
+      if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) { if (e.code === 'Enter') Game.onFieldEnter(e.target); return; } // typing a name or room code
+      if (Chat.typing) { e.preventDefault(); Chat.key(e); return; }                    // typing a chat message
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code)) e.preventDefault();
       if (!this.keys.has(e.code)) this.hit.add(e.code);
       this.keys.add(e.code);

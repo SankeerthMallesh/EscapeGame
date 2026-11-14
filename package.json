@@ -1,15 +1,17 @@
 {
   "name": "escape-from-joury",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "private": true,
   "description": "A first-person Halloween horror game in one HTML file.",
   "scripts": {
     "build": "node build.mjs",
     "test": "node build.mjs && node tests/flow.cjs && node tests/flow2.cjs && node tests/flow3.cjs && node tests/scares.cjs",
     "shots": "node tests/vis.cjs",
-    "scares": "node tests/scares.cjs && node tests/crash.cjs && node tests/stare.cjs"
+    "scares": "node tests/scares.cjs && node tests/crash.cjs && node tests/stare.cjs",
+    "online": "node tests/mp.cjs && node tests/mp2.cjs"
   },
   "devDependencies": {
-    "playwright": "^1.48.0"
+    "playwright": "^1.48.0",
+    "peer": "^1.0.2"
   }
 }

@@ -529,7 +529,7 @@ const World = {
     this.jacks.push({ x: cp.x - 1.4, z: cp.z + Dp + 1.5, yaw: 0, s: 0.3 }, { x: cp.x + 1.4, z: cp.z + Dp + 1.5, yaw: 0, s: 0.26 });
     this.chimney = new THREE.Vector3(cp.x - W + 1.2, y + Hh + 2.6, cp.z - 1.2);
     for (let i = 0; i < 3; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.mist, color: 0x6a6e74, transparent: true, opacity: 0.16, depthWrite: false })); s.scale.set(2.5, 2.5, 1); this.scene.add(s); this.smokes.push({ s, base: this.chimney.clone(), ph: i / 3 }); }
-    this.interact.push({ kind: 'cabindoor', pos: new THREE.Vector3(cp.x, y + 1.2, cp.z + Dp + 0.4), r: 2.6, enabled: () => true, label: () => 'Joury\'s door' });
+    this.interact.push({ kind: 'cabindoor', pos: new THREE.Vector3(cp.x, y + 1.2, cp.z + Dp + 0.4), r: 2.6, enabled: () => true, label: () => { const inside = Net.on ? Net.others().filter((p) => p.where === 'c') : []; return inside.length ? `Bang on the door to help ${inside.map((p) => esc(p.name)).join(' and ')}` : 'Joury\'s door'; } });
   },
   buildDock() {
     const sz = this.shoreZ, z0 = sz - 6, z1 = sz + 15, y = 0.88, g = new THREE.Group(); this.scene.add(g);

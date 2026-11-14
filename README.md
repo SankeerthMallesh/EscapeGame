@@ -11,7 +11,7 @@ Or play offline:
 
 1. Download `escape-from-joury.html`.
 2. Double-click it to open it in Chrome, Edge, Firefox or Safari.
-3. Click **PLAY**. Headphones make it much scarier.
+3. Choose **Play alone**, or **Play together** to play online with friends. Headphones make it much scarier.
 
 | Key | Action |
 |---|---|
@@ -22,7 +22,8 @@ Or play offline:
 | F | Flashlight on/off (in the cabin it also switches to the UV light once you find it) |
 | E | Free a kid, pick something up, inspect, use the keypad |
 | M | Big map |
-| Esc | Pause |
+| Esc | Pause (online: opens the menu, the game keeps going) |
+| T | Chat with your friends (online) |
 
 ## The game
 
@@ -31,6 +32,25 @@ Or play offline:
 - **Joury** wakes up about 25 seconds in (Normal). He stalks you, teleports behind you, and gets faster with every kid you save. Don't stare at him too long.
 - **Caught?** You wake up in his cabin with a countdown. Find the 4 hidden digits, type them on the door keypad, and escape while he's stunned.
 - **Boat parts** (hull planks, oars, engine and fuel can) appear only after all 10 kids are saved. Bring them to the dock to build the boat and escape at sunrise.
+
+## Play together (online, 2–4 players)
+
+Everyone needs the same `escape-from-joury.html` file (or the same link) and an internet connection.
+
+1. One player chooses **Play together → Host a game**. They get a 5-letter room code.
+2. Everyone else chooses **Play together**, types the code and presses **Join**. You can also join a game that has already started.
+3. The host presses **Start**.
+
+You share one island and one Joury:
+
+- **One Joury hunts all of you.** He goes after whoever he hears or sees, and takes turns haunting each of you, so splitting up finds the kids faster but leaves you alone with him.
+- **You see each other:** each friend has their own color, name tag and flashlight beam, and shows up on the map.
+- **Getting caught** sends only you to the cabin. Joury drags you away, then comes back for the others. A friend can **bang on the cabin door** to give you 15 more seconds, but Joury hears it.
+- **Chat** with **T**. But Joury reads the chat too. Sometimes a message from your friend isn't from your friend, and he can call to you in their voice.
+- **The boat:** anyone can carry parts. The map shows who has what. When all four are on the boat, anyone can launch it, and everyone escapes together.
+- The ending shows who freed the most kids and who got caught the most.
+
+The game connects browsers directly (WebRTC). The free [PeerJS](https://peerjs.com) service only introduces them, so there is no game server to run. Some strict school or office networks block these connections.
 
 ## Why it's scary
 
@@ -64,9 +84,10 @@ Everything you see is generated in code when the game loads. There are no image 
 | `src/shell.html`, `src/style.css` | The page layout and styles. |
 | `src/js/` | The game code, one file per part (audio, graphics, textures, models, people, island, player, Joury, scares and weather, cabin, story, HUD, game flow). |
 | `vendor/three.iife.min.js` | Three.js r170 (MIT license), packed into the game file by the build. |
+| `vendor/peerjs.min.js` | PeerJS 1.5.4 (MIT license) for online play, packed in the same way. |
 | `vendor/fonts/` | The three fonts the game uses (open licenses, see the README there), embedded by the build. |
 | `build.mjs` | Joins everything into `escape-from-joury.html`. |
-| `tests/` | Automated play-throughs in a headless browser: `flow.cjs` (story → game → rescue → caught → cabin puzzle → escape), `flow2.cjs` (boat parts → ending → Play Again), `flow3.cjs` (caught again → timer runs out → Retry → escape), `scares.cjs`, `crash.cjs` and `stare.cjs` (storm, chat, diary pages, pumpkins, stare-to-catch, fake crash). |
+| `tests/` | Automated play-throughs in a headless browser: `flow.cjs` (story → game → rescue → caught → cabin puzzle → escape), `flow2.cjs` (boat parts → ending → Play Again), `flow3.cjs` (caught again → timer runs out → Retry → escape), `mp.cjs` and `mp2.cjs` (online: 2–3 players, lobby, sync, chat, caught, door knocking, late joining, leaving), `scares.cjs`, `crash.cjs` and `stare.cjs` (storm, chat, diary pages, pumpkins, stare-to-catch, fake crash). |
 
 ## Changing the game
 

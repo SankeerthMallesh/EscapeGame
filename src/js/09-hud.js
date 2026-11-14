@@ -36,8 +36,17 @@ const HUD = {
   },
   parts(show) {
     const el = $('partsBar'); el.style.display = show ? 'flex' : 'none'; if (!show) return;
-    const html = PARTS.map((p) => { const done = World.partsDelivered.has(p.id), carry = World.carried.has(p.id); return `<div class="${done ? 'done' : carry ? 'carry' : ''}">${done ? '✔' : carry ? '✋' : '○'} ${p.name}${done ? ' — on the boat' : carry ? ' — carrying' : ''}</div>`; }).join('');
+    const html = PARTS.map((p) => {
+      const done = World.partsDelivered.has(p.id), carry = World.carried.has(p.id), wp = World.parts.find((q) => q.id === p.id), pal = !done && !carry && wp && wp.taken && wp.by && Net.on ? Net.nameOf(wp.by) : null;
+      return `<div class="${done ? 'done' : carry || pal ? 'carry' : ''}">${done ? '✔' : carry ? '✋' : pal ? '➜' : '○'} ${p.name}${done ? ' — on the boat' : carry ? ' — carrying' : pal ? ` — ${esc(pal)} has it` : ''}</div>`;
+    }).join('');
     if (el.innerHTML !== html) el.innerHTML = html;
+  },
+  // Online: who is playing, and who is locked in the cabin
+  roster() {
+    const el = $('roster'); if (!el) return;
+    const h = !Net.on ? '' : [...Net.players.values()].map((p) => `<div><i style="background:${css(p.color)}"></i>${esc(p.name)}${p.local ? ' (you)' : ''}${p.where === 'c' ? ' <b>· in the cabin</b>' : ''}</div>`).join('');
+    if (this.rosterHtml !== h) { this.rosterHtml = h; el.innerHTML = h; }
   },
   stun(sec) { const el = $('stun'); if (sec > 0) { el.style.display = 'block'; el.textContent = `JOURY IS STUNNED · ${Math.ceil(sec)}`; } else el.style.display = 'none'; },
   cabinTimer(sec, digits) {
@@ -87,6 +96,15 @@ const HUD = {
     World.parts.forEach((p) => { if (p.taken) return; const [mx, my] = this.w2m(p.x, p.z, size); const s = 4.5 * k * (1 + Math.sin(t * 5) * 0.15); g.save(); g.translate(mx, my); g.rotate(Math.PI / 4); g.fillStyle = '#ff9c2b'; g.shadowColor = '#ff9c2b'; g.shadowBlur = 8 * k; g.fillRect(-s / 2, -s / 2, s, s); g.restore(); if (opts.labels) { g.fillStyle = '#ffc07a'; g.fillText(p.def.name, mx, my + 9 * k); } });
     // Joury
     if (Joury.state !== 'dormant') { const pulse = 3.6 + Math.sin(t * 6) * 1.2; dot(Joury.pos.x, Joury.pos.z, pulse + 2.5, 'rgba(255,0,0,.25)'); dot(Joury.pos.x, Joury.pos.z, 3.4, Joury.state === 'stunned' ? '#7fd8ff' : '#ff1a1a', 10); }
+    // friends (online): a dot in their color; locked-up friends show as a ring on the cabin
+    if (Net.on) {
+      let locked = 0;
+      Net.players.forEach((p) => {
+        if (p.local) return; const col = css(p.color);
+        if (p.where === 'i') { const [mx, my] = dot(p.x, p.z, 3.1, col, 5); g.lineWidth = 1 * k; g.strokeStyle = '#fff'; g.beginPath(); g.arc(mx, my, 3.1 * k, 0, TAU); g.stroke(); if (opts.labels) { g.fillStyle = col; g.fillText(p.name, mx, my - 6 * k); } }
+        else if (p.where === 'c') { const [mx, my] = this.w2m(World.cabin.x, World.cabin.z, size); g.lineWidth = 1.6 * k; g.strokeStyle = col; g.beginPath(); g.arc(mx, my, (7.5 + locked * 2.6) * k, 0, TAU); g.stroke(); locked++; }
+      });
+    }
     // player arrow
     { const [mx, my] = this.w2m(Player.pos.x, Player.pos.z, size), fx = -Math.sin(Player.yaw), fz = -Math.cos(Player.yaw), a = Math.atan2(fz, fx);
       g.save(); g.translate(mx, my); g.rotate(a); g.beginPath(); g.moveTo(8 * k, 0); g.lineTo(-5 * k, 4.5 * k); g.lineTo(-2.5 * k, 0); g.lineTo(-5 * k, -4.5 * k); g.closePath(); g.fillStyle = '#fff'; g.shadowColor = '#000'; g.shadowBlur = 3; g.fill(); g.restore(); }

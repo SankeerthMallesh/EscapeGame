@@ -40,24 +40,31 @@ const Game = {
   wireMenus() {
     const seg = (id, key, after) => { const el = $(id); const sync = () => [...el.children].forEach((b) => b.classList.toggle('on', b.dataset.v === CFG[key])); el.addEventListener('click', (e) => { const v = e.target.dataset && e.target.dataset.v; if (!v) return; CFG[key] = v; saveSettings(); sync(); SFX.uiClick(); after && after(v); }); sync(); return sync; };
     this.syncDiff = seg('segDiff', 'difficulty', () => this.diffNote());
-    const q1 = seg('segQual', 'quality', () => { this.applyQuality(); q2(); }), q2 = seg('segQual2', 'quality', () => { this.applyQuality(); q1(); });
+    const q1 = seg('segQual', 'quality', () => { this.applyQuality(); q2(); this.diffNote(); }), q2 = seg('segQual2', 'quality', () => { this.applyQuality(); q1(); this.diffNote(); });
     const vol = (id, other) => { const el = $(id); el.value = CFG.volume; el.addEventListener('input', () => { CFG.volume = Number(el.value); $(other).value = el.value; SFX.setVolume(CFG.volume); saveSettings(); }); };
     vol('optVol', 'optVol2'); vol('optVol2', 'optVol');
     const sens = (id, other) => { const el = $(id); el.value = CFG.sens; el.addEventListener('input', () => { CFG.sens = Number(el.value); $(other).value = el.value; saveSettings(); }); };
     sens('optSens', 'optSens2'); sens('optSens2', 'optSens');
     $('optInvert').checked = CFG.invert; $('optInvert').addEventListener('change', (e) => { CFG.invert = e.target.checked; saveSettings(); });
     this.diffNote();
+    const panels = { btnSettings: 'setPanel', btnHow: 'howPanel' };
+    Object.keys(panels).forEach((id) => $(id).addEventListener('click', () => {
+      SFX.uiClick();
+      Object.entries(panels).forEach(([b, p]) => { const open = b === id && $(p).hidden; $(p).hidden = !open; $(b).setAttribute('aria-expanded', open); });
+    }));
     $('btnPlay').addEventListener('click', () => this.play());
     $('btnSkip').addEventListener('click', (e) => { e.stopPropagation(); SFX.uiClick(); this.startGame(); });
     $('story').addEventListener('click', () => { if (this.state === 'story') Story.advance(); });
     $('btnResume').addEventListener('click', () => this.resume());
-    $('btnQuit').addEventListener('click', () => { this.screen('pause', false); this.toTitle(); });
+    $('btnQuit').addEventListener('click', () => { this.screen('pause', false); this.menuOpen = false; this.toTitle(); });
     $('btnRetry').addEventListener('click', () => { this.screen('timeout', false); this.enterCabin(false); });
-    $('btnAgain').addEventListener('click', () => { this.screen('ending', false); this.toTitle(); });
-    $('title').addEventListener('pointerdown', () => { if (!SFX.ctx) { SFX.init(); SFX.startMusicBox(); } $('soundHint').style.display = 'none'; });
+    $('btnAgain').addEventListener('click', () => { this.screen('ending', false); if (Net.on) { this.toTitle(true); Lobby.open(); } else this.toTitle(); }); // online: back to the same room
+    Lobby.init();
+    $('title').addEventListener('pointerdown', () => { if (!SFX.ctx) { SFX.init(); SFX.startMusicBox(); } $('soundHint').style.visibility = 'hidden'; }); // hidden, not removed: removing it would shift the buttons mid-click
     document.addEventListener('visibilitychange', () => { if (document.hidden && (this.state === 'play' || this.state === 'cabin')) this.pause(); });
+    if (/[?&#]norender/.test(location.href)) GFX.noRender = true; // automated tests: run the game logic without drawing
   },
-  diffNote() { $('diffNote').textContent = D().note; },
+  diffNote() { $('diffNote').textContent = D().note; $('setSummary').textContent = `${D().name} · ${(Q() === QUALITY.low ? 'low' : Q() === QUALITY.high ? 'high' : 'medium')} graphics`; },
   applyQuality() {
     const q = Q();
     GFX.resize(); World.lights.setCount(q.pointLights); World.applyMoonShadow(); setShadowSize(this.worldFlash, q.spotShadow); setShadowSize(Cabin.flash, Math.min(1024, q.spotShadow));
@@ -65,12 +72,14 @@ const Game = {
   },
 
   // ---------------- title ----------------
-  toTitle() {
-    this.state = 'title'; Input.exitLock();
-    ['loading', 'hud', 'story', 'bigmap', 'inspect', 'keypad', 'pause', 'caught', 'timeout', 'ending'].forEach((s) => this.screen(s, false));
+  toTitle(keepRoom) {
+    if (!keepRoom) Net.leave();
+    this.state = 'title'; Input.exitLock(); this.menuOpen = false; Chat.stopTyping(); Lobby.isOpen = false; document.body.classList.remove('mp');
+    ['loading', 'hud', 'story', 'bigmap', 'inspect', 'keypad', 'pause', 'caught', 'timeout', 'ending', 'lobby'].forEach((s) => this.screen(s, false));
+    $('crash').className = 'screen';
     $('story').classList.remove('bare');
     this.screen('title', true); this.syncDiff && this.syncDiff(); this.diffNote();
-    $('soundHint').style.display = SFX.ctx ? 'none' : '';
+    $('soundHint').style.visibility = SFX.ctx ? 'hidden' : 'visible';
     World.scene.fog.density = D().fog; this.setRage(0);
     World.reset(); Joury.reset(); Player.attach(World.cam, World, this.worldFlash); Player.place(0, World.dock.start.z, 0); Player.lightOn = false;
     GFX.fx.fade = 1; GFX.fx.red = 0; GFX.fx.static = 0; GFX.fx.warm = 0;
@@ -83,42 +92,70 @@ const Game = {
     this.state = 'story'; Story.start();
   },
 
+  // ---------------- online ----------------
+  // The host pressed Start (or we joined a game that is already running).
+  startMp(m) {
+    if (!Net.on) return;
+    Net.seed = m.seed | 0; Net.started = true; Net.board = null;
+    if (m.players) Net.syncRoster(m.players);
+    if (DIFFS[m.diff] && m.diff !== CFG.difficulty) { Net.prevDiff = Net.prevDiff || CFG.difficulty; CFG.difficulty = m.diff; } // everyone plays on the host's difficulty
+    ['title', 'lobby', 'ending', 'pause', 'timeout', 'caught', 'inspect', 'keypad', 'bigmap'].forEach((s) => this.screen(s, false)); $('crash').className = 'screen';
+    Lobby.isOpen = false; this.menuOpen = false; this.state = 'title';
+    SFX.init(); SFX.stopMusic(); SFX.allLoopsOff();
+    this.startGame();
+  },
+  netLost(text) {
+    Input.exitLock(); $('netlostText').textContent = text + ' Your game has ended.';
+    ['pause', 'inspect', 'keypad', 'bigmap', 'lobby'].forEach((s) => this.screen(s, false)); this.menuOpen = false;
+    if (this.state === 'title') { this.toTitle(); Lobby.status(text, true); return; }
+    this.state = 'title'; this.screen('netlost', true); if (SFX.ctx) SFX.allLoopsOff(0.3);
+  },
+  onFieldEnter(el) { if (el.id === 'mpCode') Lobby.join(); },
+
   // ---------------- main game ----------------
   startGame() {
     if (this.state === 'play') return;
     this.screen('story', false); $('storyBig').className = '';
     GFX.fx.red = 0; GFX.fx.shake = 0; GFX.fx.flash = 0; GFX.fx.fade = 1;
     World.scene.fog.density = D().fog; this.setRage(0);
-    World.reset(); Joury.reset(); Joury.c.eyeGlow.setSize(0, 0.2); Joury.c.eyeGlow.setSize(1, 0.2); Scare.reset(); Weather.reset();
-    this.phase = 'kids'; this.stats = { time: 0, caught: 0 }; this.attempt = 0; this.mapOpen = false;
+    if (Net.on) withSeed(Net.seed, () => World.reset()); else World.reset(); // online: everyone gets the same batteries
+    Joury.reset(); Joury.c.eyeGlow.setSize(0, 0.2); Joury.c.eyeGlow.setSize(1, 0.2); Scare.reset(); Weather.reset();
+    this.phase = 'kids'; this.stats = { time: 0, caught: 0 }; this.attempt = 0; this.mapOpen = false; this.menuOpen = false;
+    document.body.classList.toggle('mp', Net.on); HUD.roster();
     Player.attach(World.cam, World, this.worldFlash);
-    Player.place(0, World.dock.start.z, 0); Player.stamina = 1; Player.battery = 1; Player.lightOn = true; Player.exhausted = false; Player.frozen = false;
+    Player.place(Net.on && Net.me() ? (Net.me().ci - 1.5) * 0.6 : 0, World.dock.start.z, 0); Player.stamina = 1; Player.battery = 1; Player.lightOn = true; Player.exhausted = false; Player.frozen = false;
     HUD.drawKidIcons([]); HUD.show(true); HUD.parts(false); HUD.stun(0); HUD.cabinTimer(null); HUD.lightHint(null);
     $('minimap').style.display = ''; $('kidsBar').style.display = ''; $('objective').style.display = '';
     this.state = 'play';
-    HUD.toast('<b>WASD</b> move · <b>Mouse</b> look · <b>Shift</b> sprint · <b>C</b> crouch · <b>F</b> flashlight · <b>E</b> interact · <b>M</b> map<br>Free all 10 kids. Yellow dots on the map show where they are.', 7);
+    HUD.toast('<b>WASD</b> move · <b>Mouse</b> look · <b>Shift</b> sprint · <b>C</b> crouch · <b>F</b> flashlight · <b>E</b> interact · <b>M</b> map' + (Net.on ? ' · <b>T</b> chat' : '') + '<br>Free all 10 kids. Yellow dots on the map show where they are.' + (Net.on ? '<br>Split up to find them faster. Joury can only chase one of you at a time.' : ''), Net.on ? 9 : 7);
     setTimeout(() => { if (this.state === 'play') Scare.welcome(); }, 2500);
     Input.requestLock();
   },
   wantsLook() { return (this.state === 'play' || this.state === 'cabin') && !$('inspect').classList.contains('on') && !$('keypad').classList.contains('on'); },
   onUnlock() {
     if (this.expectUnlock) { this.expectUnlock = false; return; }
+    if (Chat.typing) { Chat.stopTyping(); HUD.lookHint(true); return; }
     if ($('inspect').classList.contains('on')) { this.closeInspect(); HUD.lookHint(true); return; }
     if ((this.state === 'play' || this.state === 'cabin') && !$('keypad').classList.contains('on')) this.pause();
   },
   pause() {
     if (this.state !== 'play' && this.state !== 'cabin') return;
-    this.prev = this.state; this.state = 'paused'; this.closeInspect(); this.screen('bigmap', false); this.mapOpen = false;
+    $('pauseTitle').textContent = Net.on ? 'MENU' : 'PAUSED'; $('pauseNote').textContent = Net.on ? 'An online game cannot pause. Joury is still out there.' : '';
+    this.closeInspect(); this.screen('bigmap', false); this.mapOpen = false;
     this.screen('pause', true); this.expectUnlock = true; Input.exitLock(); if (!document.pointerLockElement) this.expectUnlock = false;
+    if (Net.on) { this.menuOpen = true; Input.keys.clear(); return; } // the world keeps running behind the menu
+    this.prev = this.state; this.state = 'paused';
     if (SFX.ctx) SFX.ctx.suspend();
   },
   resume() {
+    if (this.menuOpen) { this.menuOpen = false; this.screen('pause', false); Input.requestLock(); return; }
     if (this.state !== 'paused') return;
     this.screen('pause', false); this.state = this.prev; if (SFX.ctx) SFX.ctx.resume(); Input.requestLock();
   },
   onKey(e) {
     const k = e.code, s = this.state;
-    if (s === 'title' && (k === 'Enter')) { this.play(); return; }
+    if (s === 'title' && (k === 'Enter') && !Lobby.isOpen && !$('netlost').classList.contains('on')) { this.play(); return; }
+    if (this.menuOpen) { if (k === 'Escape') this.resume(); return; }
     if (s === 'story') { if (k === 'Space' || k === 'Enter') Story.advance(); if (k === 'Escape') this.startGame(); return; }
     if ($('keypad').classList.contains('on')) {
       if (k === 'Escape' || k === 'KeyE') { this.closeKeypad(false); return; }
@@ -127,6 +164,7 @@ const Game = {
     }
     if ($('inspect').classList.contains('on')) { if (k === 'Escape' || k === 'KeyE' || k === 'Space' || k === 'Enter') this.closeInspect(); return; }
     if (k === 'Escape') { if (s === 'paused') this.resume(); else if (this.mapOpen) this.toggleMap(); else this.pause(); return; }
+    if (Net.on && (s === 'play' || s === 'cabin') && (k === 'KeyT' || k === 'Enter')) { Chat.startTyping(); return; }
     if (s === 'play') {
       if (k === 'KeyF') Player.toggleLight();
       if (k === 'KeyM') this.toggleMap();
@@ -150,37 +188,70 @@ const Game = {
   },
   interact() {
     const it = this.target = this.findTarget(); if (!it) return;
+    const online = Net.on;
     if (it.kind === 'kid') {
-      const kid = it.ref; World.rescue(kid); SFX.chime(); SFX.cheer(); Scare.onRescue(kid); Joury.hear(25);
-      const n = this.savedCount(); HUD.drawKidIcons(World.kids.filter((k) => k.saved).map((k) => k.idx)); HUD.popKid(kid.idx);
-      HUD.toast(`You freed the <b>${kid.c.def.name}</b> kid! They ran to the dock. <b>${n}/10</b>` + (n < 10 && n > 0 ? '<br><span style="color:#ff8a7a">Joury is getting faster…</span>' : ''), 3.5);
-      if (n === 10) setTimeout(() => this.startBoatPhase(), 1500);
+      const kid = it.ref, i = World.kids.indexOf(kid);
+      if (online) { Net.act('rescue', { i }); return; } // the host frees the kid for everyone
+      this.applyRescue(i, null, true); Scare.onRescue(kid); Joury.hear(25);
+      if (this.savedCount() === 10) setTimeout(() => this.startBoatPhase(), 1500);
     } else if (it.kind === 'battery') {
-      const b = it.ref; b.taken = true; b.g.visible = false; World.glow.setSize(b.gi, 0); Joury.hear(10);
+      const b = it.ref; this.hideBattery(b); Joury.hear(10);
+      if (online) Net.act('bat', { i: World.batteries.indexOf(b) });
       Player.battery = Math.min(1, Player.battery + 0.45); if (!Player.lightOn) { Player.lightOn = true; SFX.flashlight(true); }
       SFX.pickup(); HUD.toast('Battery! Flashlight recharged.', 2);
     } else if (it.kind === 'part') {
-      const p = it.ref; p.taken = true; p.g.visible = false; p.beam.visible = false; World.carried.add(p.id); SFX.pickup(); Joury.hear(18);
-      HUD.toast(`You got the <b>${p.def.name}</b>! Bring it to the dock.`, 3); HUD.parts(true);
+      const i = World.parts.indexOf(it.ref);
+      if (online) { Net.act('part', { i }); return; }
+      this.applyPart(i, null); Joury.hear(18);
     } else if (it.kind === 'boat') {
       const missing = PARTS.filter((p) => !World.partsDelivered.has(p.id));
-      if (!missing.length) { this.launch(); return; }
+      if (!missing.length) { if (online) Net.act('launch'); else this.launch(); return; }
       const carrying = PARTS.filter((p) => World.carried.has(p.id));
-      if (carrying.length) {
-        carrying.forEach((p, i) => { World.partsDelivered.add(p.id); World.carried.delete(p.id); setTimeout(() => SFX.knock(), i * 220); });
-        World.updateBoat(); HUD.parts(true);
-        const left = PARTS.filter((p) => !World.partsDelivered.has(p.id));
-        HUD.toast(left.length ? `Added to the boat! Still needed: <b>${left.map((p) => p.name).join(', ')}</b>` : '<b>The boat is ready!</b> Press <b>E</b> to launch and escape!', 4);
-        if (!left.length) { SFX.chime(); }
-      } else HUD.toast(`The boat still needs: <b>${missing.map((p) => p.name).join(', ')}</b>. They're marked on your map.`, 3.5);
+      if (carrying.length) { if (online) Net.act('deliver'); else this.applyDeliver(carrying.map((p) => p.id), null); }
+      else HUD.toast(`The boat still needs: <b>${missing.map((p) => p.name).join(', ')}</b>. They're marked on your map.`, 3.5);
     } else if (it.kind === 'page') { Scare.readPage(it.ref);
     } else if (it.kind === 'cabindoor') {
+      if (online && Net.others().some((p) => p.where === 'c')) { Net.act('knock'); return; } // a friend is locked inside: help them
       HUD.toast(Joury.state === 'dormant' ? 'Locked. Inside, a controller is clicking. Very angrily. Better not knock.' : "Locked. This is Joury's cabin. You do NOT want to end up in there.", 3);
     }
   },
-  startBoatPhase() {
+  // --- things that change the island. Solo they happen right away; online they happen when the host says so. ---
+  applyRescue(i, who, mine, quiet) {
+    const kid = World.kids[i]; if (!kid || kid.saved) return;
+    World.rescue(kid);
+    const n = this.savedCount(); HUD.drawKidIcons(World.kids.filter((k) => k.saved).map((k) => k.idx)); HUD.popKid(kid.idx);
+    if (quiet) return;
+    SFX.chime(); if (mine) SFX.cheer();
+    HUD.toast(`${mine ? 'You freed' : `<b>${esc(who ? who.name : 'Someone')}</b> freed`} the <b>${kid.c.def.name}</b> kid! They ran to the dock. <b>${n}/10</b>` + (n < 10 && n > 0 ? '<br><span style="color:#ff8a7a">Joury is getting faster…</span>' : ''), 3.5);
+  },
+  hideBattery(b) { b.taken = true; b.g.visible = false; World.glow.setSize(b.gi, 0); },
+  applyPart(i, by, quiet) {
+    const p = World.parts[i]; if (!p || p.taken) return;
+    p.taken = true; p.by = by || null; p.g.visible = false; p.beam.visible = false;
+    if (!Net.on || by === Net.id) { World.carried.add(p.id); SFX.pickup(); HUD.toast(`You got the <b>${p.def.name}</b>! Bring it to the dock.`, 3); }
+    else if (!quiet) HUD.toast(`<b>${esc(Net.nameOf(by))}</b> found the <b>${p.def.name}</b>.`, 3);
+    HUD.parts(this.state === 'play');
+  },
+  dropPart(i) { // its carrier left the game: it goes back to where it was found
+    const p = World.parts[i]; if (!p || !p.taken) return;
+    p.taken = false; p.by = null; p.g.visible = true; p.beam.visible = true; World.carried.delete(p.id); HUD.parts(this.state === 'play');
+  },
+  applyDeliver(ids, by, quiet) {
+    const mine = !Net.on || by === Net.id;
+    ids.forEach((id, i) => { World.partsDelivered.add(id); World.carried.delete(id); if (!quiet) setTimeout(() => SFX.knock(), i * 220); });
+    World.updateBoat(); HUD.parts(this.state === 'play');
+    if (quiet) return;
+    const left = PARTS.filter((p) => !World.partsDelivered.has(p.id));
+    HUD.toast(left.length ? `${mine ? 'Added to the boat!' : `<b>${esc(Net.nameOf(by))}</b> added to the boat!`} Still needed: <b>${left.map((p) => p.name).join(', ')}</b>` : `<b>The boat is ready!</b> ${mine ? 'Press <b>E</b> to launch and escape!' : 'Get to the dock and press <b>E</b> to launch!'}`, 4);
+    if (!left.length) { SFX.chime(); }
+  },
+  startBoatPhase(quiet) {
     if (this.phase === 'boat') return;
-    this.phase = 'boat'; World.spawnParts(); Joury.enrage(); HUD.parts(true); SFX.sting();
+    this.phase = 'boat';
+    if (Net.on) withSeed(Net.seed + 7, () => World.spawnParts()); else World.spawnParts(); // online: the parts are in the same places for everyone
+    if (!Net.isClient) Joury.enrage();
+    HUD.parts(this.state === 'play'); if (quiet) return;
+    SFX.sting();
     HUD.toast('All 10 kids are safe at the dock!<br><b style="color:#ff5a4a">Joury is FURIOUS.</b> Find the 4 boat parts (orange on your map) and bring them to the dock.', 7);
   },
   setRage(k) {
@@ -193,7 +264,7 @@ const Game = {
   // ---------------- caught → cabin ----------------
   caught() {
     if (this.state !== 'play') return;
-    this.state = 'caught'; this.caughtT = 0; this.stats.caught++; this.crashShown = false; Scare.onCaught(); this.mapOpen = false; this.screen('bigmap', false); this.closeInspect(); $('toast').classList.remove('on'); HUD.toastT = 0; HUD.prompt(null);
+    this.state = 'caught'; this.caughtT = 0; this.stats.caught++; this.crashShown = false; this.menuOpen = false; this.screen('pause', false); Chat.stopTyping(); Scare.onCaught(); Net.act('caught'); this.mapOpen = false; this.screen('bigmap', false); this.closeInspect(); $('toast').classList.remove('on'); HUD.toastT = 0; HUD.prompt(null);
     // put Joury right in your face
     const cam = World.cam, fwd = new THREE.Vector3(-Math.sin(Player.yaw), 0, -Math.cos(Player.yaw));
     Player.pitch = 0.05; Player.applyCam();
@@ -252,13 +323,16 @@ const Game = {
     $('minimap').style.display = ''; $('objective').style.display = ''; HUD.parts(this.phase === 'boat');
     Player.attach(World.cam, World, this.worldFlash);
     const d = World.cabin.door; Player.place(d.x, d.z + 0.6, Math.PI, 0); Player.lightOn = Player.battery > 0; Player.frozen = false;
-    Joury.stun(20); GFX.fx.fade = 1; this.fadeIn = 1;
+    if (Net.on) Net.act('escaped'); else Joury.stun(20); // online, the host's Joury is the one who gets stunned
+    GFX.fx.fade = 1; this.fadeIn = 1;
     HUD.toast('<b>You escaped!</b> Joury is stunned for 20 seconds — <b>RUN!</b>', 4.5); SFX.chime();
     Input.requestLock();
   },
 
   // ---------------- ending ----------------
   launch() {
+    // online this can arrive while you are anywhere: mid-menu, in the cabin, even on the caught screen
+    ['inspect', 'keypad', 'pause', 'caught', 'timeout'].forEach((s) => this.screen(s, false)); $('crash').className = 'screen'; this.crashLine2 = false; this.menuOpen = false; this.mapOpen = false; Chat.stopTyping(); HUD.cabinTimer(null);
     this.state = 'ending'; this.endT = 0; this.endShown = false; Input.exitLock(); HUD.show(false); this.screen('bigmap', false);
     SFX.allLoopsOff(0.3); SFX.splash(); SFX.startEndingMusic();
     if (!this.ending) this.ending = this.buildEnding();
@@ -330,10 +404,15 @@ const Game = {
     const s = this.stats;
     $('endStats').innerHTML = `<span>Time</span><span>${fmtTime(s.time)}</span><span>Times caught</span><span>${s.caught}</span><span>Kids saved</span><span>10 / 10</span><span>Diary pages</span><span>${Scare.pagesRead ? Scare.pagesRead.size : 0} / 8</span><span>Difficulty</span><span>${D().name}</span>`;
     $('endStats').classList.remove('on'); $('btnAgain').classList.remove('on');
+    const board = $('endBoard'); board.classList.remove('on'); board.innerHTML = '';
+    if (Net.on && Net.board && Net.board.length > 1) { // who did what
+      board.innerHTML = '<span class="h">Player</span><span class="h">Kids freed</span><span class="h">Times caught</span>' + Net.board.map((p) => `<span class="n"><i style="background:${css(NET_COLORS[(p.ci | 0) % NET_COLORS.length])}"></i>${esc(cleanName(p.name))}${p.id === Net.id ? ' (you)' : ''}</span><span class="v">${p.kids | 0}</span><span class="v">${p.caught | 0}</span>`).join('');
+      $('btnAgain').textContent = 'BACK TO THE LOBBY';
+    } else $('btnAgain').textContent = 'PLAY AGAIN';
     this.screen('ending', true);
     const els = [...$('endLines').children];
     els.forEach((el, i) => setTimeout(() => { el.classList.add('on'); if (el.querySelector('.srv')) SFX.chatPing('server'); }, 400 + i * 1300 + (i === els.length - 1 ? 1600 : 0)));
-    setTimeout(() => { $('endStats').classList.add('on'); }, 2400 + els.length * 1300);
+    setTimeout(() => { $('endStats').classList.add('on'); if ($('endBoard').innerHTML) $('endBoard').classList.add('on'); }, 2400 + els.length * 1300);
     setTimeout(() => { $('btnAgain').classList.add('on'); }, 2900 + els.length * 1300);
   },
 
@@ -343,7 +422,7 @@ const Game = {
     const dt = Math.min(0.05, Math.max(0, (now - (this.last || now)) / 1000)); this.last = now;
     this.fps = this.fps ? this.fps * 0.95 + (dt > 0 ? 1 / dt : 60) * 0.05 : 60;
     FogU.uTime.value += dt;
-    try { this.frame(dt); } catch (e) { console.error(e); this.errors = (this.errors || 0) + 1; }
+    try { this.frame(dt); Net.tick(dt); } catch (e) { console.error(e); this.errors = (this.errors || 0) + 1; }
     HUD.update(dt); Input.endFrame();
   },
   frame(dt) {
@@ -387,6 +466,7 @@ const Game = {
     this.stats.time += dt;
     if (!this.perfTipped && this.stats.time > 12 && this.stats.time < 13 && this.fps < 32 && CFG.quality !== 'low') { this.perfTipped = true; HUD.toast(`Running at about ${Math.round(this.fps)} FPS. For a smoother game, press <b>Esc</b> and set Graphics to <b>Low</b>.`, 6); }
     FogU.uMistAmt.value = CFG.difficulty === 'nightmare' ? 1.0 : 0.8;
+    if (Net.on) Player.frozen = !!this.menuOpen;
     Player.update(dt);
     Player.updateLight(dt, Joury.danger, d.drain);
     Joury.update(dt);
@@ -416,7 +496,7 @@ const Game = {
     const n = this.savedCount();
     HUD.objective(this.phase === 'kids' ? `Kids rescued: ${n}/10` : `Boat parts: ${World.partsDelivered.size}/4 on the boat` + (World.carried.size ? ` · carrying ${World.carried.size}` : ''));
     HUD.bars(Player.stamina, Player.battery, Player.exhausted, true);
-    HUD.stun(Joury.state === 'stunned' ? Joury.stunT : 0);
+    HUD.stun(Joury.state === 'stunned' ? Joury.stunT : 0); HUD.roster();
     const mg = clamp(danger * 1.1 - 0.25, 0, 0.85); HUD.minimap(mg);
     if (this.mapOpen) HUD.bigmap(mg);
     GFX.render(World.scene, World.cam, dt);
@@ -424,7 +504,7 @@ const Game = {
   updateCabin(dt) {
     const fx = GFX.fx;
     FogU.uMistAmt.value = 0;
-    if ($('inspect').classList.contains('on') || $('keypad').classList.contains('on')) { Player.frozen = true; } else if (Cabin.wakeT <= 0) Player.frozen = false;
+    if ($('inspect').classList.contains('on') || $('keypad').classList.contains('on') || this.menuOpen) { Player.frozen = true; } else if (Cabin.wakeT <= 0) Player.frozen = false;
     Cabin.update(dt);
     if (this.state !== 'cabin') return;
     const low = Cabin.timer < 30 && Cabin.wakeT <= 0;
@@ -433,7 +513,7 @@ const Game = {
     HUD.prompt(it ? Cabin.label(it.id) : null);
     HUD.cabinTimer(Cabin.timer, Cabin.digitsLine());
     HUD.bars(Player.stamina, Player.battery, Player.exhausted, false);
-    HUD.lightHint(Cabin.s.uvTaken ? `F: switch light (${Cabin.light === 'uv' ? 'UV' : Cabin.light === 'flash' ? 'flashlight' : 'off'})` : null);
+    HUD.lightHint(Cabin.s.uvTaken ? `F: switch light (${Cabin.light === 'uv' ? 'UV' : Cabin.light === 'flash' ? 'flashlight' : 'off'})` : null); HUD.roster();
     Chat.update(dt, 0);
     if (SFX.ctx) { SFX.setLoop('wind', 0.04); SFX.setLoop('water', 0); SFX.setLoop('rain', 0.07); SFX.setLoop('drone', low ? 0.18 : 0.05); SFX.setLoop('static', fx.static * 0.15); SFX.update(dt, low ? 0.5 : 0); }
     GFX.render(Cabin.scene, Cabin.cam, dt);
@@ -466,6 +546,7 @@ window.EFJ = {
   run(code) { return eval(code); },
   lightning(reveal) { Weather.strike(reveal !== false); },
   look(yaw, pitch) { Player.yaw = yaw; Player.pitch = pitch || 0; Player.applyCam(); },
+  get net() { return { mode: Net.mode, id: Net.id, code: Net.code, started: Net.started, joined: Net.joined, open: !!(Net.peer && Net.peer.open), players: [...Net.players.values()].map((p) => ({ id: p.id, name: p.name, where: p.where, x: +p.x.toFixed(1), z: +p.z.toFixed(1), kids: p.kids, caught: p.caught, av: !!p.av })) }; },
 };
 
 document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', () => Game.boot()) : Game.boot();

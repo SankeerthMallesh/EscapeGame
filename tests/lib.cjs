@@ -7,7 +7,8 @@ exports.open = async (w = 960, h = 540) => {
   const logs = [];
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') logs.push(m.type() + ': ' + m.text().slice(0, 500)); });
   page.on('pageerror', (e) => logs.push('PAGEERROR: ' + e.message + '\n' + (e.stack || '').slice(0, 800)));
-  await page.goto('file://' + path.resolve(__dirname, '..', 'escape-from-joury.html'));
+  // EFJ_NORENDER=1 runs the game logic without drawing: minutes instead of an hour, but the screenshots are blank
+  await page.goto('file://' + path.resolve(__dirname, '..', 'escape-from-joury.html') + (process.env.EFJ_NORENDER ? '?norender' : ''));
   await page.waitForFunction(() => window.EFJ && window.EFJ.state === 'title', null, { timeout: 120000 });
   return { browser, page, logs };
 };

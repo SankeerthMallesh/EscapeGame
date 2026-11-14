@@ -90,6 +90,17 @@ const Cabin = {
     for (let i = 0; i < 3; i++) { const f = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.7), new THREE.MeshBasicMaterial({ map: flameTex, color: new THREE.Color(3, 2, 1.2), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); f.position.set(-1.6 + (i - 1) * 0.22, 0.42, -2.5); f.rotation.y = (i - 1) * 0.5; scene.add(f); this.flames.push(f); }
     this.fire = new THREE.PointLight(0xff7a2a, 20, 12, 1.25); this.fire.position.set(-1.6, 0.7, -2.2); this.fire.castShadow = false;
     this.bulb = new THREE.PointLight(0xffc488, 7, 10, 1.2); this.bulb.position.set(0.3, 2.12, 0.1); this.bulb.castShadow = Q().fireShadow; this.bulb.shadow.mapSize.set(512, 512); this.bulb.shadow.bias = -0.004; this.bulb.shadow.camera.near = 0.15; scene.add(this.bulb);
+    // candles: warm, low, flickering light like a room someone has been living in by candlelight
+    this.candles = [];
+    const wax = plainMat(0xd8cdb4, 0.55), flameMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(4.2, 2.0, 0.7) });
+    [[-3.0, 0.79, 0.35, 0.16], [-2.95, 0.79, -1.55, 0.1], [-1.2, 0.0, 2.4, 0.22], [-0.9, 0.0, 2.55, 0.13], [2.7, 0.0, -2.2, 0.18]].forEach(([x, y, z, h]) => {
+      const c = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.032, h, 10), wax); c.position.set(x, y + h / 2, z); c.castShadow = true; this.scene.add(c);
+      const drip = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.012, 10), wax); drip.position.set(x, y + 0.006, z); this.scene.add(drip);
+      const f = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 6), flameMat); f.scale.set(1, 2.2, 1); f.position.set(x, y + h + 0.022, z); this.scene.add(f);
+      this.candles.push({ f, base: f.position.y, ph: Math.random() * 10 });
+    });
+    this.candleLight = new THREE.PointLight(0xff9a4a, 1.6, 4.5, 1.6); this.candleLight.position.set(-2.4, 1.0, 0.6); this.scene.add(this.candleLight);
+    this.candleLight2 = new THREE.PointLight(0xff8a3a, 1.2, 3.6, 1.6); this.candleLight2.position.set(-1.0, 0.35, 2.4); this.scene.add(this.candleLight2);
     const cord = mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.55, 5), plainMat(0x111111, 0.6), false); cord.position.set(0.3, 2.53, 0.1); scene.add(cord);
     const sock = mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.06, 10), plainMat(0x2a2620, 0.5, 0.5), false); sock.position.set(0.3, 2.24, 0.1); scene.add(sock);
     this.bulbMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(4, 3, 1.8) }); const bulbM = new THREE.Mesh(new THREE.SphereGeometry(0.04, 12, 10), this.bulbMat); bulbM.position.set(0.3, 2.18, 0.1); scene.add(bulbM);
@@ -261,6 +272,13 @@ const Cabin = {
     if (code === this.digits.join('')) { this.s.escaped = true; this.doorT = 0; SFX.unlock(); setTimeout(() => SFX.creak(), 400); return true; }
     this.timer = Math.max(1, this.timer - D().penalty); SFX.buzz(); GFX.fx.red = 0.6; return false;
   },
+  // Online: a friend outside is banging on the door, which buys you time
+  helped(name) {
+    if (this.timer <= 0) return;
+    this.timer = Math.min(this.timeTotal, this.timer + 15);
+    SFX.knock(); setTimeout(() => SFX.knock(), 260); setTimeout(() => SFX.knock(), 520);
+    HUD.toast(`<b>${esc(name)}</b> is banging on the door from outside! <b>+15 seconds</b>`, 4);
+  },
   cycleLight() {
     if (!this.s.uvTaken) { Player.toggleLight(); this.light = Player.lightOn ? 'flash' : 'off'; return; }
     this.light = this.light === 'flash' ? 'uv' : this.light === 'uv' ? 'off' : 'flash';
@@ -286,6 +304,8 @@ const Cabin = {
     this.monLight.intensity = 5 + Math.sin(t * 30) * 0.3;
     this.bulbT -= dt; if (this.bulbT <= 0) { this.bulbT = Math.random() < 0.15 ? rand(0.05, 0.25) : rand(1.5, 5); this.bulbTarget = Math.random() < 0.18 ? rand(0, 0.25) : rand(0.85, 1.05); if (this.bulbTarget < 0.3) SFX.burst && SFX.ok() && SFX.burst(SFX.now, 0.08, 0.04, 'highpass', 4000, 1); }
     this.bulbK = damp(this.bulbK, this.bulbTarget === undefined ? 1 : this.bulbTarget, 25, dt); const low = this.timer < 30 ? 0.7 : 1;
+    if (this.candles) { const T = GFX.time; this.candles.forEach((c) => { const k = 0.85 + 0.15 * Math.sin(T * 13 + c.ph) * Math.sin(T * 7.7 + c.ph * 2); c.f.scale.set(k, 2.2 * k, k); c.f.position.y = c.base + Math.sin(T * 9 + c.ph) * 0.002; });
+      const fl = 0.8 + 0.2 * Math.sin(T * 11) * Math.sin(T * 6.3 + 1); this.candleLight.intensity = 1.6 * fl; this.candleLight2.intensity = 1.2 * (0.8 + 0.2 * Math.sin(T * 9.4 + 2) * Math.sin(T * 5.1)); }
     this.bulb.intensity = 7 * this.bulbK * low; this.bulbMat.color.setRGB(4 * this.bulbK * low, 3 * this.bulbK * low, 1.8 * this.bulbK * low);
     this.dustP.forEach((d, i) => { d.p.addScaledVector(d.v, dt); d.v.x += rand(-0.01, 0.01) * dt; d.v.z += rand(-0.01, 0.01) * dt; if (d.p.y < 0.1 || Math.abs(d.p.x) > 3.4 || Math.abs(d.p.z) > 2.9) { d.p.set(rand(-3.3, 3.3), rand(1.5, 2.6), rand(-2.8, 2.8)); } this.dust.set(i, d.p.x, d.p.y, d.p.z); });
     // UV reveal on the poster

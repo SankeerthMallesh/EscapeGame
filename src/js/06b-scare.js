@@ -18,18 +18,54 @@ const DIARY = [
   { day: 365, text: 'If you are reading this, you are on my server.\n\nRule 1: Nobody leaves until I win.\nRule 2: I never lose.\n\n— J' },
 ];
 const Chat = {
-  lines: [], queue: [], typingT: 0, nextKid: 30, nextJoury: 60, vivekDone: false,
-  reset() { $('chatLines').innerHTML = ''; $('chatTyping').textContent = ''; this.lines = []; this.queue = []; this.typingT = 0; this.nextKid = rand(25, 40); this.nextJoury = rand(55, 80); this.vivekDone = false; },
-  post(kind, who, text) {
+  lines: [], queue: [], typingT: 0, nextKid: 30, nextJoury: 60, vivekDone: false, typing: false, buf: '',
+  reset() { $('chatLines').innerHTML = ''; $('chatTyping').textContent = ''; this.lines = []; this.queue = []; this.typingT = 0; this.nextKid = rand(25, 40); this.nextJoury = rand(55, 80); this.vivekDone = false; this.stopTyping(); },
+  // Put one line in this player's chat box
+  post(kind, who, text, col) {
     const el = document.createElement('div'); el.className = 'cl ' + kind;
-    const b = document.createElement('b'); b.textContent = who; const sp = document.createElement('span'); sp.textContent = text;
+    const b = document.createElement('b'); b.textContent = who; if (col) b.style.color = col;
+    const sp = document.createElement('span'); sp.textContent = text;
     if (who) el.appendChild(b); el.appendChild(sp); $('chatLines').appendChild(el);
-    this.lines.push({ el, sp, t: 0, text }); while (this.lines.length > 7) this.lines.shift().el.remove();
-    SFX.chatPing(kind);
+    const line = { el, sp, b, t: 0, text }; this.lines.push(line); while (this.lines.length > 7) this.lines.shift().el.remove();
+    SFX.chatPing(kind); return line;
   },
-  server(text) { this.post('server', '', '[SERVER] ' + text); },
-  kid(id, text) { this.post('kid', KID_NAMES[id] + ':', text); },
+  // Lines the whole server sees. In an online game only the host writes them, and hands them to everyone
+  // (except = one player who should not get it, to = the only player who should).
+  share(kind, who, text, except) {
+    if (Net.isClient) return;
+    if (!Net.on || except !== Net.id) this.post(kind, who, text);
+    if (Net.isHost) Net.broadcast({ t: 'ev', e: 'chat', k: kind, who, text }, except);
+  },
+  server(text, except) { this.share('server', '', '[SERVER] ' + text, except); },
+  kid(id, text) { this.share('kid', KID_NAMES[id] + ':', text); },
+  jouryAll(text, typing = 2.4, to) {
+    if (Net.isClient) return;
+    if (!Net.on || !to || to === Net.id) this.joury(text, typing);
+    if (Net.isHost) { const m = { t: 'ev', e: 'jchat', text, typing }; if (!to) Net.broadcast(m); else if (to !== Net.id) Net.send(Net.conns.get(to), m); }
+  },
+  // Lines only this player sees
+  local(text) { this.post('server', '', '[SERVER] ' + text); },
   joury(text, typing = 2.4) { this.queue.push({ text, typing }); },
+  // "Your friend" says something… and a few seconds later the name on the message changes.
+  fake(who, col, text) {
+    const l = this.post('player', who + ':', text, col);
+    setTimeout(() => {
+      if (!l.el.isConnected) return;
+      l.el.className = 'cl joury'; l.b.textContent = 'Joury:'; l.b.style.color = ''; l.t = Math.min(l.t, 7);
+      SFX.chatPing('joury'); GFX.fx.static = Math.max(GFX.fx.static, 0.4);
+    }, rand(4200, 6500));
+  },
+  // Typing a message to the other players (online only)
+  startTyping() { if (!Net.on || this.typing) return; this.typing = true; this.buf = ''; Input.keys.clear(); this.drawInput(); },
+  stopTyping() { this.typing = false; this.buf = ''; this.drawInput(); },
+  key(e) {
+    if (e.key === 'Enter') { const text = this.buf.trim(); this.stopTyping(); if (text) Net.act('chat', { text }); return; }
+    if (e.key === 'Escape') { this.stopTyping(); return; }
+    if (e.key === 'Backspace') this.buf = this.buf.slice(0, -1);
+    else if (e.key.length === 1 && this.buf.length < 80) this.buf += e.key;
+    this.drawInput();
+  },
+  drawInput() { const el = $('chatInput'); if (!el) return; el.classList.toggle('on', this.typing); el.textContent = this.typing ? 'Say: ' + this.buf + '▌' : ''; },
   update(dt, danger) {
     this.lines.forEach((l) => { l.t += dt; l.el.style.opacity = l.t > 14 ? Math.max(0, 1 - (l.t - 14) / 2) : 1; if (danger > 0.55 && Math.random() < danger * 0.04) l.sp.textContent = l.text.replace(/[a-z]/gi, (c) => (Math.random() < 0.35 ? pick(['#', '%', '▓', '█', '?', 'j']) : c)); else if (Math.random() < 0.1) l.sp.textContent = l.text; });
     if (this.queue.length) {
@@ -37,19 +73,21 @@ const Chat = {
       this.typingT -= dt; $('chatTyping').textContent = 'Joury is typing…';
       if (this.typingT <= 0) { this.queue.shift(); $('chatTyping').textContent = ''; this.post('joury', 'Joury:', q.text); }
     }
-    if (Game.state !== 'play') return;
+    // the scripted chatter below is written once, by a solo game or by the host
+    if (Net.isClient || (Net.isHost ? !Net.started : Game.state !== 'play')) return;
     this.nextKid -= dt;
     if (this.nextKid <= 0) { this.nextKid = rand(35, 65); const left = World.kids.filter((k) => !k.saved); if (left.length) this.kid(pick(left).c.def.id, pick(KID_CHAT)); }
     if (Joury.state === 'hunt') {
       this.nextJoury -= dt;
       if (this.nextJoury <= 0) {
         this.nextJoury = rand(45, 85) * (Joury.enraged ? 0.6 : 1);
-        let line = pick(JOURY_CHAT);
-        if (Player.sprinting) line = 'i can hear u running'; else if (Player.crouching) line = 'hiding? cute'; else if (Player.lightOn && Joury.dist < 30) line = 'i see ur light';
-        this.joury(line);
+        const F = Joury.focus || Joury.targets()[0]; let line = pick(JOURY_CHAT), about = false;
+        if (F) { if (F.sprinting) { line = 'i can hear u running'; about = true; } else if (F.crouching) { line = 'hiding? cute'; about = true; } else if (F.lightOn && Joury.fd < 30) { line = 'i see ur light'; about = true; } }
+        if (about && Net.on && Net.players.size > 1 && F.name) line = '@' + F.name + ' ' + line; // he calls you out by name
+        this.jouryAll(line);
       }
     }
-    if (!this.vivekDone && Game.savedCount() >= 3) { this.vivekDone = true; this.server('Vivek joined the game.'); setTimeout(() => { this.server('Vivek left the game.'); this.joury('coward', 1.6); }, 1300); }
+    if (!this.vivekDone && Game.savedCount() >= 3) { this.vivekDone = true; this.server('Vivek joined the game.'); setTimeout(() => { this.server('Vivek left the game.'); this.jouryAll('coward', 1.6); }, 1300); }
   },
 };
 
@@ -57,17 +95,23 @@ const Scare = {
   revealPending: false,
   reset() { Chat.reset(); this.pagesRead = new Set(); },
   welcome() {
-    Chat.server('Welcome to JOURY_ISLAND.'); setTimeout(() => Chat.server('10 spectators are watching.'), 900);
-    setTimeout(() => Chat.server('Joury is offline… for now.'), 2200);
+    Chat.local('Welcome to JOURY_ISLAND.'); setTimeout(() => Chat.local('10 spectators are watching.'), 900);
+    setTimeout(() => Chat.local(Joury.state === 'dormant' ? 'Joury is offline… for now.' : 'Joury is online.'), 2200);
+    if (Net.on) setTimeout(() => Chat.local('Press T to talk to your friends.'), 3600);
   },
-  onWake() { Chat.server('Joury joined the game.'); Chat.joury('ready?', 3); },
+  onWake() { Chat.server('Joury joined the game.'); Chat.jouryAll('ready?', 3); },
   onRescue(kid) { Chat.server(`${KID_NAMES[kid.c.def.id]} left the game.`); setTimeout(() => Chat.kid(kid.c.def.id, pick(['thank u!!! RUN', 'ty ty ty', 'GO. hes coming', 'i owe u my candy'])), 1500); },
-  onCaught() { Chat.server('You were eliminated by Joury.'); },
-  onSpotted() { if (Math.random() < 0.6) Chat.joury(pick(['found u', 'there u are', 'i see u']), 1.2); },
-  // He imitates the kids from wherever he is standing
-  mimic() {
-    const pan = Joury.panFor(Joury.pos.x, Joury.pos.z), vol = clamp(0.9 - Joury.dist / 70, 0.15, 0.6);
-    SFX.kidCall(pan, vol); HUD.kidSay(pick(['???: “help… please… over here…”', '???: “i\'m over here! come quick!”', '???: “it\'s safe… come this way…”']));
+  onCaught() { Chat.local('You were eliminated by Joury.'); },
+  onSpotted(t) { if (Math.random() < 0.6) Chat.jouryAll(pick(['found u', 'there u are', 'i see u']), 1.2, Net.on && t ? t.id : undefined); },
+  // He imitates the kids from wherever he is standing. Online, he sometimes borrows a friend's name instead.
+  mimic(F) {
+    if (!F || F.local) { this.mimicFx(Net.on && Net.players.size > 1 && Math.random() < 0.5 ? pick(Net.others()).name : null); return; }
+    const pals = [...Net.players.values()].filter((p) => p !== F);
+    Net.emit(pals.length && Math.random() < 0.5 ? { e: 'mimic', as: pick(pals).id } : { e: 'mimic' }, F.id);
+  },
+  mimicFx(name) {
+    const pan = Joury.panFor(Joury.pos.x, Joury.pos.z), vol = clamp(0.9 - Joury.dist / 70, 0.15, 0.6), who = name || '???';
+    SFX.kidCall(pan, vol); HUD.kidSay(who + pick([': “help… please… over here…”', ': “i\'m over here! come quick!”', ': “it\'s safe… come this way…”']));
     setTimeout(() => SFX.kidCall(pan, vol * 0.7, true), 2600);
   },
   // Joury's diary pages, pinned around the island
@@ -133,7 +177,8 @@ const Weather = {
   reset() { this.bolt = 0; this.nextBolt = rand(35, 55); this.thunderAt = -1; this.flash = 0; },
   strike(reveal) {
     this.boltT = 0; this.bolt = 1; this.pulses = [0, rand(0.08, 0.14), rand(0.22, 0.35)]; this.thunderAt = rand(0.5, 2.2); this.thunderVol = rand(0.5, 0.9);
-    if (reveal && Joury.state === 'hunt' && !Joury.seen && Joury.dist > 14) Joury.lightningReveal();
+    // sometimes the flash shows whoever he is hunting exactly where he stands
+    if (reveal && !Net.isClient && Joury.state === 'hunt' && !Joury.anySeen && !Joury.seen && Joury.fd > 14 && Joury.lightningReveal()) { const F = Joury.focus; if (Net.isHost && F && !F.local) Net.emit({ e: 'bolt' }, F.id); }
   },
   update(dt, cam, active) {
     this.rainU.uCam.value.copy(cam.position);

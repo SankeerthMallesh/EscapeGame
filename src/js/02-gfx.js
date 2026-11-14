@@ -4,7 +4,7 @@
 // =====================================================================
 const POST_FS = `
 uniform sampler2D tDiffuse; uniform sampler2D tBloom; uniform sampler2D tAdapt; uniform float uAuto, uKey, uMinE, uMaxE; uniform vec2 uRes; uniform float uTime, uGrain, uStatic, uVignette, uRed, uFade, uFlash, uAberr, uExposure, uWarm, uShake, uBloom, uSat, uLift;
-uniform vec3 uShadowTint, uHighTint;
+uniform vec3 uShadowTint, uHighTint; uniform float uSharp;
 varying vec2 vUv;
 float h1(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 vec3 aces(vec3 x){ const float a=2.51, b=0.03, c=2.43, d=0.59, e=0.14; return clamp((x*(a*x+b))/(x*(c*x+d)+e), 0.0, 1.0); }
@@ -22,6 +22,9 @@ void main(){
   col.r = texture2D(tDiffuse, uv + dir * ab).r;
   col.g = texture2D(tDiffuse, uv).g;
   col.b = texture2D(tDiffuse, uv - dir * ab).b;
+  // sharpen: brings back the fine detail in bark, planks and faces that the soft render loses
+  { vec2 px = 1.0 / uRes; vec3 nb = texture2D(tDiffuse, uv + vec2(px.x, 0.0)).rgb + texture2D(tDiffuse, uv - vec2(px.x, 0.0)).rgb + texture2D(tDiffuse, uv + vec2(0.0, px.y)).rgb + texture2D(tDiffuse, uv - vec2(0.0, px.y)).rgb;
+    col = max(col + (col * 4.0 - nb) * uSharp * 0.25, vec3(0.0)); }
   col += texture2D(tBloom, uv).rgb * uBloom;
   float autoE = clamp(uKey / exp(texture2D(tAdapt, vec2(0.5)).r), uMinE, uMaxE);
   col *= uExposure * mix(1.0, autoE, uAuto);
@@ -30,7 +33,9 @@ void main(){
   float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
   col = mix(vec3(lum), col, uSat);
   col *= mix(uShadowTint, uHighTint, smoothstep(0.02, 0.5, lum));
-  col = mix(col, col * col * (3.0 - 2.0 * col), 0.35);
+  col = mix(col, col * col * (3.0 - 2.0 * col), 0.5);
+  // survival-horror grade: grimy green in the shadows and midtones, sodium amber in the highlights
+  col = mix(col, col * vec3(0.94, 1.0, 0.88), (1.0 - smoothstep(0.15, 0.7, lum)) * 0.55);
   col = col * (1.0 - uLift) + uLift;
   col = mix(col, col * vec3(1.35, 0.6, 0.55) + vec3(0.05, 0.0, 0.0), uRed);
   col = mix(col, col * vec3(1.08, 0.98, 0.86), uWarm);
@@ -67,7 +72,7 @@ void main(){ vec2 t = uTexel; vec3 s = texture2D(tSrc, vUv + vec2(-t.x * 2.0, 0.
 
 const GFX = {
   renderer: null, rt: null, postMat: null, postScene: null, postCam: null, w: 1, h: 1, time: 0, cams: [], bloomRTs: [],
-  fx: { grain: 0.06, static: 0, vignette: 1, red: 0, fade: 0, flash: 0, aberr: 0.5, exposure: 1.0, warm: 0, shake: 0, bloom: 0.9, sat: 0.92, lift: 0.006, auto: 0, key: 0.05 },
+  fx: { grain: 0.06, static: 0, vignette: 1, red: 0, fade: 0, flash: 0, aberr: 0.5, exposure: 1.0, warm: 0, shake: 0, bloom: 0.9, sat: 0.84, lift: 0.004, auto: 0, key: 0.05 },
   init() {
     const canvas = $('c');
     let r;
@@ -79,7 +84,7 @@ const GFX = {
     this.postScene = new THREE.Scene();
     this.postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     this.postMat = new THREE.ShaderMaterial({
-      uniforms: { tDiffuse: { value: null }, tBloom: { value: null }, uRes: { value: new THREE.Vector2(1, 1) }, uTime: { value: 0 }, uGrain: { value: 0 }, uStatic: { value: 0 }, uVignette: { value: 1 }, uRed: { value: 0 }, uFade: { value: 0 }, uFlash: { value: 0 }, uAberr: { value: 0 }, uExposure: { value: 1 }, uWarm: { value: 0 }, uShake: { value: 0 }, uBloom: { value: 0 }, uSat: { value: 0.85 }, uLift: { value: 0.01 }, tAdapt: { value: null }, uAuto: { value: 1 }, uKey: { value: 0.05 }, uMinE: { value: 0.3 }, uMaxE: { value: 1.25 }, uShadowTint: { value: new THREE.Vector3(0.95, 1.0, 1.04) }, uHighTint: { value: new THREE.Vector3(1.06, 1.0, 0.9) } },
+      uniforms: { tDiffuse: { value: null }, tBloom: { value: null }, uRes: { value: new THREE.Vector2(1, 1) }, uTime: { value: 0 }, uGrain: { value: 0 }, uStatic: { value: 0 }, uVignette: { value: 1 }, uRed: { value: 0 }, uFade: { value: 0 }, uFlash: { value: 0 }, uAberr: { value: 0 }, uExposure: { value: 1 }, uWarm: { value: 0 }, uShake: { value: 0 }, uBloom: { value: 0 }, uSat: { value: 0.85 }, uLift: { value: 0.01 }, tAdapt: { value: null }, uAuto: { value: 1 }, uKey: { value: 0.05 }, uMinE: { value: 0.3 }, uMaxE: { value: 1.25 }, uShadowTint: { value: new THREE.Vector3(0.93, 1.0, 1.0) }, uHighTint: { value: new THREE.Vector3(1.1, 1.0, 0.8) }, uSharp: { value: 0.55 } },
       vertexShader: BLOOM_VS, fragmentShader: POST_FS, depthTest: false, depthWrite: false,
     });
     this.downMat = new THREE.ShaderMaterial({ uniforms: { tSrc: { value: null }, uTexel: { value: new THREE.Vector2() }, uThreshold: { value: 1.0 }, uPrefilter: { value: 0 }, uExposure: { value: 1 } }, vertexShader: BLOOM_VS, fragmentShader: BLOOM_DOWN, depthTest: false, depthWrite: false });
@@ -126,6 +131,7 @@ const GFX = {
   },
   render(scene, cam, dt) {
     this.time += dt;
+    if (this.noRender) return;
     const r = this.renderer, u = this.postMat.uniforms, f = this.fx;
     r.info.autoReset = false; r.info.reset();
     r.setRenderTarget(this.rt); r.render(scene, cam);
