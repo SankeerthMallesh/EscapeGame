@@ -498,6 +498,34 @@ input[type=range]{accent-color:#b3141c}
 #timeout .btn,#netlost .btn{border-color:rgba(179,20,28,.85);color:#fff;background:linear-gradient(rgba(130,10,18,.45),rgba(60,4,8,.45));padding:10px 34px}
 #timeout .btn:hover,#netlost .btn:hover{background:rgba(160,14,24,.6);border-color:#e04048}
 
+/* ---------- v7 title: profile card, featured story card, key hints ---------- */
+#title .t-profile{position:absolute;top:clamp(16px,4vh,34px);right:clamp(16px,4vw,48px);display:flex;align-items:center;gap:12px;padding:8px 18px 8px 8px;background:linear-gradient(90deg,rgba(14,12,11,.82),rgba(14,12,11,.55));border:1px solid rgba(233,226,212,.12);border-radius:40px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 10px 30px rgba(0,0,0,.45)}
+#title .t-av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-size:22px;color:#fff;background:radial-gradient(circle at 35% 30%,#d33a2c,#6d0b10 70%);box-shadow:0 0 0 2px rgba(233,226,212,.18),0 0 18px rgba(200,20,30,.35)}
+#title .t-profile.vip .t-av{background:radial-gradient(circle at 35% 30%,#f5d27a,#9a6a18 70%);color:#2a1a02;box-shadow:0 0 0 2px rgba(245,210,122,.5),0 0 22px rgba(245,190,80,.45)}
+#title .t-who{display:flex;flex-direction:column;line-height:1.15}
+#title .t-who b{font-family:var(--ui);font-weight:600;font-size:15px;color:#f1ebdf;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#title .t-who small{font-family:var(--ui);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#a99d86}
+#title .t-profile.vip .t-who small{color:#f0c86a}
+#title .t-feature{position:absolute;right:clamp(16px,4vw,48px);bottom:clamp(54px,9vh,90px);width:min(340px,30vw);padding:0;text-align:left;cursor:pointer;background:rgba(12,10,9,.78);border:1px solid rgba(233,226,212,.14);border-radius:6px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.6);transition:transform .25s,border-color .25s,box-shadow .25s}
+#title .t-feature:hover,#title .t-feature:focus-visible{transform:translateY(-4px);border-color:rgba(224,64,72,.7);box-shadow:0 22px 60px rgba(0,0,0,.7),0 0 0 1px rgba(224,64,72,.35),0 0 40px rgba(180,10,20,.25);outline:none}
+#title .t-feature canvas{display:block;width:100%;height:auto;aspect-ratio:560/250;filter:saturate(1.05);transition:filter .3s}
+#title .t-feature:hover canvas{filter:saturate(1.2) brightness(1.12)}
+#title .t-feat-body{padding:14px 18px 16px;border-top:1px solid rgba(233,226,212,.08)}
+#title .t-feat-tag{display:inline-block;font-family:var(--ui);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#fff;background:#b3141c;padding:3px 8px;border-radius:2px;margin-bottom:8px}
+#title .t-feat-title{font-family:var(--display);font-size:26px;letter-spacing:.04em;color:#f4c58a;line-height:1.05}
+#title .t-feat-text{font-family:var(--ui);font-size:12.5px;line-height:1.5;color:#a8a092;margin-top:6px}
+#title .t-feat-go{margin-top:10px;font-family:var(--ui);font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:#e9e2d4}
+#title .t-feat-go span{display:inline-block;transition:transform .2s;color:#e04048}
+#title .t-feature:hover .t-feat-go span{transform:translateX(5px)}
+#title .t-keys{position:absolute;right:clamp(16px,4vw,48px);bottom:clamp(14px,3vh,30px);display:flex;gap:18px;font-family:var(--ui);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#6f685d}
+#title kbd{display:inline-block;min-width:20px;padding:2px 6px;margin-right:4px;border:1px solid rgba(233,226,212,.22);border-bottom-width:2px;border-radius:3px;font-family:var(--ui);font-size:10.5px;color:#cfc6b6;text-align:center;background:rgba(255,255,255,.03)}
+#title .menu-item:focus-visible span{color:#fff;text-shadow:0 0 18px rgba(220,30,40,.45)}
+.logo-main{filter:drop-shadow(0 0 26px rgba(170,0,10,.35)) drop-shadow(0 6px 0 rgba(0,0,0,.6))}
+@keyframes tIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (max-width:900px),(max-height:560px){#title .t-feature,#title .t-keys{display:none}}
+@media (max-width:620px){#title .t-profile{top:10px;right:10px;padding:5px 12px 5px 5px}#title .t-av{width:32px;height:32px;font-size:18px}}
+@media (prefers-reduced-motion:reduce){#title .t-profile,#title .t-feature,#title .t-keys{animation:none}#title .t-feature{transition:none}}
+
 </style>
 </head>
 <body>
@@ -571,8 +599,22 @@ input[type=range]{accent-color:#b3141c}
         <div class="ref-note" id="refUsedNote"></div>
       </div>
     </div>
-    <div class="title-foot">Headphones recommended · v4</div>
+    <div class="title-foot">Headphones recommended · v5</div>
   </div>
+  <div class="t-profile" id="tProfile" aria-live="polite">
+    <div class="t-av" id="tAv">P</div>
+    <div class="t-who"><b id="tName">Player</b><small id="tTitle">Survivor</small></div>
+  </div>
+  <button class="t-feature" id="tFeature" type="button" aria-label="Play Story 2: Joury's House">
+    <canvas id="tFeatArt" width="560" height="250" aria-hidden="true"></canvas>
+    <div class="t-feat-body">
+      <div class="t-feat-tag">New story</div>
+      <div class="t-feat-title">Joury's House</div>
+      <div class="t-feat-text">Vivek played the phonk. Joury took Gabe. Sneak into his house and get Gabe out of the bedroom.</div>
+      <div class="t-feat-go">Play Story 2 <span aria-hidden="true">▸</span></div>
+    </div>
+  </button>
+  <div class="t-keys" aria-hidden="true"><span><kbd>↑</kbd><kbd>↓</kbd> choose</span><span><kbd>Enter</kbd> select</span><span><kbd>F8</kbd> admin (with code)</span></div>
 </div>
 
 <!-- Multiplayer lobby -->
@@ -961,7 +1003,7 @@ const SFX = {
   chatPing(kind) { if (!this.ctx) return; const t = this.now; if (kind === 'joury') { this.osc('sine', 220, t, 0.35, 0.08, null, { slide: 160 }); this.osc('square', 440, t, 0.05, 0.03); } else this.osc('sine', kind === 'server' ? 1300 : 900, t, 0.12, 0.04, null, { slide: kind === 'server' ? 1500 : 1100 }); },
   typing() { if (!this.ctx) return; const t = this.now; for (let i = 0; i < 9; i++) this.burst(t + i * 0.13 + Math.random() * 0.05, 0.02, 0.03, 'highpass', 3500, 1); },
   kidCall(pan, vol, sob) {
-    if (!this.ctx) return; const t = this.now, ctx = this.ctx, dest = this.panner(pan);
+    if (!this.ctx || this.full(1.6)) return; const t = this.now, ctx = this.ctx, dest = this.panner(pan);
     const o = ctx.createOscillator(); o.type = 'triangle'; const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 3; f.frequency.value = 1400;
     const base = sob ? 300 : 420; o.frequency.setValueAtTime(base, t);
     const pts = sob ? [380, 300, 360, 280, 330] : [520, 470, 560, 430, 600, 380];
@@ -973,13 +1015,24 @@ const SFX = {
     this.burst(t, 1.3, 0.05 * vol, 'bandpass', 3000, 2, dest);
   },
   thunder(vol = 0.7) { if (!this.ctx) return; const t = this.now; this.burst(t, 0.25, vol * 0.6, 'lowpass', 2000, 0.5, null, 1, 0.005); this.burst(t + 0.1, 3.2, vol, 'lowpass', 160, 0.8, null, 0.45, 0.08); this.burst(t + 0.4, 2.4, vol * 0.5, 'lowpass', 90, 0.6, null, 0.35, 0.3); this.osc('sine', 48, t + 0.1, 2.2, vol * 0.4, null, { slide: 30, attack: 0.1 }); },
+  tick() { if (!this.ctx) return; const t = this.now; this.osc('triangle', 1800, t, 0.05, 0.025, null, { slide: 1200 }); },
   snuff() { if (!this.ctx) return; const t = this.now; this.burst(t, 0.35, 0.08, 'bandpass', 900, 1.5, null, 1, 0.01); },
   pageTurn() { if (!this.ctx) return; const t = this.now; this.burst(t, 0.18, 0.12, 'highpass', 2500, 0.7); this.burst(t + 0.12, 0.12, 0.08, 'bandpass', 4000, 2); },
-  setLoop(name, v, tc = 0.3) { if (!this.ctx) return; const g = this.loops[name]; if (g) g.gain.setTargetAtTime(Math.max(0, v), this.ctx.currentTime, tc); },
+  // only tell the audio system when a loop's volume actually changes (calling this every frame piles up volume events)
+  setLoop(name, v, tc = 0.3) { if (!this.ctx) return; const g = this.loops[name]; if (!g) return; v = Math.max(0, v); const last = g._v === undefined ? -1 : g._v; if (Math.abs(v - last) < 0.004 && !(v === 0 && last !== 0)) return; g._v = v; g.gain.setTargetAtTime(v, this.ctx.currentTime, tc); },
   allLoopsOff(tc = 0.4) { ['wind', 'rumble', 'drone', 'static', 'water', 'fire', 'engine', 'rain'].forEach((n) => this.setLoop(n, 0, tc)); },
 
   // ---- building blocks ----
+  // a limit on how many one-shot sounds can ring at once, so a busy moment never piles up hundreds of voices
+  voiceEnds: [], MAX_VOICES: 40,
+  full(dur = 0.5) {
+    const now = this.ctx.currentTime, v = this.voiceEnds; let n = 0;
+    for (let i = 0; i < v.length; i++) if (v[i] > now) v[n++] = v[i]; v.length = n;
+    if (n >= this.MAX_VOICES) return true; v.push(now + dur + 0.1); return false;
+  },
+  mute: { frequency: { setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {}, setTargetAtTime() {} }, connect() {}, start() {}, stop() {} },
   osc(type, f, t, dur, vol, dest, o = {}) {
+    if (this.full(t - this.ctx.currentTime + dur)) return this.mute;
     const ctx = this.ctx, osc = ctx.createOscillator(); osc.type = type; osc.frequency.setValueAtTime(f, t);
     if (o.detune) osc.detune.value = o.detune;
     if (o.slide) osc.frequency.exponentialRampToValueAtTime(o.slide, t + (o.slideT || dur));
@@ -989,6 +1042,7 @@ const SFX = {
     return osc;
   },
   burst(t, dur, vol, type, freq, q, dest, rate = 1, attack = 0.002) {
+    if (this.full(t - this.ctx.currentTime + dur)) return this.mute;
     const ctx = this.ctx, s = this.noiseSrc(false); s.playbackRate.value = rate;
     const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
     const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(vol, 0.0002), t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
@@ -1021,7 +1075,7 @@ const SFX = {
   owl() { if (!this.ctx) return; const t = this.now, d = this.panner(rand(-0.8, 0.8)); [0, 0.45, 0.75].forEach((o, i) => this.osc('sine', i === 1 ? 360 : 390, t + o, 0.35, 0.05, d, { slide: 340, attack: 0.06 })); },
   twig(pan = 0, vol = 0.25) { if (!this.ctx) return; const t = this.now, d = this.panner(pan); this.burst(t, 0.05, vol, 'highpass', 1800, 0.8, d); this.burst(t + 0.04, 0.08, vol * 0.7, 'bandpass', 1200, 2, d); },
   whoosh(pan = 0) { if (!this.ctx) return; const t = this.now, d = this.panner(pan); const f = this.burst(t, 0.9, 0.18, 'bandpass', 300, 2, d, 1, 0.3); f.frequency.exponentialRampToValueAtTime(2200, t + 0.45); f.frequency.exponentialRampToValueAtTime(250, t + 0.9); },
-  creak() { if (!this.ctx) return; const t = this.now, ctx = this.ctx; const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(70, t); o.frequency.linearRampToValueAtTime(110, t + 0.6); o.frequency.linearRampToValueAtTime(80, t + 1.2); const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 12; const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.1); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.3); o.connect(bp); bp.connect(g); g.connect(this.sfx); o.start(t); o.stop(t + 1.4); },
+  creak() { if (!this.ctx || this.full(1)) return; const t = this.now, ctx = this.ctx; const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(70, t); o.frequency.linearRampToValueAtTime(110, t + 0.6); o.frequency.linearRampToValueAtTime(80, t + 1.2); const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 12; const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.1); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.3); o.connect(bp); bp.connect(g); g.connect(this.sfx); o.start(t); o.stop(t + 1.4); },
   knock() { if (!this.ctx) return; const t = this.now; this.osc('sine', 190, t, 0.12, 0.35, null, { slide: 90 }); this.burst(t, 0.06, 0.2, 'bandpass', 1400, 1); },
   slam(vol = 0.5) { if (!this.ctx) return; const t = this.now; this.osc('sine', 80, t, 0.5, vol, null, { slide: 35 }); this.burst(t, 0.4, vol * 0.7, 'lowpass', 900, 0.8); },
   splash() { if (!this.ctx) return; const t = this.now; this.burst(t, 0.9, 0.35, 'lowpass', 900, 0.7, null, 0.8, 0.02); this.burst(t + 0.05, 0.5, 0.15, 'highpass', 2500, 0.5); },
@@ -4912,6 +4966,7 @@ const Perks = {
     const got = this.list();
     $('perkList').innerHTML = got.length ? got.map((c) => `<div class="perk"><span class="pi">${c.icon}</span><div><b>${esc(c.title)}</b><small>${esc(c.text)}</small></div></div>`).join('') : '<div class="perk none">No rewards yet. Try a code.</div>';
     $('refUsedNote').textContent = CFG.refUsed ? `You were invited with ${CFG.refUsed}.` : '';
+    if (Game.titleCard && $('tName')) Game.titleCard();
     const n = got.length; $('codesSummary').textContent = n ? `${n} reward${n > 1 ? 's' : ''} unlocked` : 'bonuses & your referral code';
   },
   // Online: are you playing with someone you invited, or who invited you?
@@ -5557,7 +5612,7 @@ const Phonk = {
     if (!this.out) { this.out = SFX.ctx.createGain(); this.out.gain.value = 0; this.out.connect(SFX.music); this.next = SFX.ctx.currentTime + 0.05; }
     return true;
   },
-  setVol(v) { if (!this.ensure()) return; this.vol = v; this.out.gain.setTargetAtTime(Math.max(0, v), SFX.ctx.currentTime, 0.12); },
+  setVol(v) { if (!this.ensure()) return; v = Math.max(0, v); if (Math.abs(v - this.vol) < 0.004 && !(v === 0 && this.vol !== 0)) return; this.vol = v; this.out.gain.setTargetAtTime(v, SFX.ctx.currentTime, 0.12); },
   stop() { this.setVol(0); },
   cowbell(t, semi, v) {
     const f = 587.33 * Math.pow(2, semi / 12), ctx = SFX.ctx, bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f * 1.8; bp.Q.value = 2.2;
@@ -6399,13 +6454,15 @@ const HUD = {
     if (el.innerHTML !== html) el.innerHTML = html;
   },
   // A shooter-style compass strip: where you are facing, and where things are
+  // drawn at most 60 times a second (and the maps 30): fast screens and busy moments don't redraw more than you can see
+  due(key, ms) { const now = performance.now(), last = this[key] || 0; if (now - last < ms && now >= last) return false; this[key] = now; return true; },
   compass(markers) {
-    const cv = $('compass'); if (!cv) return; const dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.round(cv.clientWidth * dpr) || 560, H = Math.round(40 * dpr);
+    const cv = $('compass'); if (!cv || !this.due('cpT', 15)) return; const dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.round(cv.clientWidth * dpr) || 560, H = Math.round(40 * dpr);
     if (cv.width !== W) { cv.width = W; cv.height = H; }
     const g = cv.getContext('2d'), k = dpr, mid = W / 2, span = Math.PI / 2.4, heading = -Player.yaw, X = (b) => mid + angDiff(heading, b) / span * mid;
     g.clearRect(0, 0, W, H);
-    const grd = g.createLinearGradient(0, 0, W, 0); grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(0.2, 'rgba(0,0,0,.45)'); grd.addColorStop(0.8, 'rgba(0,0,0,.45)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = grd; g.fillRect(0, 8 * k, W, 22 * k);
+    if (!this.cpGrad || this.cpGradW !== W) { const grd = g.createLinearGradient(0, 0, W, 0); grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(0.2, 'rgba(0,0,0,.45)'); grd.addColorStop(0.8, 'rgba(0,0,0,.45)'); grd.addColorStop(1, 'rgba(0,0,0,0)'); this.cpGrad = grd; this.cpGradW = W; }
+    g.fillStyle = this.cpGrad; g.fillRect(0, 8 * k, W, 22 * k);
     g.textAlign = 'center'; g.textBaseline = 'middle';
     for (let d = 0; d < 360; d += 15) {
       const b = d * Math.PI / 180, x = X(b); if (x < 0 || x > W) continue; const fade = 1 - Math.abs(x - mid) / mid;
@@ -6504,17 +6561,18 @@ const HUD = {
     }
   },
   minimap(glitch) {
+    if (!this.due('mmT', 32)) return;
     const cv = $('minimap'), dpr = Math.min(2, window.devicePixelRatio || 1), size = Math.round(200 * dpr);
     if (cv.width !== size) { cv.width = size; cv.height = size; }
     this.drawMap(cv, size, { round: true, glitch });
   },
-  bigmap(glitch) { const cv = $('bigmapCanvas'); this.drawMap(cv, cv.width, { labels: true, glitch: glitch * 0.6 }); },
+  bigmap(glitch) { if (!this.due('bmT', 32)) return; const cv = $('bigmapCanvas'); this.drawMap(cv, cv.width, { labels: true, glitch: glitch * 0.6 }); },
 
   // ---------------- inspect panel ----------------
   inspect(info) {
     $('inspectTitle').textContent = info.title; $('inspectText').innerHTML = info.text;
     const box = $('inspectImg'); box.innerHTML = '';
-    if (info.img) { const c = makeCanvas(info.img.width, info.img.height); c.getContext('2d').drawImage(info.img, 0, 0); box.appendChild(c); }
+    if (info.img) { const c = this.inspCv || (this.inspCv = makeCanvas(1, 1)); if (c.width !== info.img.width || c.height !== info.img.height) { c.width = info.img.width; c.height = info.img.height; } const cg = c.getContext('2d'); cg.clearRect(0, 0, c.width, c.height); cg.drawImage(info.img, 0, 0); box.appendChild(c); }
     else if (info.emoji) { const e = document.createElement('div'); e.className = 'emoji'; e.textContent = info.emoji; box.appendChild(e); }
     $('inspect').classList.add('on');
   },
@@ -6610,7 +6668,7 @@ const Game = {
     vol('optVol', 'optVol2'); vol('optVol2', 'optVol');
     const sens = (id, other) => { const el = $(id); el.value = CFG.sens; el.addEventListener('input', () => { CFG.sens = Number(el.value); $(other).value = el.value; saveSettings(); }); };
     sens('optSens', 'optSens2'); sens('optSens2', 'optSens');
-    $('optName').value = CFG.name || ''; $('optName').addEventListener('change', (e) => { CFG.name = cleanName(e.target.value); e.target.value = CFG.name; saveSettings(); });
+    $('optName').value = CFG.name || ''; $('optName').addEventListener('change', (e) => { CFG.name = cleanName(e.target.value); e.target.value = CFG.name; saveSettings(); this.titleCard(); });
     $('optBlur').checked = CFG.motionBlur !== false; $('optBlur').addEventListener('change', (e) => { CFG.motionBlur = e.target.checked; saveSettings(); });
     $('optInvert').checked = CFG.invert; $('optInvert').addEventListener('change', (e) => { CFG.invert = e.target.checked; saveSettings(); });
     this.diffNote();
@@ -6622,6 +6680,8 @@ const Game = {
     }));
     $('btnPlay').addEventListener('click', () => this.play());
     $('btnHouse').addEventListener('click', () => this.playHouse());
+    $('tFeature').addEventListener('click', () => this.playHouse());
+    this.titleCard();
     $('btnSkip').addEventListener('click', (e) => { e.stopPropagation(); SFX.uiClick(); this.startGame(); });
     $('story').addEventListener('click', () => { if (this.state === 'story') Story.advance(); });
     $('btnResume').addEventListener('click', () => this.resume());
@@ -6642,13 +6702,56 @@ const Game = {
   },
 
   // ---------------- title ----------------
+  // the card in the top corner: your name, your title, your color
+  titleCard() {
+    const n = CFG.name || 'Player', vip = Perks.has('vip'), adm = Perks.has('admin'), got = Perks.list().length;
+    $('tName').textContent = n; $('tAv').textContent = n.trim().charAt(0).toUpperCase() || 'P';
+    $('tTitle').textContent = vip ? '👑 VIP Joury' : adm ? 'Admin' : got >= 3 ? 'Veteran' : got ? 'Survivor' : 'New survivor';
+    $('tProfile').classList.toggle('vip', vip);
+    this.featArt();
+  },
+  // the picture on the Story 2 card: Joury's house at night, one window lit, drawn once
+  featArt() {
+    const cv = $('tFeatArt'); if (!cv || cv.dataset.done) return; cv.dataset.done = '1';
+    const g = cv.getContext('2d'), W = cv.width, H = cv.height;
+    const sky = g.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, '#0b1018'); sky.addColorStop(0.6, '#1a1714'); sky.addColorStop(1, '#0a0806'); g.fillStyle = sky; g.fillRect(0, 0, W, H);
+    // moon and its haze
+    const mx = W * 0.8, my = H * 0.24, mg = g.createRadialGradient(mx, my, 4, mx, my, 120); mg.addColorStop(0, 'rgba(230,226,210,.5)'); mg.addColorStop(0.2, 'rgba(200,200,190,.12)'); mg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = mg; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#e6e1d0'; g.beginPath(); g.arc(mx, my, 17, 0, TAU); g.fill(); g.fillStyle = 'rgba(11,16,24,.9)'; g.beginPath(); g.arc(mx + 7, my - 3, 15, 0, TAU); g.fill();
+    withSeed(77, () => { for (let i = 0; i < 60; i++) { g.fillStyle = `rgba(230,230,220,${Math.random() * 0.5})`; g.fillRect(Math.random() * W, Math.random() * H * 0.5, 1, 1); } });
+    // far trees
+    withSeed(12, () => { g.fillStyle = '#0d0f0f'; for (let x = -10; x < W + 10; x += 14) { const h = 50 + Math.random() * 40; g.beginPath(); g.moveTo(x - 12, H - 40); g.lineTo(x, H - 40 - h); g.lineTo(x + 12, H - 40); g.fill(); } });
+    // the house
+    const hx = W * 0.28, hy = H - 46, hw = 210, hh = 92;
+    g.fillStyle = '#171310'; g.fillRect(hx, hy - hh, hw, hh);
+    g.fillStyle = '#100d0b'; g.beginPath(); g.moveTo(hx - 16, hy - hh); g.lineTo(hx + hw / 2, hy - hh - 62); g.lineTo(hx + hw + 16, hy - hh); g.fill();
+    g.fillRect(hx + hw - 50, hy - hh - 70, 16, 40); // chimney
+    const win = (x, y, w, h, lit) => {
+      if (lit) { const gl = g.createRadialGradient(x + w / 2, y + h / 2, 2, x + w / 2, y + h / 2, 70); gl.addColorStop(0, 'rgba(255,170,70,.35)'); gl.addColorStop(1, 'rgba(255,120,40,0)'); g.fillStyle = gl; g.fillRect(x - 70, y - 70, w + 140, h + 140); }
+      g.fillStyle = lit ? '#ffb45a' : '#0a0b0d'; g.fillRect(x, y, w, h); g.fillStyle = '#171310'; g.fillRect(x + w / 2 - 1.5, y, 3, h); g.fillRect(x, y + h / 2 - 1.5, w, 3);
+    };
+    win(hx + 22, hy - hh + 20, 34, 30, false); win(hx + hw - 56, hy - hh + 20, 34, 30, true); win(hx + hw / 2 - 12, hy - hh - 36, 24, 22, false);
+    // a small figure in the lit window (Gabe)
+    g.fillStyle = 'rgba(30,18,10,.85)'; g.beginPath(); g.arc(hx + hw - 39, hy - hh + 36, 5, 0, TAU); g.fill(); g.fillRect(hx + hw - 44, hy - hh + 40, 10, 10);
+    g.fillStyle = '#0c0a08'; g.fillRect(hx + hw / 2 - 14, hy - 44, 28, 44); // door
+    // boards nailed over the lower window
+    g.strokeStyle = '#3a2a1c'; g.lineWidth = 5; g.beginPath(); g.moveTo(hx + 18, hy - hh + 22); g.lineTo(hx + 60, hy - hh + 48); g.moveTo(hx + 18, hy - hh + 46); g.lineTo(hx + 60, hy - hh + 26); g.stroke();
+    // a tall figure at the side of the house with two red eyes
+    const fx = hx + hw + 46, fy = hy; g.fillStyle = '#050505'; g.beginPath(); g.ellipse(fx, fy - 70, 10, 12, 0, 0, TAU); g.fill(); g.fillRect(fx - 12, fy - 60, 24, 60);
+    g.fillStyle = '#ff2020'; g.shadowColor = '#ff0000'; g.shadowBlur = 8; g.fillRect(fx - 5, fy - 72, 3, 2); g.fillRect(fx + 2, fy - 72, 3, 2); g.shadowBlur = 0;
+    // ground and fence
+    g.fillStyle = '#080706'; g.fillRect(0, hy, W, H - hy);
+    g.fillStyle = '#0e0c0a'; for (let x = 8; x < W; x += 18) g.fillRect(x, hy - 22, 6, 26); g.fillRect(0, hy - 16, W, 4);
+    // fog
+    const fg = g.createLinearGradient(0, hy - 40, 0, H); fg.addColorStop(0, 'rgba(120,120,130,0)'); fg.addColorStop(0.5, 'rgba(120,120,130,.12)'); fg.addColorStop(1, 'rgba(0,0,0,.6)'); g.fillStyle = fg; g.fillRect(0, hy - 40, W, H);
+  },
   toTitle(keepRoom) {
     if (!keepRoom) Net.leave();
     Admin.close(); Phonk.setVol(0); this.houseEndShown = false; if ($('hideOverlay')) $('hideOverlay').classList.remove('on'); this.state = 'title'; Input.exitLock(); this.menuOpen = false; Chat.stopTyping(); Lobby.isOpen = false; document.body.classList.remove('mp');
     ['loading', 'hud', 'story', 'bigmap', 'inspect', 'keypad', 'pause', 'caught', 'timeout', 'ending', 'lobby'].forEach((s) => this.screen(s, false));
     $('crash').className = 'screen';
     $('story').classList.remove('bare');
-    this.screen('title', true); this.syncDiff && this.syncDiff(); this.diffNote();
+    this.screen('title', true); this.syncDiff && this.syncDiff(); this.diffNote(); this.titleCard();
     $('soundHint').style.visibility = SFX.ctx ? 'hidden' : 'visible';
     World.scene.fog.density = D().fog; this.setRage(0);
     World.reset(); Joury.reset(); Player.attach(World.cam, World, this.worldFlash); Player.place(0, World.dock.start.z, 0); Player.lightOn = false;
@@ -6813,7 +6916,12 @@ const Game = {
     const k = e.code, s = this.state;
     if (k === 'F8') { e.preventDefault(); Admin.toggle(); return; }
     if (Admin.open) { if (k === 'Escape') Admin.close(); return; }
-    if (s === 'title' && (k === 'Enter') && !Lobby.isOpen && !$('netlost').classList.contains('on')) { this.play(); return; }
+    if (s === 'title' && !Lobby.isOpen && !$('netlost').classList.contains('on')) {
+      // arrow keys move through the menu; Enter picks what is chosen (or starts the story when nothing is)
+      const items = [...document.querySelectorAll('#title .menu-item')], at = items.indexOf(document.activeElement);
+      if (k === 'ArrowDown' || k === 'ArrowUp') { e.preventDefault(); const n = items.length, i = at < 0 ? (k === 'ArrowDown' ? 0 : n - 1) : (at + (k === 'ArrowDown' ? 1 : n - 1)) % n; items[i].focus(); SFX.ctx && SFX.tick && SFX.tick(); return; }
+      if (k === 'Enter') { if (at >= 0 || document.activeElement === $('tFeature')) return; this.play(); return; }
+    }
     if (this.menuOpen) { if (k === 'Escape') this.resume(); return; }
     if (s === 'story') { if (k === 'Space' || k === 'Enter') Story.advance(); if (k === 'Escape') this.startGame(); return; }
     if (s === 'house' && House.caughtT >= 0) return;
@@ -7103,7 +7211,9 @@ const Game = {
     fx.flash = Math.max(0, fx.flash - dt * 2.5);
     switch (this.state) {
       case 'title': {
-        this.t += dt; fx.fade = Math.max(0, fx.fade - dt * 0.6); fx.static = 0.02 + (Math.random() < 0.01 ? 0.4 : 0); fx.vignette = 1; fx.grain = 0.07; fx.red = 0; fx.warm = 0; fx.exposure = 2.8; fx.auto = 0;
+        this.t += dt; fx.fade = Math.max(0, fx.fade - dt * 0.6); fx.static = 0.02 + (Math.random() < 0.01 ? 0.4 : 0); fx.vignette = 1; fx.grain = 0.07; fx.red = 0; fx.warm = 0; fx.exposure = 3.2; fx.auto = 0;
+        // now and then lightning lights up the dock, and Joury standing on it
+        this.titleBolt = (this.titleBolt === undefined ? 4 : this.titleBolt) - dt; if (this.titleBolt <= 0) { this.titleBolt = rand(7, 13); Weather.strike(false); }
         FogU.uMistAmt.value = 0.8;
         const sz = World.shoreZ, cam = World.cam, a = this.t * 0.05, dk = World.dock;
         cam.position.set(-6.5 + Math.sin(a) * 1.5, 2.1 + Math.sin(this.t * 0.4) * 0.1, dk.z1 + 7.5 + Math.cos(a) * 1.0); cam.lookAt(-11, 3.4, sz - 24);

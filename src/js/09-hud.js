@@ -43,13 +43,15 @@ const HUD = {
     if (el.innerHTML !== html) el.innerHTML = html;
   },
   // A shooter-style compass strip: where you are facing, and where things are
+  // drawn at most 60 times a second (and the maps 30): fast screens and busy moments don't redraw more than you can see
+  due(key, ms) { const now = performance.now(), last = this[key] || 0; if (now - last < ms && now >= last) return false; this[key] = now; return true; },
   compass(markers) {
-    const cv = $('compass'); if (!cv) return; const dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.round(cv.clientWidth * dpr) || 560, H = Math.round(40 * dpr);
+    const cv = $('compass'); if (!cv || !this.due('cpT', 15)) return; const dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.round(cv.clientWidth * dpr) || 560, H = Math.round(40 * dpr);
     if (cv.width !== W) { cv.width = W; cv.height = H; }
     const g = cv.getContext('2d'), k = dpr, mid = W / 2, span = Math.PI / 2.4, heading = -Player.yaw, X = (b) => mid + angDiff(heading, b) / span * mid;
     g.clearRect(0, 0, W, H);
-    const grd = g.createLinearGradient(0, 0, W, 0); grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(0.2, 'rgba(0,0,0,.45)'); grd.addColorStop(0.8, 'rgba(0,0,0,.45)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = grd; g.fillRect(0, 8 * k, W, 22 * k);
+    if (!this.cpGrad || this.cpGradW !== W) { const grd = g.createLinearGradient(0, 0, W, 0); grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(0.2, 'rgba(0,0,0,.45)'); grd.addColorStop(0.8, 'rgba(0,0,0,.45)'); grd.addColorStop(1, 'rgba(0,0,0,0)'); this.cpGrad = grd; this.cpGradW = W; }
+    g.fillStyle = this.cpGrad; g.fillRect(0, 8 * k, W, 22 * k);
     g.textAlign = 'center'; g.textBaseline = 'middle';
     for (let d = 0; d < 360; d += 15) {
       const b = d * Math.PI / 180, x = X(b); if (x < 0 || x > W) continue; const fade = 1 - Math.abs(x - mid) / mid;
@@ -148,17 +150,18 @@ const HUD = {
     }
   },
   minimap(glitch) {
+    if (!this.due('mmT', 32)) return;
     const cv = $('minimap'), dpr = Math.min(2, window.devicePixelRatio || 1), size = Math.round(200 * dpr);
     if (cv.width !== size) { cv.width = size; cv.height = size; }
     this.drawMap(cv, size, { round: true, glitch });
   },
-  bigmap(glitch) { const cv = $('bigmapCanvas'); this.drawMap(cv, cv.width, { labels: true, glitch: glitch * 0.6 }); },
+  bigmap(glitch) { if (!this.due('bmT', 32)) return; const cv = $('bigmapCanvas'); this.drawMap(cv, cv.width, { labels: true, glitch: glitch * 0.6 }); },
 
   // ---------------- inspect panel ----------------
   inspect(info) {
     $('inspectTitle').textContent = info.title; $('inspectText').innerHTML = info.text;
     const box = $('inspectImg'); box.innerHTML = '';
-    if (info.img) { const c = makeCanvas(info.img.width, info.img.height); c.getContext('2d').drawImage(info.img, 0, 0); box.appendChild(c); }
+    if (info.img) { const c = this.inspCv || (this.inspCv = makeCanvas(1, 1)); if (c.width !== info.img.width || c.height !== info.img.height) { c.width = info.img.width; c.height = info.img.height; } const cg = c.getContext('2d'); cg.clearRect(0, 0, c.width, c.height); cg.drawImage(info.img, 0, 0); box.appendChild(c); }
     else if (info.emoji) { const e = document.createElement('div'); e.className = 'emoji'; e.textContent = info.emoji; box.appendChild(e); }
     $('inspect').classList.add('on');
   },

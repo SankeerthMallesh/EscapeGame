@@ -49,7 +49,7 @@ const Game = {
     vol('optVol', 'optVol2'); vol('optVol2', 'optVol');
     const sens = (id, other) => { const el = $(id); el.value = CFG.sens; el.addEventListener('input', () => { CFG.sens = Number(el.value); $(other).value = el.value; saveSettings(); }); };
     sens('optSens', 'optSens2'); sens('optSens2', 'optSens');
-    $('optName').value = CFG.name || ''; $('optName').addEventListener('change', (e) => { CFG.name = cleanName(e.target.value); e.target.value = CFG.name; saveSettings(); });
+    $('optName').value = CFG.name || ''; $('optName').addEventListener('change', (e) => { CFG.name = cleanName(e.target.value); e.target.value = CFG.name; saveSettings(); this.titleCard(); });
     $('optBlur').checked = CFG.motionBlur !== false; $('optBlur').addEventListener('change', (e) => { CFG.motionBlur = e.target.checked; saveSettings(); });
     $('optInvert').checked = CFG.invert; $('optInvert').addEventListener('change', (e) => { CFG.invert = e.target.checked; saveSettings(); });
     this.diffNote();
@@ -61,6 +61,8 @@ const Game = {
     }));
     $('btnPlay').addEventListener('click', () => this.play());
     $('btnHouse').addEventListener('click', () => this.playHouse());
+    $('tFeature').addEventListener('click', () => this.playHouse());
+    this.titleCard();
     $('btnSkip').addEventListener('click', (e) => { e.stopPropagation(); SFX.uiClick(); this.startGame(); });
     $('story').addEventListener('click', () => { if (this.state === 'story') Story.advance(); });
     $('btnResume').addEventListener('click', () => this.resume());
@@ -81,13 +83,56 @@ const Game = {
   },
 
   // ---------------- title ----------------
+  // the card in the top corner: your name, your title, your color
+  titleCard() {
+    const n = CFG.name || 'Player', vip = Perks.has('vip'), adm = Perks.has('admin'), got = Perks.list().length;
+    $('tName').textContent = n; $('tAv').textContent = n.trim().charAt(0).toUpperCase() || 'P';
+    $('tTitle').textContent = vip ? '👑 VIP Joury' : adm ? 'Admin' : got >= 3 ? 'Veteran' : got ? 'Survivor' : 'New survivor';
+    $('tProfile').classList.toggle('vip', vip);
+    this.featArt();
+  },
+  // the picture on the Story 2 card: Joury's house at night, one window lit, drawn once
+  featArt() {
+    const cv = $('tFeatArt'); if (!cv || cv.dataset.done) return; cv.dataset.done = '1';
+    const g = cv.getContext('2d'), W = cv.width, H = cv.height;
+    const sky = g.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, '#0b1018'); sky.addColorStop(0.6, '#1a1714'); sky.addColorStop(1, '#0a0806'); g.fillStyle = sky; g.fillRect(0, 0, W, H);
+    // moon and its haze
+    const mx = W * 0.8, my = H * 0.24, mg = g.createRadialGradient(mx, my, 4, mx, my, 120); mg.addColorStop(0, 'rgba(230,226,210,.5)'); mg.addColorStop(0.2, 'rgba(200,200,190,.12)'); mg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = mg; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#e6e1d0'; g.beginPath(); g.arc(mx, my, 17, 0, TAU); g.fill(); g.fillStyle = 'rgba(11,16,24,.9)'; g.beginPath(); g.arc(mx + 7, my - 3, 15, 0, TAU); g.fill();
+    withSeed(77, () => { for (let i = 0; i < 60; i++) { g.fillStyle = `rgba(230,230,220,${Math.random() * 0.5})`; g.fillRect(Math.random() * W, Math.random() * H * 0.5, 1, 1); } });
+    // far trees
+    withSeed(12, () => { g.fillStyle = '#0d0f0f'; for (let x = -10; x < W + 10; x += 14) { const h = 50 + Math.random() * 40; g.beginPath(); g.moveTo(x - 12, H - 40); g.lineTo(x, H - 40 - h); g.lineTo(x + 12, H - 40); g.fill(); } });
+    // the house
+    const hx = W * 0.28, hy = H - 46, hw = 210, hh = 92;
+    g.fillStyle = '#171310'; g.fillRect(hx, hy - hh, hw, hh);
+    g.fillStyle = '#100d0b'; g.beginPath(); g.moveTo(hx - 16, hy - hh); g.lineTo(hx + hw / 2, hy - hh - 62); g.lineTo(hx + hw + 16, hy - hh); g.fill();
+    g.fillRect(hx + hw - 50, hy - hh - 70, 16, 40); // chimney
+    const win = (x, y, w, h, lit) => {
+      if (lit) { const gl = g.createRadialGradient(x + w / 2, y + h / 2, 2, x + w / 2, y + h / 2, 70); gl.addColorStop(0, 'rgba(255,170,70,.35)'); gl.addColorStop(1, 'rgba(255,120,40,0)'); g.fillStyle = gl; g.fillRect(x - 70, y - 70, w + 140, h + 140); }
+      g.fillStyle = lit ? '#ffb45a' : '#0a0b0d'; g.fillRect(x, y, w, h); g.fillStyle = '#171310'; g.fillRect(x + w / 2 - 1.5, y, 3, h); g.fillRect(x, y + h / 2 - 1.5, w, 3);
+    };
+    win(hx + 22, hy - hh + 20, 34, 30, false); win(hx + hw - 56, hy - hh + 20, 34, 30, true); win(hx + hw / 2 - 12, hy - hh - 36, 24, 22, false);
+    // a small figure in the lit window (Gabe)
+    g.fillStyle = 'rgba(30,18,10,.85)'; g.beginPath(); g.arc(hx + hw - 39, hy - hh + 36, 5, 0, TAU); g.fill(); g.fillRect(hx + hw - 44, hy - hh + 40, 10, 10);
+    g.fillStyle = '#0c0a08'; g.fillRect(hx + hw / 2 - 14, hy - 44, 28, 44); // door
+    // boards nailed over the lower window
+    g.strokeStyle = '#3a2a1c'; g.lineWidth = 5; g.beginPath(); g.moveTo(hx + 18, hy - hh + 22); g.lineTo(hx + 60, hy - hh + 48); g.moveTo(hx + 18, hy - hh + 46); g.lineTo(hx + 60, hy - hh + 26); g.stroke();
+    // a tall figure at the side of the house with two red eyes
+    const fx = hx + hw + 46, fy = hy; g.fillStyle = '#050505'; g.beginPath(); g.ellipse(fx, fy - 70, 10, 12, 0, 0, TAU); g.fill(); g.fillRect(fx - 12, fy - 60, 24, 60);
+    g.fillStyle = '#ff2020'; g.shadowColor = '#ff0000'; g.shadowBlur = 8; g.fillRect(fx - 5, fy - 72, 3, 2); g.fillRect(fx + 2, fy - 72, 3, 2); g.shadowBlur = 0;
+    // ground and fence
+    g.fillStyle = '#080706'; g.fillRect(0, hy, W, H - hy);
+    g.fillStyle = '#0e0c0a'; for (let x = 8; x < W; x += 18) g.fillRect(x, hy - 22, 6, 26); g.fillRect(0, hy - 16, W, 4);
+    // fog
+    const fg = g.createLinearGradient(0, hy - 40, 0, H); fg.addColorStop(0, 'rgba(120,120,130,0)'); fg.addColorStop(0.5, 'rgba(120,120,130,.12)'); fg.addColorStop(1, 'rgba(0,0,0,.6)'); g.fillStyle = fg; g.fillRect(0, hy - 40, W, H);
+  },
   toTitle(keepRoom) {
     if (!keepRoom) Net.leave();
     Admin.close(); Phonk.setVol(0); this.houseEndShown = false; if ($('hideOverlay')) $('hideOverlay').classList.remove('on'); this.state = 'title'; Input.exitLock(); this.menuOpen = false; Chat.stopTyping(); Lobby.isOpen = false; document.body.classList.remove('mp');
     ['loading', 'hud', 'story', 'bigmap', 'inspect', 'keypad', 'pause', 'caught', 'timeout', 'ending', 'lobby'].forEach((s) => this.screen(s, false));
     $('crash').className = 'screen';
     $('story').classList.remove('bare');
-    this.screen('title', true); this.syncDiff && this.syncDiff(); this.diffNote();
+    this.screen('title', true); this.syncDiff && this.syncDiff(); this.diffNote(); this.titleCard();
     $('soundHint').style.visibility = SFX.ctx ? 'hidden' : 'visible';
     World.scene.fog.density = D().fog; this.setRage(0);
     World.reset(); Joury.reset(); Player.attach(World.cam, World, this.worldFlash); Player.place(0, World.dock.start.z, 0); Player.lightOn = false;
@@ -252,7 +297,12 @@ const Game = {
     const k = e.code, s = this.state;
     if (k === 'F8') { e.preventDefault(); Admin.toggle(); return; }
     if (Admin.open) { if (k === 'Escape') Admin.close(); return; }
-    if (s === 'title' && (k === 'Enter') && !Lobby.isOpen && !$('netlost').classList.contains('on')) { this.play(); return; }
+    if (s === 'title' && !Lobby.isOpen && !$('netlost').classList.contains('on')) {
+      // arrow keys move through the menu; Enter picks what is chosen (or starts the story when nothing is)
+      const items = [...document.querySelectorAll('#title .menu-item')], at = items.indexOf(document.activeElement);
+      if (k === 'ArrowDown' || k === 'ArrowUp') { e.preventDefault(); const n = items.length, i = at < 0 ? (k === 'ArrowDown' ? 0 : n - 1) : (at + (k === 'ArrowDown' ? 1 : n - 1)) % n; items[i].focus(); SFX.ctx && SFX.tick && SFX.tick(); return; }
+      if (k === 'Enter') { if (at >= 0 || document.activeElement === $('tFeature')) return; this.play(); return; }
+    }
     if (this.menuOpen) { if (k === 'Escape') this.resume(); return; }
     if (s === 'story') { if (k === 'Space' || k === 'Enter') Story.advance(); if (k === 'Escape') this.startGame(); return; }
     if (s === 'house' && House.caughtT >= 0) return;
@@ -542,7 +592,9 @@ const Game = {
     fx.flash = Math.max(0, fx.flash - dt * 2.5);
     switch (this.state) {
       case 'title': {
-        this.t += dt; fx.fade = Math.max(0, fx.fade - dt * 0.6); fx.static = 0.02 + (Math.random() < 0.01 ? 0.4 : 0); fx.vignette = 1; fx.grain = 0.07; fx.red = 0; fx.warm = 0; fx.exposure = 2.8; fx.auto = 0;
+        this.t += dt; fx.fade = Math.max(0, fx.fade - dt * 0.6); fx.static = 0.02 + (Math.random() < 0.01 ? 0.4 : 0); fx.vignette = 1; fx.grain = 0.07; fx.red = 0; fx.warm = 0; fx.exposure = 3.2; fx.auto = 0;
+        // now and then lightning lights up the dock, and Joury standing on it
+        this.titleBolt = (this.titleBolt === undefined ? 4 : this.titleBolt) - dt; if (this.titleBolt <= 0) { this.titleBolt = rand(7, 13); Weather.strike(false); }
         FogU.uMistAmt.value = 0.8;
         const sz = World.shoreZ, cam = World.cam, a = this.t * 0.05, dk = World.dock;
         cam.position.set(-6.5 + Math.sin(a) * 1.5, 2.1 + Math.sin(this.t * 0.4) * 0.1, dk.z1 + 7.5 + Math.cos(a) * 1.0); cam.lookAt(-11, 3.4, sz - 24);

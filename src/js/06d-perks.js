@@ -63,6 +63,7 @@ const Perks = {
     const got = this.list();
     $('perkList').innerHTML = got.length ? got.map((c) => `<div class="perk"><span class="pi">${c.icon}</span><div><b>${esc(c.title)}</b><small>${esc(c.text)}</small></div></div>`).join('') : '<div class="perk none">No rewards yet. Try a code.</div>';
     $('refUsedNote').textContent = CFG.refUsed ? `You were invited with ${CFG.refUsed}.` : '';
+    if (Game.titleCard && $('tName')) Game.titleCard();
     const n = got.length; $('codesSummary').textContent = n ? `${n} reward${n > 1 ? 's' : ''} unlocked` : 'bonuses & your referral code';
   },
   // Online: are you playing with someone you invited, or who invited you?

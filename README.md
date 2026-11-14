@@ -126,7 +126,7 @@ Everything you see is generated in code when the game loads. There are no image 
 | `vendor/peerjs.min.js` | PeerJS 1.5.4 (MIT license) for online play, packed in the same way. |
 | `vendor/fonts/` | The three fonts the game uses (open licenses, see the README there), embedded by the build. |
 | `build.mjs` | Joins everything into `escape-from-joury.html`. |
-| `tests/` | Automated play-throughs in a headless browser: `flow.cjs` (story → game → rescue → caught → cabin puzzle → escape), `flow2.cjs` (boat parts → ending → Play Again), `flow3.cjs` (caught again → timer runs out → Retry → escape), `house.cjs` (story 2 from start to finish), `admin.cjs` and `admin2.cjs` (every admin button, island and house), `feel.cjs` (hands, jump, aim, slide, compass), `mp.cjs`, `mp2.cjs` and `mp3.cjs` (online: 2–3 players, lobby, sync, chat, caught, door knocking, late joining, leaving), `scares.cjs`, `crash.cjs` and `stare.cjs` (storm, chat, diary pages, pumpkins, stare-to-catch, fake crash). |
+| `tests/` | Automated play-throughs in a headless browser: `flow.cjs` (story → game → rescue → caught → cabin puzzle → escape), `flow2.cjs` (boat parts → ending → Play Again), `flow3.cjs` (caught again → timer runs out → Retry → escape), `house.cjs` (story 2 from start to finish), `admin.cjs` and `admin2.cjs` (every admin button, island and house), `feel.cjs` (hands, jump, aim, slide, compass), `mp.cjs`, `mp2.cjs` and `mp3.cjs` (online: 2–3 players, lobby, sync, chat, caught, door knocking, late joining, leaving), `scares.cjs`, `crash.cjs` and `stare.cjs` (storm, chat, diary pages, pumpkins, stare-to-catch, fake crash), `soak.cjs` (plays 1,000 random games of both stories as fast as it can and reports every error, broken value or stuck screen: `RUNS=1000 node tests/soak.cjs`). |
 
 ## Changing the game
 
@@ -153,3 +153,11 @@ The game is hosted for free with GitHub Pages. `index.html` sends visitors strai
 1. The repository must be public (Settings → General → Danger Zone → Change visibility). Pages on private repositories needs a paid GitHub plan.
 2. Settings → Pages → Build and deployment → Source: **Deploy from a branch**, Branch: **main**, folder **/ (root)** → Save.
 3. After a minute or two the game is live at https://sankeerthmallesh.github.io/EscapeGame/. Every push to `main` updates it.
+
+### Cloudflare Pages (also free)
+
+1. dash.cloudflare.com → **Workers & Pages** → **Create** → **Pages** → **Connect to Git** → pick this repository.
+2. Production branch **main**, framework preset **None**, build command **empty**, build output directory **/**.
+3. **Save and Deploy**. The game is live at `<project>.pages.dev`, and every push to `main` updates it.
+
+No GitHub? **Upload assets** instead and drop in a folder with `escape-from-joury.html` renamed to `index.html`.

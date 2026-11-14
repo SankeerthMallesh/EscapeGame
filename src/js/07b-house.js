@@ -21,7 +21,7 @@ const Phonk = {
     if (!this.out) { this.out = SFX.ctx.createGain(); this.out.gain.value = 0; this.out.connect(SFX.music); this.next = SFX.ctx.currentTime + 0.05; }
     return true;
   },
-  setVol(v) { if (!this.ensure()) return; this.vol = v; this.out.gain.setTargetAtTime(Math.max(0, v), SFX.ctx.currentTime, 0.12); },
+  setVol(v) { if (!this.ensure()) return; v = Math.max(0, v); if (Math.abs(v - this.vol) < 0.004 && !(v === 0 && this.vol !== 0)) return; this.vol = v; this.out.gain.setTargetAtTime(v, SFX.ctx.currentTime, 0.12); },
   stop() { this.setVol(0); },
   cowbell(t, semi, v) {
     const f = 587.33 * Math.pow(2, semi / 12), ctx = SFX.ctx, bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f * 1.8; bp.Q.value = 2.2;

@@ -83,7 +83,7 @@ const SFX = {
   chatPing(kind) { if (!this.ctx) return; const t = this.now; if (kind === 'joury') { this.osc('sine', 220, t, 0.35, 0.08, null, { slide: 160 }); this.osc('square', 440, t, 0.05, 0.03); } else this.osc('sine', kind === 'server' ? 1300 : 900, t, 0.12, 0.04, null, { slide: kind === 'server' ? 1500 : 1100 }); },
   typing() { if (!this.ctx) return; const t = this.now; for (let i = 0; i < 9; i++) this.burst(t + i * 0.13 + Math.random() * 0.05, 0.02, 0.03, 'highpass', 3500, 1); },
   kidCall(pan, vol, sob) {
-    if (!this.ctx) return; const t = this.now, ctx = this.ctx, dest = this.panner(pan);
+    if (!this.ctx || this.full(1.6)) return; const t = this.now, ctx = this.ctx, dest = this.panner(pan);
     const o = ctx.createOscillator(); o.type = 'triangle'; const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 3; f.frequency.value = 1400;
     const base = sob ? 300 : 420; o.frequency.setValueAtTime(base, t);
     const pts = sob ? [380, 300, 360, 280, 330] : [520, 470, 560, 430, 600, 380];
@@ -95,13 +95,24 @@ const SFX = {
     this.burst(t, 1.3, 0.05 * vol, 'bandpass', 3000, 2, dest);
   },
   thunder(vol = 0.7) { if (!this.ctx) return; const t = this.now; this.burst(t, 0.25, vol * 0.6, 'lowpass', 2000, 0.5, null, 1, 0.005); this.burst(t + 0.1, 3.2, vol, 'lowpass', 160, 0.8, null, 0.45, 0.08); this.burst(t + 0.4, 2.4, vol * 0.5, 'lowpass', 90, 0.6, null, 0.35, 0.3); this.osc('sine', 48, t + 0.1, 2.2, vol * 0.4, null, { slide: 30, attack: 0.1 }); },
+  tick() { if (!this.ctx) return; const t = this.now; this.osc('triangle', 1800, t, 0.05, 0.025, null, { slide: 1200 }); },
   snuff() { if (!this.ctx) return; const t = this.now; this.burst(t, 0.35, 0.08, 'bandpass', 900, 1.5, null, 1, 0.01); },
   pageTurn() { if (!this.ctx) return; const t = this.now; this.burst(t, 0.18, 0.12, 'highpass', 2500, 0.7); this.burst(t + 0.12, 0.12, 0.08, 'bandpass', 4000, 2); },
-  setLoop(name, v, tc = 0.3) { if (!this.ctx) return; const g = this.loops[name]; if (g) g.gain.setTargetAtTime(Math.max(0, v), this.ctx.currentTime, tc); },
+  // only tell the audio system when a loop's volume actually changes (calling this every frame piles up volume events)
+  setLoop(name, v, tc = 0.3) { if (!this.ctx) return; const g = this.loops[name]; if (!g) return; v = Math.max(0, v); const last = g._v === undefined ? -1 : g._v; if (Math.abs(v - last) < 0.004 && !(v === 0 && last !== 0)) return; g._v = v; g.gain.setTargetAtTime(v, this.ctx.currentTime, tc); },
   allLoopsOff(tc = 0.4) { ['wind', 'rumble', 'drone', 'static', 'water', 'fire', 'engine', 'rain'].forEach((n) => this.setLoop(n, 0, tc)); },
 
   // ---- building blocks ----
+  // a limit on how many one-shot sounds can ring at once, so a busy moment never piles up hundreds of voices
+  voiceEnds: [], MAX_VOICES: 40,
+  full(dur = 0.5) {
+    const now = this.ctx.currentTime, v = this.voiceEnds; let n = 0;
+    for (let i = 0; i < v.length; i++) if (v[i] > now) v[n++] = v[i]; v.length = n;
+    if (n >= this.MAX_VOICES) return true; v.push(now + dur + 0.1); return false;
+  },
+  mute: { frequency: { setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {}, setTargetAtTime() {} }, connect() {}, start() {}, stop() {} },
   osc(type, f, t, dur, vol, dest, o = {}) {
+    if (this.full(t - this.ctx.currentTime + dur)) return this.mute;
     const ctx = this.ctx, osc = ctx.createOscillator(); osc.type = type; osc.frequency.setValueAtTime(f, t);
     if (o.detune) osc.detune.value = o.detune;
     if (o.slide) osc.frequency.exponentialRampToValueAtTime(o.slide, t + (o.slideT || dur));
@@ -111,6 +122,7 @@ const SFX = {
     return osc;
   },
   burst(t, dur, vol, type, freq, q, dest, rate = 1, attack = 0.002) {
+    if (this.full(t - this.ctx.currentTime + dur)) return this.mute;
     const ctx = this.ctx, s = this.noiseSrc(false); s.playbackRate.value = rate;
     const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
     const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(vol, 0.0002), t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
@@ -143,7 +155,7 @@ const SFX = {
   owl() { if (!this.ctx) return; const t = this.now, d = this.panner(rand(-0.8, 0.8)); [0, 0.45, 0.75].forEach((o, i) => this.osc('sine', i === 1 ? 360 : 390, t + o, 0.35, 0.05, d, { slide: 340, attack: 0.06 })); },
   twig(pan = 0, vol = 0.25) { if (!this.ctx) return; const t = this.now, d = this.panner(pan); this.burst(t, 0.05, vol, 'highpass', 1800, 0.8, d); this.burst(t + 0.04, 0.08, vol * 0.7, 'bandpass', 1200, 2, d); },
   whoosh(pan = 0) { if (!this.ctx) return; const t = this.now, d = this.panner(pan); const f = this.burst(t, 0.9, 0.18, 'bandpass', 300, 2, d, 1, 0.3); f.frequency.exponentialRampToValueAtTime(2200, t + 0.45); f.frequency.exponentialRampToValueAtTime(250, t + 0.9); },
-  creak() { if (!this.ctx) return; const t = this.now, ctx = this.ctx; const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(70, t); o.frequency.linearRampToValueAtTime(110, t + 0.6); o.frequency.linearRampToValueAtTime(80, t + 1.2); const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 12; const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.1); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.3); o.connect(bp); bp.connect(g); g.connect(this.sfx); o.start(t); o.stop(t + 1.4); },
+  creak() { if (!this.ctx || this.full(1)) return; const t = this.now, ctx = this.ctx; const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(70, t); o.frequency.linearRampToValueAtTime(110, t + 0.6); o.frequency.linearRampToValueAtTime(80, t + 1.2); const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 12; const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.1); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.3); o.connect(bp); bp.connect(g); g.connect(this.sfx); o.start(t); o.stop(t + 1.4); },
   knock() { if (!this.ctx) return; const t = this.now; this.osc('sine', 190, t, 0.12, 0.35, null, { slide: 90 }); this.burst(t, 0.06, 0.2, 'bandpass', 1400, 1); },
   slam(vol = 0.5) { if (!this.ctx) return; const t = this.now; this.osc('sine', 80, t, 0.5, vol, null, { slide: 35 }); this.burst(t, 0.4, vol * 0.7, 'lowpass', 900, 0.8); },
   splash() { if (!this.ctx) return; const t = this.now; this.burst(t, 0.9, 0.35, 'lowpass', 900, 0.7, null, 0.8, 0.02); this.burst(t + 0.05, 0.5, 0.15, 'highpass', 2500, 0.5); },

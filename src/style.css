@@ -485,3 +485,31 @@ input[type=range]{accent-color:#b3141c}
 .load-title{font-size:clamp(22px,3.2vw,34px);letter-spacing:.22em;white-space:nowrap}
 #timeout .btn,#netlost .btn{border-color:rgba(179,20,28,.85);color:#fff;background:linear-gradient(rgba(130,10,18,.45),rgba(60,4,8,.45));padding:10px 34px}
 #timeout .btn:hover,#netlost .btn:hover{background:rgba(160,14,24,.6);border-color:#e04048}
+
+/* ---------- v7 title: profile card, featured story card, key hints ---------- */
+#title .t-profile{position:absolute;top:clamp(16px,4vh,34px);right:clamp(16px,4vw,48px);display:flex;align-items:center;gap:12px;padding:8px 18px 8px 8px;background:linear-gradient(90deg,rgba(14,12,11,.82),rgba(14,12,11,.55));border:1px solid rgba(233,226,212,.12);border-radius:40px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 10px 30px rgba(0,0,0,.45)}
+#title .t-av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-size:22px;color:#fff;background:radial-gradient(circle at 35% 30%,#d33a2c,#6d0b10 70%);box-shadow:0 0 0 2px rgba(233,226,212,.18),0 0 18px rgba(200,20,30,.35)}
+#title .t-profile.vip .t-av{background:radial-gradient(circle at 35% 30%,#f5d27a,#9a6a18 70%);color:#2a1a02;box-shadow:0 0 0 2px rgba(245,210,122,.5),0 0 22px rgba(245,190,80,.45)}
+#title .t-who{display:flex;flex-direction:column;line-height:1.15}
+#title .t-who b{font-family:var(--ui);font-weight:600;font-size:15px;color:#f1ebdf;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#title .t-who small{font-family:var(--ui);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#a99d86}
+#title .t-profile.vip .t-who small{color:#f0c86a}
+#title .t-feature{position:absolute;right:clamp(16px,4vw,48px);bottom:clamp(54px,9vh,90px);width:min(340px,30vw);padding:0;text-align:left;cursor:pointer;background:rgba(12,10,9,.78);border:1px solid rgba(233,226,212,.14);border-radius:6px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.6);transition:transform .25s,border-color .25s,box-shadow .25s}
+#title .t-feature:hover,#title .t-feature:focus-visible{transform:translateY(-4px);border-color:rgba(224,64,72,.7);box-shadow:0 22px 60px rgba(0,0,0,.7),0 0 0 1px rgba(224,64,72,.35),0 0 40px rgba(180,10,20,.25);outline:none}
+#title .t-feature canvas{display:block;width:100%;height:auto;aspect-ratio:560/250;filter:saturate(1.05);transition:filter .3s}
+#title .t-feature:hover canvas{filter:saturate(1.2) brightness(1.12)}
+#title .t-feat-body{padding:14px 18px 16px;border-top:1px solid rgba(233,226,212,.08)}
+#title .t-feat-tag{display:inline-block;font-family:var(--ui);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#fff;background:#b3141c;padding:3px 8px;border-radius:2px;margin-bottom:8px}
+#title .t-feat-title{font-family:var(--display);font-size:26px;letter-spacing:.04em;color:#f4c58a;line-height:1.05}
+#title .t-feat-text{font-family:var(--ui);font-size:12.5px;line-height:1.5;color:#a8a092;margin-top:6px}
+#title .t-feat-go{margin-top:10px;font-family:var(--ui);font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:#e9e2d4}
+#title .t-feat-go span{display:inline-block;transition:transform .2s;color:#e04048}
+#title .t-feature:hover .t-feat-go span{transform:translateX(5px)}
+#title .t-keys{position:absolute;right:clamp(16px,4vw,48px);bottom:clamp(14px,3vh,30px);display:flex;gap:18px;font-family:var(--ui);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#6f685d}
+#title kbd{display:inline-block;min-width:20px;padding:2px 6px;margin-right:4px;border:1px solid rgba(233,226,212,.22);border-bottom-width:2px;border-radius:3px;font-family:var(--ui);font-size:10.5px;color:#cfc6b6;text-align:center;background:rgba(255,255,255,.03)}
+#title .menu-item:focus-visible span{color:#fff;text-shadow:0 0 18px rgba(220,30,40,.45)}
+.logo-main{filter:drop-shadow(0 0 26px rgba(170,0,10,.35)) drop-shadow(0 6px 0 rgba(0,0,0,.6))}
+@keyframes tIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (max-width:900px),(max-height:560px){#title .t-feature,#title .t-keys{display:none}}
+@media (max-width:620px){#title .t-profile{top:10px;right:10px;padding:5px 12px 5px 5px}#title .t-av{width:32px;height:32px;font-size:18px}}
+@media (prefers-reduced-motion:reduce){#title .t-profile,#title .t-feature,#title .t-keys{animation:none}#title .t-feature{transition:none}}
