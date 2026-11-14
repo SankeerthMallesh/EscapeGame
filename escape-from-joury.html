@@ -460,6 +460,44 @@ input[type=range]{accent-color:#b3141c}
 .adm-btn.win{border-color:rgba(232,196,106,.6);color:#ffd86a}
 .adm-btn:disabled{opacity:.35;cursor:not-allowed}
 
+/* ---------- v6: every screen in the same style as the main menu ---------- */
+.panel{background:linear-gradient(180deg,#141010 0%,#0b0909 100%);border:1px solid rgba(233,226,212,.1);border-top:2px solid #8e1018;border-radius:4px;box-shadow:0 30px 80px rgba(0,0,0,.75),0 0 0 1px rgba(0,0,0,.6);padding:26px clamp(18px,3vw,34px)}
+.panel-title{font-size:clamp(28px,4vw,40px);letter-spacing:.14em;color:#efe6d4;text-shadow:0 0 24px rgba(160,10,18,.35)}
+.panel-title.red{color:#ff3b40;text-shadow:0 0 26px rgba(255,20,30,.55)}
+.panel-text{font-size:14.5px;color:#b8b0a2;max-width:440px}
+#pause{background:radial-gradient(ellipse at 50% 40%,rgba(30,8,10,.55),rgba(2,1,1,.86) 70%)}
+.pause-panel{width:min(460px,92vw);align-items:stretch;gap:14px}
+.pause-panel .panel-title{text-align:center}
+.pause-panel #pauseNote{align-self:center;text-align:center}
+.pause-opts{display:flex;flex-direction:column;gap:2px;padding:10px 14px;background:rgba(0,0,0,.35);border:1px solid rgba(233,226,212,.08);border-radius:3px}
+.pause-opts .opt-row{margin:5px 0}
+.menu-item.quit span{font-size:clamp(18px,2.6vh,22px);color:#b8b0a2}
+.menu-item.quit:hover span{color:#ff8a7a}
+#caught{background:radial-gradient(ellipse at center,#1a0306 0%,#000 70%)}
+.caught-text{color:#e0242c;text-shadow:0 0 40px rgba(255,0,10,.6),0 4px 0 #2a0000}
+.caught-sub{font-family:var(--display);font-size:clamp(18px,2.6vw,24px);letter-spacing:.08em;color:#b8b0a2}
+#timeout .panel,#netlost .panel,#fatal .panel{border-top-color:#c0141d;align-items:center;text-align:center}
+#ending .panel{background:linear-gradient(180deg,rgba(26,16,10,.92),rgba(10,7,5,.95));border-top-color:#c9a46a}
+.end-lines .big{color:#ffd27a}
+.inspect-card{border:1px solid rgba(201,164,106,.25);border-top:2px solid #c9a46a;border-radius:4px}
+#inspectTitle{font-size:26px;letter-spacing:.08em}
+#inspectText{font-family:var(--ui);font-size:15.5px;line-height:1.6}
+/* loading screen */
+#loading{background:radial-gradient(ellipse at 50% 60%,#140406 0%,#000 70%)}
+.load-title{font-family:var(--display);font-size:clamp(26px,4vw,40px);letter-spacing:.3em;color:#e9e2d4;margin-bottom:22px}
+.load-title span{color:#e0242c;text-shadow:0 0 20px rgba(255,20,30,.5)}
+.load-bar{height:3px;background:rgba(233,226,212,.08);border:0;border-radius:2px}
+#loadFill{background:linear-gradient(90deg,#5e060b,#e0242c);box-shadow:0 0 12px rgba(224,36,44,.7)}
+#loadText{font-family:var(--ui);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7f786c;margin-top:14px}
+.load-tip{margin-top:26px;font-family:var(--ui);font-size:13.5px;color:#a39b8d;font-style:italic}
+/* HUD polish */
+#objective{font-family:var(--display);font-size:17px;letter-spacing:.05em;padding-left:10px;border-left:2px solid #c9a46a}
+#prompt b{background:#e9e2d4;color:#111;border-radius:3px}
+.pause-opts .opt-label{width:112px}
+.load-title{font-size:clamp(22px,3.2vw,34px);letter-spacing:.22em;white-space:nowrap}
+#timeout .btn,#netlost .btn{border-color:rgba(179,20,28,.85);color:#fff;background:linear-gradient(rgba(130,10,18,.45),rgba(60,4,8,.45));padding:10px 34px}
+#timeout .btn:hover,#netlost .btn:hover{background:rgba(160,14,24,.6);border-color:#e04048}
+
 </style>
 </head>
 <body>
@@ -471,6 +509,7 @@ input[type=range]{accent-color:#b3141c}
     <div class="load-title">ESCAPE FROM <span>JOURY</span></div>
     <div class="load-bar"><div id="loadFill"></div></div>
     <div id="loadText">Carving pumpkins…</div>
+    <div class="load-tip" id="loadTip">Tip: Joury hunts by sound. Crouch (C) to stay quiet.</div>
   </div>
 </div>
 
@@ -653,19 +692,26 @@ input[type=range]{accent-color:#b3141c}
 
 <!-- Pause -->
 <div id="pause" class="screen">
-  <div class="panel">
+  <div class="panel pause-panel">
     <div class="panel-title" id="pauseTitle">PAUSED</div>
     <div class="panel-text" id="pauseNote"></div>
-    <button id="btnResume" class="btn">RESUME</button>
-    <div class="opt-row"><span class="opt-label">Graphics</span>
-      <div class="seg" id="segQual2">
-        <button data-v="low">Low</button><button data-v="medium">Medium</button><button data-v="high">High</button>
+    <nav class="menu" aria-label="Pause menu">
+      <button id="btnResume" class="menu-item"><span>Resume</span><small>Esc</small></button>
+    </nav>
+    <div class="pause-opts">
+      <div class="opt-row"><span class="opt-label">Graphics</span>
+        <div class="seg" id="segQual2">
+          <button data-v="low">Low</button><button data-v="medium">Medium</button><button data-v="high">High</button>
+        </div>
       </div>
+      <div class="opt-row"><span class="opt-label">Volume</span><input type="range" id="optVol2" min="0" max="1" step="0.05"></div>
+      <div class="opt-row"><span class="opt-label">Mouse</span><input type="range" id="optSens2" min="0.3" max="2.5" step="0.05"></div>
+      <div class="opt-row"><span class="opt-label">Invert Y</span><input type="checkbox" id="optInvert"></div>
+      <div class="opt-row"><span class="opt-label">Motion blur</span><input type="checkbox" id="optBlur"></div>
     </div>
-    <div class="opt-row"><span class="opt-label">Volume</span><input type="range" id="optVol2" min="0" max="1" step="0.05"></div>
-    <div class="opt-row"><span class="opt-label">Mouse</span><input type="range" id="optSens2" min="0.3" max="2.5" step="0.05"></div>
-    <div class="opt-row"><span class="opt-label">Invert Y</span><input type="checkbox" id="optInvert"></div>
-    <button id="btnQuit" class="btn ghost">QUIT TO TITLE</button>
+    <nav class="menu" aria-label="Leave">
+      <button id="btnQuit" class="menu-item quit"><span>Quit to title</span><small>progress is lost</small></button>
+    </nav>
   </div>
 </div>
 
@@ -1084,6 +1130,8 @@ void main(){
   // sharpen: brings back the fine detail in bark, planks and faces that the soft render loses
   { vec2 px = 1.0 / uRes; vec3 nb = texture2D(tDiffuse, uv + vec2(px.x, 0.0)).rgb + texture2D(tDiffuse, uv - vec2(px.x, 0.0)).rgb + texture2D(tDiffuse, uv + vec2(0.0, px.y)).rgb + texture2D(tDiffuse, uv - vec2(0.0, px.y)).rgb;
     col = max(col + (col * 4.0 - nb) * uSharp * 0.25, vec3(0.0)); }
+  // guard against over-bright specular highlights overflowing (they showed up as green speckles on wet ground)
+  col = clamp(col, vec3(0.0), vec3(48.0)); if (col.r != col.r || col.g != col.g || col.b != col.b) col = vec3(0.0);
   col += texture2D(tBloom, uv).rgb * uBloom;
   float autoE = clamp(uKey / exp(texture2D(tAdapt, vec2(0.5)).r), uMinE, uMaxE);
   col *= uExposure * mix(1.0, autoE, uAuto);
@@ -1122,7 +1170,7 @@ void main(){ float p = texture2D(tPrev, vec2(0.5)).r, c = texture2D(tCur, vec2(0
 const BLOOM_VS = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
 const BLOOM_DOWN = `uniform sampler2D tSrc; uniform vec2 uTexel; uniform float uThreshold; uniform float uPrefilter; uniform float uExposure; varying vec2 vUv;
 void main(){ vec3 s = texture2D(tSrc, vUv).rgb * 4.0; s += texture2D(tSrc, vUv - uTexel).rgb; s += texture2D(tSrc, vUv + uTexel).rgb; s += texture2D(tSrc, vUv + vec2(uTexel.x, -uTexel.y)).rgb; s += texture2D(tSrc, vUv - vec2(uTexel.x, -uTexel.y)).rgb; s /= 8.0;
-  if (uPrefilter > 0.5) { s *= uExposure; float br = max(s.r, max(s.g, s.b)); s *= smoothstep(uThreshold, uThreshold * 2.5, br); s = min(s, vec3(30.0)); }
+  if (uPrefilter > 0.5) { s *= uExposure; float br = max(s.r, max(s.g, s.b)); s *= smoothstep(uThreshold, uThreshold * 2.5, br); s = min(s, vec3(30.0)); if (s.r != s.r || s.g != s.g || s.b != s.b) s = vec3(0.0); }
   gl_FragColor = vec4(s, 1.0); }`;
 const BLOOM_UP = `uniform sampler2D tSrc; uniform vec2 uTexel; varying vec2 vUv;
 void main(){ vec2 t = uTexel; vec3 s = texture2D(tSrc, vUv + vec2(-t.x * 2.0, 0.0)).rgb + texture2D(tSrc, vUv + vec2(t.x * 2.0, 0.0)).rgb + texture2D(tSrc, vUv + vec2(0.0, t.y * 2.0)).rgb + texture2D(tSrc, vUv + vec2(0.0, -t.y * 2.0)).rgb;
@@ -6519,6 +6567,8 @@ const Game = {
 
   // ---------------- boot ----------------
   boot() {
+    { const tips = ['Joury hunts by sound. Crouch (C) to stay quiet.', "Don't stare at Joury. The static means he's coming.", 'Pumpkins go dark when he walks past them.', 'Right mouse focuses your flashlight into a long beam.', 'Online: bang on the cabin door to buy a friend 15 seconds.', "In Joury's House, the music means he is at his PC.", 'Sprint, then press C to slide.', 'Firecrackers (G) make him go and look at the noise.'];
+      if ($('loadTip')) $('loadTip').textContent = 'Tip: ' + tips[Math.floor(Math.random() * tips.length)]; }
     this.bootT = { start: performance.now() }; const mark = (k) => { this.bootT[k] = Math.round(performance.now() - this.bootT.start); };
     const step = (pct, text, fn) => new Promise((res) => { $('loadFill').style.width = pct + '%'; $('loadText').textContent = text; setTimeout(() => { fn(); mark(text); res(); }, 30); });
     if (!GFX.init()) { this.fatal('Your browser could not start WebGL (3D graphics). Try a recent Chrome, Edge, Firefox or Safari, and make sure hardware acceleration is on.'); return; }
@@ -6559,6 +6609,7 @@ const Game = {
     const sens = (id, other) => { const el = $(id); el.value = CFG.sens; el.addEventListener('input', () => { CFG.sens = Number(el.value); $(other).value = el.value; saveSettings(); }); };
     sens('optSens', 'optSens2'); sens('optSens2', 'optSens');
     $('optName').value = CFG.name || ''; $('optName').addEventListener('change', (e) => { CFG.name = cleanName(e.target.value); e.target.value = CFG.name; saveSettings(); });
+    $('optBlur').checked = CFG.motionBlur !== false; $('optBlur').addEventListener('change', (e) => { CFG.motionBlur = e.target.checked; saveSettings(); });
     $('optInvert').checked = CFG.invert; $('optInvert').addEventListener('change', (e) => { CFG.invert = e.target.checked; saveSettings(); });
     this.diffNote();
     const panels = { btnSettings: 'setPanel', btnHow: 'howPanel', btnCodes: 'codePanel' };

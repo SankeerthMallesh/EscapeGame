@@ -18,6 +18,7 @@
     <div class="load-title">ESCAPE FROM <span>JOURY</span></div>
     <div class="load-bar"><div id="loadFill"></div></div>
     <div id="loadText">Carving pumpkins…</div>
+    <div class="load-tip" id="loadTip">Tip: Joury hunts by sound. Crouch (C) to stay quiet.</div>
   </div>
 </div>
 
@@ -200,19 +201,26 @@
 
 <!-- Pause -->
 <div id="pause" class="screen">
-  <div class="panel">
+  <div class="panel pause-panel">
     <div class="panel-title" id="pauseTitle">PAUSED</div>
     <div class="panel-text" id="pauseNote"></div>
-    <button id="btnResume" class="btn">RESUME</button>
-    <div class="opt-row"><span class="opt-label">Graphics</span>
-      <div class="seg" id="segQual2">
-        <button data-v="low">Low</button><button data-v="medium">Medium</button><button data-v="high">High</button>
+    <nav class="menu" aria-label="Pause menu">
+      <button id="btnResume" class="menu-item"><span>Resume</span><small>Esc</small></button>
+    </nav>
+    <div class="pause-opts">
+      <div class="opt-row"><span class="opt-label">Graphics</span>
+        <div class="seg" id="segQual2">
+          <button data-v="low">Low</button><button data-v="medium">Medium</button><button data-v="high">High</button>
+        </div>
       </div>
+      <div class="opt-row"><span class="opt-label">Volume</span><input type="range" id="optVol2" min="0" max="1" step="0.05"></div>
+      <div class="opt-row"><span class="opt-label">Mouse</span><input type="range" id="optSens2" min="0.3" max="2.5" step="0.05"></div>
+      <div class="opt-row"><span class="opt-label">Invert Y</span><input type="checkbox" id="optInvert"></div>
+      <div class="opt-row"><span class="opt-label">Motion blur</span><input type="checkbox" id="optBlur"></div>
     </div>
-    <div class="opt-row"><span class="opt-label">Volume</span><input type="range" id="optVol2" min="0" max="1" step="0.05"></div>
-    <div class="opt-row"><span class="opt-label">Mouse</span><input type="range" id="optSens2" min="0.3" max="2.5" step="0.05"></div>
-    <div class="opt-row"><span class="opt-label">Invert Y</span><input type="checkbox" id="optInvert"></div>
-    <button id="btnQuit" class="btn ghost">QUIT TO TITLE</button>
+    <nav class="menu" aria-label="Leave">
+      <button id="btnQuit" class="menu-item quit"><span>Quit to title</span><small>progress is lost</small></button>
+    </nav>
   </div>
 </div>
 

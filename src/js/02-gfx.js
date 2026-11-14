@@ -44,6 +44,8 @@ void main(){
   // sharpen: brings back the fine detail in bark, planks and faces that the soft render loses
   { vec2 px = 1.0 / uRes; vec3 nb = texture2D(tDiffuse, uv + vec2(px.x, 0.0)).rgb + texture2D(tDiffuse, uv - vec2(px.x, 0.0)).rgb + texture2D(tDiffuse, uv + vec2(0.0, px.y)).rgb + texture2D(tDiffuse, uv - vec2(0.0, px.y)).rgb;
     col = max(col + (col * 4.0 - nb) * uSharp * 0.25, vec3(0.0)); }
+  // guard against over-bright specular highlights overflowing (they showed up as green speckles on wet ground)
+  col = clamp(col, vec3(0.0), vec3(48.0)); if (col.r != col.r || col.g != col.g || col.b != col.b) col = vec3(0.0);
   col += texture2D(tBloom, uv).rgb * uBloom;
   float autoE = clamp(uKey / exp(texture2D(tAdapt, vec2(0.5)).r), uMinE, uMaxE);
   col *= uExposure * mix(1.0, autoE, uAuto);
@@ -82,7 +84,7 @@ void main(){ float p = texture2D(tPrev, vec2(0.5)).r, c = texture2D(tCur, vec2(0
 const BLOOM_VS = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
 const BLOOM_DOWN = `uniform sampler2D tSrc; uniform vec2 uTexel; uniform float uThreshold; uniform float uPrefilter; uniform float uExposure; varying vec2 vUv;
 void main(){ vec3 s = texture2D(tSrc, vUv).rgb * 4.0; s += texture2D(tSrc, vUv - uTexel).rgb; s += texture2D(tSrc, vUv + uTexel).rgb; s += texture2D(tSrc, vUv + vec2(uTexel.x, -uTexel.y)).rgb; s += texture2D(tSrc, vUv - vec2(uTexel.x, -uTexel.y)).rgb; s /= 8.0;
-  if (uPrefilter > 0.5) { s *= uExposure; float br = max(s.r, max(s.g, s.b)); s *= smoothstep(uThreshold, uThreshold * 2.5, br); s = min(s, vec3(30.0)); }
+  if (uPrefilter > 0.5) { s *= uExposure; float br = max(s.r, max(s.g, s.b)); s *= smoothstep(uThreshold, uThreshold * 2.5, br); s = min(s, vec3(30.0)); if (s.r != s.r || s.g != s.g || s.b != s.b) s = vec3(0.0); }
   gl_FragColor = vec4(s, 1.0); }`;
 const BLOOM_UP = `uniform sampler2D tSrc; uniform vec2 uTexel; varying vec2 vUv;
 void main(){ vec2 t = uTexel; vec3 s = texture2D(tSrc, vUv + vec2(-t.x * 2.0, 0.0)).rgb + texture2D(tSrc, vUv + vec2(t.x * 2.0, 0.0)).rgb + texture2D(tSrc, vUv + vec2(0.0, t.y * 2.0)).rgb + texture2D(tSrc, vUv + vec2(0.0, -t.y * 2.0)).rgb;

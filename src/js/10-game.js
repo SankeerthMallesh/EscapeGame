@@ -8,6 +8,8 @@ const Game = {
 
   // ---------------- boot ----------------
   boot() {
+    { const tips = ['Joury hunts by sound. Crouch (C) to stay quiet.', "Don't stare at Joury. The static means he's coming.", 'Pumpkins go dark when he walks past them.', 'Right mouse focuses your flashlight into a long beam.', 'Online: bang on the cabin door to buy a friend 15 seconds.', "In Joury's House, the music means he is at his PC.", 'Sprint, then press C to slide.', 'Firecrackers (G) make him go and look at the noise.'];
+      if ($('loadTip')) $('loadTip').textContent = 'Tip: ' + tips[Math.floor(Math.random() * tips.length)]; }
     this.bootT = { start: performance.now() }; const mark = (k) => { this.bootT[k] = Math.round(performance.now() - this.bootT.start); };
     const step = (pct, text, fn) => new Promise((res) => { $('loadFill').style.width = pct + '%'; $('loadText').textContent = text; setTimeout(() => { fn(); mark(text); res(); }, 30); });
     if (!GFX.init()) { this.fatal('Your browser could not start WebGL (3D graphics). Try a recent Chrome, Edge, Firefox or Safari, and make sure hardware acceleration is on.'); return; }
@@ -48,6 +50,7 @@ const Game = {
     const sens = (id, other) => { const el = $(id); el.value = CFG.sens; el.addEventListener('input', () => { CFG.sens = Number(el.value); $(other).value = el.value; saveSettings(); }); };
     sens('optSens', 'optSens2'); sens('optSens2', 'optSens');
     $('optName').value = CFG.name || ''; $('optName').addEventListener('change', (e) => { CFG.name = cleanName(e.target.value); e.target.value = CFG.name; saveSettings(); });
+    $('optBlur').checked = CFG.motionBlur !== false; $('optBlur').addEventListener('change', (e) => { CFG.motionBlur = e.target.checked; saveSettings(); });
     $('optInvert').checked = CFG.invert; $('optInvert').addEventListener('change', (e) => { CFG.invert = e.target.checked; saveSettings(); });
     this.diffNote();
     const panels = { btnSettings: 'setPanel', btnHow: 'howPanel', btnCodes: 'codePanel' };
