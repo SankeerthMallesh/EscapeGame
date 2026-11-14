@@ -153,11 +153,3 @@ The game is hosted for free with GitHub Pages. `index.html` sends visitors strai
 1. The repository must be public (Settings → General → Danger Zone → Change visibility). Pages on private repositories needs a paid GitHub plan.
 2. Settings → Pages → Build and deployment → Source: **Deploy from a branch**, Branch: **main**, folder **/ (root)** → Save.
 3. After a minute or two the game is live at https://sankeerthmallesh.github.io/EscapeGame/. Every push to `main` updates it.
-
-### Cloudflare Pages (also free)
-
-1. dash.cloudflare.com → **Workers & Pages** → **Create** → **Pages** → **Connect to Git** → pick this repository.
-2. Production branch **main**, framework preset **None**, build command **empty**, build output directory **/**.
-3. **Save and Deploy**. The game is live at `<project>.pages.dev`, and every push to `main` updates it.
-
-No GitHub? **Upload assets** instead and drop in a folder with `escape-from-joury.html` renamed to `index.html`.
