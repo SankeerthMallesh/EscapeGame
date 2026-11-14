@@ -767,9 +767,9 @@ const DIFFS = {
   nightmare: { name: 'Nightmare', note: 'Thick fog, few batteries, and Joury creeps even while you watch.', startDelay: 15, chaseBase: 3.15, chasePerKid: 0.22, creep: 0.55, stareLimit: 2.6, catchR: 1.75, tpMin: 7, tpMax: 13, tpDist: [9, 14], cabinFirst: 150, cabinStep: 25, cabinMin: 75, drain: 1 / 125, batteries: 9, penalty: 20, fog: 0.043, enrage: 1.5 },
 };
 const QUALITY = {
-  low: { pr: 0.75, ao: false, spotShadow: 512, moonShadow: 0, msaa: 0, bloom: false, pointLights: 1, grassFrac: 0.35, fireflyFrac: 0.4, viewDist: 58, fireShadow: false },
-  medium: { pr: 1.0, ao: true, spotShadow: 1024, moonShadow: 0, msaa: 0, bloom: true, pointLights: 3, grassFrac: 0.7, fireflyFrac: 0.75, viewDist: 70, fireShadow: true },
-  high: { pr: Math.min(window.devicePixelRatio || 1, 1.5), ao: true, spotShadow: 2048, moonShadow: 2048, msaa: 4, bloom: true, pointLights: 4, grassFrac: 1, fireflyFrac: 1, viewDist: 85, fireShadow: true },
+  low: { pr: 0.75, aa: true, ao: false, spotShadow: 512, moonShadow: 0, msaa: 0, bloom: false, pointLights: 1, grassFrac: 0.35, fireflyFrac: 0.4, viewDist: 58, fireShadow: false },
+  medium: { pr: 1.0, aa: true, ao: true, spotShadow: 1024, moonShadow: 0, msaa: 0, bloom: true, pointLights: 3, grassFrac: 0.7, fireflyFrac: 0.75, viewDist: 70, fireShadow: true },
+  high: { pr: Math.min(window.devicePixelRatio || 1, 1.5), aa: true, ao: true, spotShadow: 2048, moonShadow: 2048, msaa: 4, bloom: true, pointLights: 4, grassFrac: 1, fireflyFrac: 1, viewDist: 85, fireShadow: true },
 };
 const D = () => DIFFS[CFG.difficulty] || DIFFS.normal;
 const Q = () => QUALITY[CFG.quality] || QUALITY.medium;
@@ -1044,7 +1044,22 @@ const SFX = {
 // =====================================================================
 const POST_FS = `
 uniform sampler2D tDiffuse; uniform sampler2D tBloom; uniform sampler2D tAdapt; uniform float uAuto, uKey, uMinE, uMaxE; uniform vec2 uRes; uniform float uTime, uGrain, uStatic, uVignette, uRed, uFade, uFlash, uAberr, uExposure, uWarm, uShake, uBloom, uSat, uLift;
-uniform vec3 uShadowTint, uHighTint; uniform float uSharp;
+uniform vec3 uShadowTint, uHighTint; uniform float uSharp; uniform vec2 uMotion; uniform float uDof, uAA;
+float lumaOf(vec3 c){ c = c / (1.0 + c); return dot(c, vec3(0.299, 0.587, 0.114)); }
+// FXAA-style edge smoothing: find the edge direction from the four neighbours and blend along it
+vec3 fxaa(vec2 uv, vec2 px) {
+  vec3 cM = texture2D(tDiffuse, uv).rgb;
+  vec3 cN = texture2D(tDiffuse, uv + vec2(0.0, px.y)).rgb, cS = texture2D(tDiffuse, uv - vec2(0.0, px.y)).rgb, cE = texture2D(tDiffuse, uv + vec2(px.x, 0.0)).rgb, cW = texture2D(tDiffuse, uv - vec2(px.x, 0.0)).rgb;
+  float lM = lumaOf(cM), lN = lumaOf(cN), lS = lumaOf(cS), lE = lumaOf(cE), lW = lumaOf(cW);
+  float lo = min(lM, min(min(lN, lS), min(lE, lW))), hi = max(lM, max(max(lN, lS), max(lE, lW))), range = hi - lo;
+  if (range < max(0.0312, hi * 0.125)) return cM;
+  vec2 d = vec2(-((lN + lS) - (lE + lW)), (lN + lE) - (lS + lW));
+  float reduce = max((lN + lS + lE + lW) * 0.03125, 0.0078125);
+  d = clamp(d / (min(abs(d.x), abs(d.y)) + reduce), -6.0, 6.0) * px;
+  vec3 a = 0.5 * (texture2D(tDiffuse, uv - d * 0.1667).rgb + texture2D(tDiffuse, uv + d * 0.1667).rgb);
+  vec3 b = a * 0.5 + 0.25 * (texture2D(tDiffuse, uv - d * 0.5).rgb + texture2D(tDiffuse, uv + d * 0.5).rgb);
+  float lb = lumaOf(b); return (lb < lo || lb > hi) ? a : b;
+}
 varying vec2 vUv;
 float h1(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 vec3 aces(vec3 x){ const float a=2.51, b=0.03, c=2.43, d=0.59, e=0.14; return clamp((x*(a*x+b))/(x*(c*x+d)+e), 0.0, 1.0); }
@@ -1058,10 +1073,14 @@ void main(){
   uv.y += sin(t * 31.0) * 0.002 * uShake;
   vec2 dir = uv - 0.5;
   float ab = (uAberr * 0.0022 + uStatic * 0.012) * (0.4 + length(dir));
-  vec3 col;
-  col.r = texture2D(tDiffuse, uv + dir * ab).r;
-  col.g = texture2D(tDiffuse, uv).g;
-  col.b = texture2D(tDiffuse, uv - dir * ab).b;
+  vec2 px0 = 1.0 / uRes;
+  vec3 col = uAA > 0.5 ? fxaa(uv, px0) : texture2D(tDiffuse, uv).rgb;
+  if (ab > 0.0004) { col.r = mix(col.r, texture2D(tDiffuse, uv + dir * ab).r, 0.85); col.b = mix(col.b, texture2D(tDiffuse, uv - dir * ab).b, 0.85); }
+  // camera motion blur when you turn fast
+  float mlen = length(uMotion);
+  if (mlen > 0.0015) { vec3 acc = col; for (int i = 1; i <= 6; i++) { float k = float(i) / 6.0 - 0.5; acc += texture2D(tDiffuse, uv + uMotion * k).rgb; } col = mix(col, acc / 7.0, clamp(mlen * 40.0, 0.0, 0.85)); }
+  // aiming: the edges of the screen go soft, like aiming down sights
+  if (uDof > 0.01) { float e = smoothstep(0.16, 0.55, length(dir * vec2(uRes.x / uRes.y, 1.0))) * uDof; if (e > 0.01) { vec3 acc = vec3(0.0); for (int i = 0; i < 8; i++) { float an = float(i) * 0.7854; acc += texture2D(tDiffuse, uv + vec2(cos(an), sin(an)) * px0 * 5.0 * e).rgb; } col = mix(col, acc / 8.0, min(1.0, e * 1.2)); } }
   // sharpen: brings back the fine detail in bark, planks and faces that the soft render loses
   { vec2 px = 1.0 / uRes; vec3 nb = texture2D(tDiffuse, uv + vec2(px.x, 0.0)).rgb + texture2D(tDiffuse, uv - vec2(px.x, 0.0)).rgb + texture2D(tDiffuse, uv + vec2(0.0, px.y)).rgb + texture2D(tDiffuse, uv - vec2(0.0, px.y)).rgb;
     col = max(col + (col * 4.0 - nb) * uSharp * 0.25, vec3(0.0)); }
@@ -1143,7 +1162,7 @@ void main() {
 
 const GFX = {
   renderer: null, rt: null, postMat: null, postScene: null, postCam: null, w: 1, h: 1, time: 0, cams: [], bloomRTs: [],
-  fx: { grain: 0.06, static: 0, vignette: 1, red: 0, fade: 0, flash: 0, aberr: 0.5, exposure: 1.0, warm: 0, shake: 0, bloom: 0.9, sat: 0.84, lift: 0.004, auto: 0, key: 0.05 },
+  fx: { motionX: 0, motionY: 0, dof: 0, grain: 0.06, static: 0, vignette: 1, red: 0, fade: 0, flash: 0, aberr: 0.5, exposure: 1.0, warm: 0, shake: 0, bloom: 0.9, sat: 0.84, lift: 0.004, auto: 0, key: 0.05 },
   init() {
     const canvas = $('c');
     let r;
@@ -1155,7 +1174,7 @@ const GFX = {
     this.postScene = new THREE.Scene();
     this.postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     this.postMat = new THREE.ShaderMaterial({
-      uniforms: { tDiffuse: { value: null }, tBloom: { value: null }, uRes: { value: new THREE.Vector2(1, 1) }, uTime: { value: 0 }, uGrain: { value: 0 }, uStatic: { value: 0 }, uVignette: { value: 1 }, uRed: { value: 0 }, uFade: { value: 0 }, uFlash: { value: 0 }, uAberr: { value: 0 }, uExposure: { value: 1 }, uWarm: { value: 0 }, uShake: { value: 0 }, uBloom: { value: 0 }, uSat: { value: 0.85 }, uLift: { value: 0.01 }, tAdapt: { value: null }, uAuto: { value: 1 }, uKey: { value: 0.05 }, uMinE: { value: 0.3 }, uMaxE: { value: 1.25 }, uShadowTint: { value: new THREE.Vector3(0.93, 1.0, 1.0) }, uHighTint: { value: new THREE.Vector3(1.1, 1.0, 0.8) }, uSharp: { value: 0.35 } },
+      uniforms: { tDiffuse: { value: null }, tBloom: { value: null }, uRes: { value: new THREE.Vector2(1, 1) }, uTime: { value: 0 }, uGrain: { value: 0 }, uStatic: { value: 0 }, uVignette: { value: 1 }, uRed: { value: 0 }, uFade: { value: 0 }, uFlash: { value: 0 }, uAberr: { value: 0 }, uExposure: { value: 1 }, uWarm: { value: 0 }, uShake: { value: 0 }, uBloom: { value: 0 }, uSat: { value: 0.85 }, uLift: { value: 0.01 }, tAdapt: { value: null }, uAuto: { value: 1 }, uKey: { value: 0.05 }, uMinE: { value: 0.3 }, uMaxE: { value: 1.25 }, uShadowTint: { value: new THREE.Vector3(0.93, 1.0, 1.0) }, uHighTint: { value: new THREE.Vector3(1.1, 1.0, 0.8) }, uSharp: { value: 0.35 }, uMotion: { value: new THREE.Vector2() }, uDof: { value: 0 }, uAA: { value: 1 } },
       vertexShader: BLOOM_VS, fragmentShader: POST_FS, depthTest: false, depthWrite: false,
     });
     this.downMat = new THREE.ShaderMaterial({ uniforms: { tSrc: { value: null }, uTexel: { value: new THREE.Vector2() }, uThreshold: { value: 1.0 }, uPrefilter: { value: 0 }, uExposure: { value: 1 } }, vertexShader: BLOOM_VS, fragmentShader: BLOOM_DOWN, depthTest: false, depthWrite: false });
@@ -1232,6 +1251,7 @@ const GFX = {
     const bloomTex = this.bloom();
     u.tDiffuse.value = this.rt.texture; u.tBloom.value = bloomTex || this.rt.texture; u.uBloom.value = bloomTex ? f.bloom * 0.12 : 0; u.uTime.value = this.time;
     u.uGrain.value = f.grain; u.uStatic.value = f.static; u.uVignette.value = f.vignette; u.uRed.value = f.red; u.uFade.value = f.fade;
+    u.uMotion.value.set(f.motionX || 0, f.motionY || 0); u.uDof.value = f.dof || 0; u.uAA.value = Q().aa === false ? 0 : 1;
     u.uFlash.value = f.flash; u.uAberr.value = f.aberr; u.uExposure.value = f.exposure; u.uWarm.value = f.warm; u.uShake.value = f.shake; u.uSat.value = f.sat; u.uLift.value = f.lift;
     this.pass(this.postMat, null);
   },
@@ -2978,7 +2998,7 @@ const World = {
     // reflection probe of the night sky for the lake
     const envScene = new THREE.Scene(); envScene.add(makeSky({ top: 0x05070d, mid: 0x182436, bot: 0x0a0e15, sunDir: MOON_DIR, sunCol: 0xc8d4f0, sunSize: 0.9996, halo: 1.2, r: 100 }));
     const pm = new THREE.PMREMGenerator(GFX.renderer); this.env = pm.fromScene(envScene, 0, 0.1, 500).texture; pm.dispose();
-    this.scene.environment = this.env; this.scene.environmentIntensity = 0.3;
+    this.scene.environment = this.env; this.scene.environmentIntensity = 0.42;
     this.waterMat = makeWater(0x02060a, this.env, { repeat: 90, rough: 0.07, env: 1.4 });
     const water = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), this.waterMat); water.rotation.x = -Math.PI / 2; water.receiveShadow = true; this.scene.add(water); this.water = water;
     this.hemi = new THREE.HemisphereLight(0x6e7a94, 0x2a2418, 0.45); this.scene.add(this.hemi);
@@ -5145,6 +5165,8 @@ const Cabin = {
     this.flash = makeFlashlight(cam, 0xfff1d6, Math.min(1024, Q().spotShadow), true); this.flash.distance = 14; this.flash.userData.base = 4.5; this.flash.userData.beamK = 0.035;
     this.uv = new THREE.SpotLight(0x8a3cff, 0, 9, 0.36, 0.5, 1.4); this.uv.position.set(0.16, -0.16, 0.05); this.uv.target = this.flash.target; cam.add(this.uv);
     scene.add(new THREE.HemisphereLight(0xb0a0c0, 0x4a3020, 1.1));
+    { const envScene = new THREE.Scene(); envScene.add(makeSky({ top: 0x1a1008, mid: 0x3a2414, bot: 0x140c08, sunDir: new THREE.Vector3(0, 0.6, 0.4).normalize(), sunCol: 0xffb070, sunSize: 0.99, halo: 2.4, r: 100 }));
+      const pm = new THREE.PMREMGenerator(GFX.renderer); scene.environment = pm.fromScene(envScene, 0, 0.1, 500).texture; pm.dispose(); scene.environmentIntensity = 0.3; }
     const b = new Builder(), wall = 0x5a3c26, wall2 = 0x4e3420, floor = 0x4a3220;
     // floor, ceiling, beams
     b.box(7.2, 0.1, 6.2, 0, -0.05, 0, floor, 'wood'); b.box(7.2, 0.1, 6.2, 0, 2.85, 0, 0x2e2016, 'wood');
@@ -5552,6 +5574,9 @@ const House = {
     const cam = this.cam = GFX.camera(70, 0.05, 140); cam.rotation.order = 'YXZ'; scene.add(cam);
     this.flash = makeFlashlight(cam, 0xfff1d6, Math.min(1024, Q().spotShadow), true); this.flash.distance = 26; this.flash.userData.base = 7;
     scene.add(new THREE.HemisphereLight(0x6a7896, 0x2a2018, 0.55));
+    { // reflections: a dim night sky outside, lamp-warm inside
+      const envScene = new THREE.Scene(); envScene.add(makeSky({ top: 0x0a0f1c, mid: 0x2a2a34, bot: 0x2a1c12, sunDir: new THREE.Vector3(-0.4, 0.5, 0.5).normalize(), sunCol: 0xffd8a0, sunSize: 0.995, halo: 2.0, r: 100 }));
+      const pm = new THREE.PMREMGenerator(GFX.renderer); scene.environment = pm.fromScene(envScene, 0, 0.1, 500).texture; pm.dispose(); scene.environmentIntensity = 0.32; }
     const moon = new THREE.DirectionalLight(0x8aa0d0, 0.9); moon.position.set(-20, 30, 20); scene.add(moon);
     const b = new Builder(), siding = 0x4f6a86, trim = 0xe8e2d4, roof = 0x6a3430;
     const smooth = fogify(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.84 }));
@@ -7016,7 +7041,12 @@ const Game = {
     HUD.update(dt); Input.endFrame();
   },
   frame(dt) {
-    const fx = GFX.fx; VM.visible = false; // each state below decides whether your hands are on screen
+    const fx = GFX.fx; VM.visible = false;
+    // motion blur from how fast you turned this frame (in screen units), and the aim blur
+    { const dyaw = Player.yaw - (this.lastYaw === undefined ? Player.yaw : this.lastYaw), dp = Player.pitch - (this.lastPitch === undefined ? Player.pitch : this.lastPitch); this.lastYaw = Player.yaw; this.lastPitch = Player.pitch;
+      const live = this.state === 'play' || this.state === 'house' || this.state === 'cabin', mb = live && CFG.motionBlur !== false ? 0.55 : 0, f = 1 / (2 * Math.tan((Player.fov || 70) * Math.PI / 360));
+      fx.motionX = damp(fx.motionX || 0, clamp(-dyaw * f * mb, -0.05, 0.05), 25, dt); fx.motionY = damp(fx.motionY || 0, clamp(dp * f * mb * 1.6, -0.05, 0.05), 25, dt);
+      fx.dof = live ? Player.aimK * 0.9 : 0; } // each state below decides whether your hands are on screen
     fx.flash = Math.max(0, fx.flash - dt * 2.5);
     switch (this.state) {
       case 'title': {

@@ -24,6 +24,8 @@ const Cabin = {
     this.flash = makeFlashlight(cam, 0xfff1d6, Math.min(1024, Q().spotShadow), true); this.flash.distance = 14; this.flash.userData.base = 4.5; this.flash.userData.beamK = 0.035;
     this.uv = new THREE.SpotLight(0x8a3cff, 0, 9, 0.36, 0.5, 1.4); this.uv.position.set(0.16, -0.16, 0.05); this.uv.target = this.flash.target; cam.add(this.uv);
     scene.add(new THREE.HemisphereLight(0xb0a0c0, 0x4a3020, 1.1));
+    { const envScene = new THREE.Scene(); envScene.add(makeSky({ top: 0x1a1008, mid: 0x3a2414, bot: 0x140c08, sunDir: new THREE.Vector3(0, 0.6, 0.4).normalize(), sunCol: 0xffb070, sunSize: 0.99, halo: 2.4, r: 100 }));
+      const pm = new THREE.PMREMGenerator(GFX.renderer); scene.environment = pm.fromScene(envScene, 0, 0.1, 500).texture; pm.dispose(); scene.environmentIntensity = 0.3; }
     const b = new Builder(), wall = 0x5a3c26, wall2 = 0x4e3420, floor = 0x4a3220;
     // floor, ceiling, beams
     b.box(7.2, 0.1, 6.2, 0, -0.05, 0, floor, 'wood'); b.box(7.2, 0.1, 6.2, 0, 2.85, 0, 0x2e2016, 'wood');

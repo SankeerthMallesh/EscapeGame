@@ -242,7 +242,7 @@ const World = {
     // reflection probe of the night sky for the lake
     const envScene = new THREE.Scene(); envScene.add(makeSky({ top: 0x05070d, mid: 0x182436, bot: 0x0a0e15, sunDir: MOON_DIR, sunCol: 0xc8d4f0, sunSize: 0.9996, halo: 1.2, r: 100 }));
     const pm = new THREE.PMREMGenerator(GFX.renderer); this.env = pm.fromScene(envScene, 0, 0.1, 500).texture; pm.dispose();
-    this.scene.environment = this.env; this.scene.environmentIntensity = 0.3;
+    this.scene.environment = this.env; this.scene.environmentIntensity = 0.42;
     this.waterMat = makeWater(0x02060a, this.env, { repeat: 90, rough: 0.07, env: 1.4 });
     const water = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), this.waterMat); water.rotation.x = -Math.PI / 2; water.receiveShadow = true; this.scene.add(water); this.water = water;
     this.hemi = new THREE.HemisphereLight(0x6e7a94, 0x2a2418, 0.45); this.scene.add(this.hemi);

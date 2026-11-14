@@ -89,6 +89,9 @@ const House = {
     const cam = this.cam = GFX.camera(70, 0.05, 140); cam.rotation.order = 'YXZ'; scene.add(cam);
     this.flash = makeFlashlight(cam, 0xfff1d6, Math.min(1024, Q().spotShadow), true); this.flash.distance = 26; this.flash.userData.base = 7;
     scene.add(new THREE.HemisphereLight(0x6a7896, 0x2a2018, 0.55));
+    { // reflections: a dim night sky outside, lamp-warm inside
+      const envScene = new THREE.Scene(); envScene.add(makeSky({ top: 0x0a0f1c, mid: 0x2a2a34, bot: 0x2a1c12, sunDir: new THREE.Vector3(-0.4, 0.5, 0.5).normalize(), sunCol: 0xffd8a0, sunSize: 0.995, halo: 2.0, r: 100 }));
+      const pm = new THREE.PMREMGenerator(GFX.renderer); scene.environment = pm.fromScene(envScene, 0, 0.1, 500).texture; pm.dispose(); scene.environmentIntensity = 0.32; }
     const moon = new THREE.DirectionalLight(0x8aa0d0, 0.9); moon.position.set(-20, 30, 20); scene.add(moon);
     const b = new Builder(), siding = 0x4f6a86, trim = 0xe8e2d4, roof = 0x6a3430;
     const smooth = fogify(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.84 }));

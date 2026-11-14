@@ -530,7 +530,12 @@ const Game = {
     HUD.update(dt); Input.endFrame();
   },
   frame(dt) {
-    const fx = GFX.fx; VM.visible = false; // each state below decides whether your hands are on screen
+    const fx = GFX.fx; VM.visible = false;
+    // motion blur from how fast you turned this frame (in screen units), and the aim blur
+    { const dyaw = Player.yaw - (this.lastYaw === undefined ? Player.yaw : this.lastYaw), dp = Player.pitch - (this.lastPitch === undefined ? Player.pitch : this.lastPitch); this.lastYaw = Player.yaw; this.lastPitch = Player.pitch;
+      const live = this.state === 'play' || this.state === 'house' || this.state === 'cabin', mb = live && CFG.motionBlur !== false ? 0.55 : 0, f = 1 / (2 * Math.tan((Player.fov || 70) * Math.PI / 360));
+      fx.motionX = damp(fx.motionX || 0, clamp(-dyaw * f * mb, -0.05, 0.05), 25, dt); fx.motionY = damp(fx.motionY || 0, clamp(dp * f * mb * 1.6, -0.05, 0.05), 25, dt);
+      fx.dof = live ? Player.aimK * 0.9 : 0; } // each state below decides whether your hands are on screen
     fx.flash = Math.max(0, fx.flash - dt * 2.5);
     switch (this.state) {
       case 'title': {

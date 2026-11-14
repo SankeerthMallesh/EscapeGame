@@ -4,7 +4,22 @@
 // =====================================================================
 const POST_FS = `
 uniform sampler2D tDiffuse; uniform sampler2D tBloom; uniform sampler2D tAdapt; uniform float uAuto, uKey, uMinE, uMaxE; uniform vec2 uRes; uniform float uTime, uGrain, uStatic, uVignette, uRed, uFade, uFlash, uAberr, uExposure, uWarm, uShake, uBloom, uSat, uLift;
-uniform vec3 uShadowTint, uHighTint; uniform float uSharp;
+uniform vec3 uShadowTint, uHighTint; uniform float uSharp; uniform vec2 uMotion; uniform float uDof, uAA;
+float lumaOf(vec3 c){ c = c / (1.0 + c); return dot(c, vec3(0.299, 0.587, 0.114)); }
+// FXAA-style edge smoothing: find the edge direction from the four neighbours and blend along it
+vec3 fxaa(vec2 uv, vec2 px) {
+  vec3 cM = texture2D(tDiffuse, uv).rgb;
+  vec3 cN = texture2D(tDiffuse, uv + vec2(0.0, px.y)).rgb, cS = texture2D(tDiffuse, uv - vec2(0.0, px.y)).rgb, cE = texture2D(tDiffuse, uv + vec2(px.x, 0.0)).rgb, cW = texture2D(tDiffuse, uv - vec2(px.x, 0.0)).rgb;
+  float lM = lumaOf(cM), lN = lumaOf(cN), lS = lumaOf(cS), lE = lumaOf(cE), lW = lumaOf(cW);
+  float lo = min(lM, min(min(lN, lS), min(lE, lW))), hi = max(lM, max(max(lN, lS), max(lE, lW))), range = hi - lo;
+  if (range < max(0.0312, hi * 0.125)) return cM;
+  vec2 d = vec2(-((lN + lS) - (lE + lW)), (lN + lE) - (lS + lW));
+  float reduce = max((lN + lS + lE + lW) * 0.03125, 0.0078125);
+  d = clamp(d / (min(abs(d.x), abs(d.y)) + reduce), -6.0, 6.0) * px;
+  vec3 a = 0.5 * (texture2D(tDiffuse, uv - d * 0.1667).rgb + texture2D(tDiffuse, uv + d * 0.1667).rgb);
+  vec3 b = a * 0.5 + 0.25 * (texture2D(tDiffuse, uv - d * 0.5).rgb + texture2D(tDiffuse, uv + d * 0.5).rgb);
+  float lb = lumaOf(b); return (lb < lo || lb > hi) ? a : b;
+}
 varying vec2 vUv;
 float h1(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 vec3 aces(vec3 x){ const float a=2.51, b=0.03, c=2.43, d=0.59, e=0.14; return clamp((x*(a*x+b))/(x*(c*x+d)+e), 0.0, 1.0); }
@@ -18,10 +33,14 @@ void main(){
   uv.y += sin(t * 31.0) * 0.002 * uShake;
   vec2 dir = uv - 0.5;
   float ab = (uAberr * 0.0022 + uStatic * 0.012) * (0.4 + length(dir));
-  vec3 col;
-  col.r = texture2D(tDiffuse, uv + dir * ab).r;
-  col.g = texture2D(tDiffuse, uv).g;
-  col.b = texture2D(tDiffuse, uv - dir * ab).b;
+  vec2 px0 = 1.0 / uRes;
+  vec3 col = uAA > 0.5 ? fxaa(uv, px0) : texture2D(tDiffuse, uv).rgb;
+  if (ab > 0.0004) { col.r = mix(col.r, texture2D(tDiffuse, uv + dir * ab).r, 0.85); col.b = mix(col.b, texture2D(tDiffuse, uv - dir * ab).b, 0.85); }
+  // camera motion blur when you turn fast
+  float mlen = length(uMotion);
+  if (mlen > 0.0015) { vec3 acc = col; for (int i = 1; i <= 6; i++) { float k = float(i) / 6.0 - 0.5; acc += texture2D(tDiffuse, uv + uMotion * k).rgb; } col = mix(col, acc / 7.0, clamp(mlen * 40.0, 0.0, 0.85)); }
+  // aiming: the edges of the screen go soft, like aiming down sights
+  if (uDof > 0.01) { float e = smoothstep(0.16, 0.55, length(dir * vec2(uRes.x / uRes.y, 1.0))) * uDof; if (e > 0.01) { vec3 acc = vec3(0.0); for (int i = 0; i < 8; i++) { float an = float(i) * 0.7854; acc += texture2D(tDiffuse, uv + vec2(cos(an), sin(an)) * px0 * 5.0 * e).rgb; } col = mix(col, acc / 8.0, min(1.0, e * 1.2)); } }
   // sharpen: brings back the fine detail in bark, planks and faces that the soft render loses
   { vec2 px = 1.0 / uRes; vec3 nb = texture2D(tDiffuse, uv + vec2(px.x, 0.0)).rgb + texture2D(tDiffuse, uv - vec2(px.x, 0.0)).rgb + texture2D(tDiffuse, uv + vec2(0.0, px.y)).rgb + texture2D(tDiffuse, uv - vec2(0.0, px.y)).rgb;
     col = max(col + (col * 4.0 - nb) * uSharp * 0.25, vec3(0.0)); }
@@ -103,7 +122,7 @@ void main() {
 
 const GFX = {
   renderer: null, rt: null, postMat: null, postScene: null, postCam: null, w: 1, h: 1, time: 0, cams: [], bloomRTs: [],
-  fx: { grain: 0.06, static: 0, vignette: 1, red: 0, fade: 0, flash: 0, aberr: 0.5, exposure: 1.0, warm: 0, shake: 0, bloom: 0.9, sat: 0.84, lift: 0.004, auto: 0, key: 0.05 },
+  fx: { motionX: 0, motionY: 0, dof: 0, grain: 0.06, static: 0, vignette: 1, red: 0, fade: 0, flash: 0, aberr: 0.5, exposure: 1.0, warm: 0, shake: 0, bloom: 0.9, sat: 0.84, lift: 0.004, auto: 0, key: 0.05 },
   init() {
     const canvas = $('c');
     let r;
@@ -115,7 +134,7 @@ const GFX = {
     this.postScene = new THREE.Scene();
     this.postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     this.postMat = new THREE.ShaderMaterial({
-      uniforms: { tDiffuse: { value: null }, tBloom: { value: null }, uRes: { value: new THREE.Vector2(1, 1) }, uTime: { value: 0 }, uGrain: { value: 0 }, uStatic: { value: 0 }, uVignette: { value: 1 }, uRed: { value: 0 }, uFade: { value: 0 }, uFlash: { value: 0 }, uAberr: { value: 0 }, uExposure: { value: 1 }, uWarm: { value: 0 }, uShake: { value: 0 }, uBloom: { value: 0 }, uSat: { value: 0.85 }, uLift: { value: 0.01 }, tAdapt: { value: null }, uAuto: { value: 1 }, uKey: { value: 0.05 }, uMinE: { value: 0.3 }, uMaxE: { value: 1.25 }, uShadowTint: { value: new THREE.Vector3(0.93, 1.0, 1.0) }, uHighTint: { value: new THREE.Vector3(1.1, 1.0, 0.8) }, uSharp: { value: 0.35 } },
+      uniforms: { tDiffuse: { value: null }, tBloom: { value: null }, uRes: { value: new THREE.Vector2(1, 1) }, uTime: { value: 0 }, uGrain: { value: 0 }, uStatic: { value: 0 }, uVignette: { value: 1 }, uRed: { value: 0 }, uFade: { value: 0 }, uFlash: { value: 0 }, uAberr: { value: 0 }, uExposure: { value: 1 }, uWarm: { value: 0 }, uShake: { value: 0 }, uBloom: { value: 0 }, uSat: { value: 0.85 }, uLift: { value: 0.01 }, tAdapt: { value: null }, uAuto: { value: 1 }, uKey: { value: 0.05 }, uMinE: { value: 0.3 }, uMaxE: { value: 1.25 }, uShadowTint: { value: new THREE.Vector3(0.93, 1.0, 1.0) }, uHighTint: { value: new THREE.Vector3(1.1, 1.0, 0.8) }, uSharp: { value: 0.35 }, uMotion: { value: new THREE.Vector2() }, uDof: { value: 0 }, uAA: { value: 1 } },
       vertexShader: BLOOM_VS, fragmentShader: POST_FS, depthTest: false, depthWrite: false,
     });
     this.downMat = new THREE.ShaderMaterial({ uniforms: { tSrc: { value: null }, uTexel: { value: new THREE.Vector2() }, uThreshold: { value: 1.0 }, uPrefilter: { value: 0 }, uExposure: { value: 1 } }, vertexShader: BLOOM_VS, fragmentShader: BLOOM_DOWN, depthTest: false, depthWrite: false });
@@ -192,6 +211,7 @@ const GFX = {
     const bloomTex = this.bloom();
     u.tDiffuse.value = this.rt.texture; u.tBloom.value = bloomTex || this.rt.texture; u.uBloom.value = bloomTex ? f.bloom * 0.12 : 0; u.uTime.value = this.time;
     u.uGrain.value = f.grain; u.uStatic.value = f.static; u.uVignette.value = f.vignette; u.uRed.value = f.red; u.uFade.value = f.fade;
+    u.uMotion.value.set(f.motionX || 0, f.motionY || 0); u.uDof.value = f.dof || 0; u.uAA.value = Q().aa === false ? 0 : 1;
     u.uFlash.value = f.flash; u.uAberr.value = f.aberr; u.uExposure.value = f.exposure; u.uWarm.value = f.warm; u.uShake.value = f.shake; u.uSat.value = f.sat; u.uLift.value = f.lift;
     this.pass(this.postMat, null);
   },
