@@ -61,7 +61,7 @@ const VM = {
     // lens and the light it throws back on your hand
     const on = light === 'on', uv = light === 'uv', kk = k === undefined ? 1 : k;
     this.lensMat.color.setRGB(on ? 3.2 * kk : uv ? 1.2 * kk : 0.06, on ? 3.0 * kk : uv ? 0.4 * kk : 0.06, on ? 2.4 * kk : uv ? 3.0 * kk : 0.07);
-    this.key.color.setHex(uv ? 0x9a5cff : 0xffe2b8); this.key.intensity = (on || uv) ? 0.9 * kk : 0;
+    this.key.color.setHex(uv ? 0x9a5cff : 0xffe2b8); this.key.intensity = (on || uv) ? 0.42 * kk : 0;
   },
   // landing from a jump
   kick() { this.pose.land = 1; },

@@ -136,7 +136,7 @@ const House = {
     [2.75, 4.25].forEach((z) => b.box(0.7, 0.12, 1.2, -6.55, 0.5, z, 0x7a3838, 'smooth')); // cushions
     this.solid(-7.0, -5.95, 2.0, 5.0); this.hit('sofa', -7.0, 0, 2.0, -5.95, 0.9, 5.0);
     b.box(0.5, 0.5, 1.6, -9.5, 0.25, 3.5, 0x2a1e16, 'wood'); b.box(0.12, 0.85, 1.5, -9.5, 0.95, 3.5, 0x0c0c0e, 'plain');
-    const tvScreen = new THREE.Mesh(new THREE.PlaneGeometry(1.36, 0.74), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.22, 0.3, 0.5) })); tvScreen.position.set(-9.43, 0.95, 3.5); tvScreen.rotation.y = Math.PI / 2; scene.add(tvScreen); this.tvScreen = tvScreen;
+    const tvScreen = new THREE.Mesh(new THREE.PlaneGeometry(1.36, 0.74), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.1, 0.14, 0.24) })); tvScreen.position.set(-9.43, 0.95, 3.5); tvScreen.rotation.y = Math.PI / 2; scene.add(tvScreen); this.tvScreen = tvScreen;
     this.solid(-9.8, -9.2, 2.6, 4.4); this.hit('tv', -9.8, 0.4, 2.7, -9.3, 1.4, 4.3);
     for (let i = 0; i < 5; i++) b.box(3.4, 0.02, 0.5, -6.3, 0.012, 1.5 + i * 0.55, i % 2 ? 0x6a2a24 : 0x2a3a5a, 'plain');
     // wardrobe (hiding spot)
@@ -307,7 +307,7 @@ const House = {
     // prying the boards off
     if (this.pryT >= 0) { this.pryT += dt; const k = this.pryT; this.boards.children.forEach((bd, i) => { if (k > 0.3 + i * 0.35) { bd.position.y -= dt * 2.5; bd.rotation.z += dt * (i - 1) * 3; bd.position.z -= dt * 0.6; } }); if (k > 1.7) { this.pryT = -1; this.boards.visible = false; this.s.boardsOff = true; this.doors.back.open = true; HUD.toast('The boards are off. <b>The back door is open.</b>', 3); } }
     // flicker
-    this.tvLight.intensity = 2.2 + Math.sin(this.time * 17) * 0.6 + (Math.random() < 0.05 ? -1.5 : 0); this.tvScreen.material.color.setRGB(0.16 + Math.random() * 0.06, 0.24, 0.45);
+    this.tvLight.intensity = 2.2 + Math.sin(this.time * 17) * 0.6 + (Math.random() < 0.05 ? -1.5 : 0); this.tvScreen.material.color.setRGB(0.08 + Math.random() * 0.04, 0.12, 0.22);
     this.pcLight.color.setHSL(0.9 + Math.sin(this.time * 0.8) * 0.06, 1, 0.55);
     // caught: Joury in your face, then thrown out on the lawn
     if (this.caughtT >= 0) { this.updateCaught(dt); return; }
