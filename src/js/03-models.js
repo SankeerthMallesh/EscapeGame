@@ -354,30 +354,65 @@ function makeBattery() {
 }
 
 // Boat: hull + optional parts (built progressively at the dock)
+// A wooden rowboat with a curved, planked hull. Stern (with the motor) at -z, pointed bow at +z.
+// userData: frame (keel, ribs, rails: always there), hull, oars, engine, fuel (added as you deliver them)
 function makeBoat() {
-  const g = new THREE.Group(), wood = 0x7a5232, dk = 0x4e3420;
-  const fr = new Builder();
-  fr.box(0.14, 0.14, 4.6, 0, 0.06, 0.15, dk, 'wood'); fr.box(1.4, 0.5, 0.1, 0, 0.36, -1.7, dk, 'wood');
-  for (let i = 0; i < 5; i++) { const z = -1.3 + i * 0.75, w = i === 4 ? 0.9 : 1.4; fr.box(w, 0.07, 0.07, 0, 0.12, z, dk, 'wood'); [-1, 1].forEach((s) => fr.box(0.07, 0.6, 0.07, s * w * 0.5, 0.4, z, dk, 'wood', 0, 0, s * 0.18)); }
-  const frame = fr.build(); g.add(frame); g.userData.frame = frame;
-  const hb = new Builder();
-  hb.box(1.3, 0.08, 3.4, 0, 0.1, 0, dk, 'wood');
-  [-1, 1].forEach((s) => { hb.box(0.08, 0.55, 3.3, s * 0.72, 0.36, 0, wood, 'wood', 0, 0, s * 0.18); hb.box(0.08, 0.5, 1.1, s * 0.38, 0.38, 1.95, wood, 'wood', s * 0.62, 0, s * 0.15); });
-  hb.box(1.4, 0.5, 0.08, 0, 0.36, -1.7, wood, 'wood');
-  hb.box(1.4, 0.06, 0.32, 0, 0.45, -0.6, dk, 'wood'); hb.box(1.4, 0.06, 0.32, 0, 0.45, 0.6, dk, 'wood');
-  hb.box(0.12, 0.62, 0.12, 0, 0.42, 2.45, dk, 'wood');
-  const hull = hb.build(); g.add(hull); g.userData.hull = hull;
-  const ob = new Builder();
-  [-1, 1].forEach((s) => { ob.box(0.05, 0.05, 2.2, s * 0.85, 0.62, 0.1, 0x9a6b3e, 'wood', s * 0.08); ob.box(0.18, 0.03, 0.5, s * 0.92, 0.6, -0.95, 0x9a6b3e, 'wood', s * 0.08); });
-  const oars = ob.build(); g.add(oars); g.userData.oars = oars;
-  const eb = new Builder();
-  eb.box(0.4, 0.42, 0.45, 0, 0.75, -1.88, 0x2a2d33, 'metal'); eb.box(0.32, 0.12, 0.38, 0, 1.0, -1.88, 0xc0262b, 'metal');
-  eb.box(0.1, 0.8, 0.12, 0, 0.2, -2.0, 0x3a3d43, 'metal'); eb.box(0.04, 0.3, 0.3, 0, -0.18, -2.04, 0x777777, 'metal');
-  eb.box(0.5, 0.05, 0.05, 0, 0.88, -1.6, 0x111111, 'metal');
-  const engine = eb.build(); g.add(engine); g.userData.engine = engine;
-  const fb = new Builder();
-  fb.box(0.32, 0.4, 0.18, 0.35, 0.36, -1.25, 0xc0262b, 'metal'); fb.box(0.1, 0.06, 0.05, 0.43, 0.6, -1.25, 0x111111, 'metal'); fb.box(0.06, 0.06, 0.06, 0.25, 0.6, -1.25, 0xffd23a, 'metal');
-  const fuel = fb.build(); g.add(fuel); g.userData.fuel = fuel;
+  const g = new THREE.Group(), L0 = -1.75, L1 = 2.45, YB = -0.14;
+  const wAt = (z) => { const t = clamp((z - L0) / (L1 - L0), 0, 1); const f = t < 0.3 ? 0.84 + 0.16 * smoothstep(0, 0.3, t) : 1 - Math.pow((t - 0.3) / 0.7, 2.1); return 0.82 * Math.max(f, 0); };
+  const dAt = (z) => { const t = clamp((z - L0) / (L1 - L0), 0, 1); return 0.6 + 0.24 * Math.pow(t, 3); };
+  const at = (z, th, inset = 0) => { const w = wAt(z) * (1 - inset), d = dAt(z); return new THREE.Vector3(w * Math.sin(th), YB + d * (1 - Math.pow(Math.cos(th), 0.55)) + inset * 0.08, z); };
+  const wood = (c, rep = 2) => pbrMat('planks', { repeat: rep, roughness: 0.75, color: c });
+  const hullMat = wood(0x9a6a42, 2.2), darkMat = wood(0x5a3a22, 1.5), seatMat = wood(0x8a5e3a, 1.2);
+  hullMat.side = THREE.DoubleSide;
+  const add = (parent, m) => { m.castShadow = true; m.receiveShadow = true; parent.add(m); return m; };
+  const tube = (pts, r, mat, seg = 40) => new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), seg, r, 6), mat);
+  // ---- frame: keel with a rising bow stem, ribs, gunwale rails, transom frame ----
+  const frame = new THREE.Group(); g.add(frame); g.userData.frame = frame;
+  { const pts = []; for (let i = 0; i <= 12; i++) { const z = lerp(L0, L1, i / 12); pts.push(new THREE.Vector3(0, YB - 0.03, z)); } pts.push(new THREE.Vector3(0, YB + dAt(L1) * 0.6, L1 + 0.06), new THREE.Vector3(0, YB + dAt(L1) + 0.12, L1 + 0.04)); add(frame, tube(pts, 0.045, darkMat, 60)); }
+  [-1, 1].forEach((sd) => { const pts = []; for (let i = 0; i <= 20; i++) { const z = lerp(L0, L1 - 0.02, i / 20); pts.push(at(z, sd * Math.PI / 2)); } add(frame, tube(pts, 0.042, darkMat, 60)); });
+  for (let k = 0; k < 6; k++) { const z = lerp(L0 + 0.25, L1 - 0.7, k / 5), pts = []; for (let j = 0; j <= 12; j++) pts.push(at(z, lerp(-Math.PI / 2, Math.PI / 2, j / 12), 0.04)); add(frame, tube(pts, 0.026, darkMat, 24)); }
+  { const w = wAt(L0), d = dAt(L0); const tb = add(frame, new THREE.Mesh(new THREE.BoxGeometry(w * 2 + 0.06, 0.08, 0.08), darkMat)); tb.position.set(0, YB + d, L0); }
+  // ---- hull: planked skin, transom, floorboards, bench seats ----
+  const hull = new THREE.Group(); g.add(hull); g.userData.hull = hull;
+  { const N = 36, M = 18, pos = [], uv = [], idx = [];
+    for (let i = 0; i <= N; i++) { const z = lerp(L0, L1, i / N); for (let j = 0; j <= M; j++) { const v = at(z, lerp(-Math.PI / 2, Math.PI / 2, j / M)); pos.push(v.x, v.y, v.z); uv.push(j / M * 1.6, i / N * 3.5); } }
+    for (let i = 0; i < N; i++) for (let j = 0; j < M; j++) { const a = i * (M + 1) + j, b2 = a + M + 1; idx.push(a, b2, a + 1, a + 1, b2, b2 + 1); }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals();
+    add(hull, new THREE.Mesh(geo, hullMat));
+    // transom: fill the stern ring
+    const ring = []; for (let j = 0; j <= M; j++) ring.push(at(L0, lerp(-Math.PI / 2, Math.PI / 2, j / M)));
+    const tp = [0, YB + dAt(L0) * 0.55, L0], tpos = [...tp], tuv = [0.5, 0.5], tidx = [];
+    ring.forEach((v, j) => { tpos.push(v.x, v.y, v.z); tuv.push(0.5 + v.x, (v.y - YB) * 1.2); if (j) tidx.push(0, j, j + 1); });
+    const tg = new THREE.BufferGeometry(); tg.setAttribute('position', new THREE.Float32BufferAttribute(tpos, 3)); tg.setAttribute('uv', new THREE.Float32BufferAttribute(tuv, 2)); tg.setIndex(tidx); tg.computeVertexNormals();
+    add(hull, new THREE.Mesh(tg, hullMat));
+  }
+  { const fb = add(hull, new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.04, 3.2), seatMat)); fb.position.set(0, YB + 0.07, 0.15); }
+  [[-1.15, 0.22], [0.15, 0.2], [1.35, 0.2]].forEach(([z, dz]) => { const w = wAt(z) * 2 - 0.08, y = YB + dAt(z) * 0.66; const seat = add(hull, new THREE.Mesh(new THREE.BoxGeometry(w, 0.05, dz * 1.5), seatMat)); seat.position.set(0, y, z); });
+  // ---- oars resting across the seats, in brass oarlocks ----
+  const oars = new THREE.Group(); g.add(oars); g.userData.oars = oars;
+  const oarMat = wood(0xb07a48, 1), brass = plainMat(0xb08a3a, 0.35, 0.85);
+  [-1, 1].forEach((sd) => {
+    const o = new THREE.Group(); o.position.set(sd * 0.36, YB + dAt(0.15) * 0.66 + 0.05, 0.25); o.rotation.y = sd * 0.06; oars.add(o);
+    const shaft = add(o, new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 2.3, 8), oarMat)); shaft.rotation.x = Math.PI / 2;
+    const blade = add(o, new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.02, 0.55), oarMat)); blade.position.z = 1.35;
+    const grip = add(o, new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.18, 8), darkMat)); grip.rotation.x = Math.PI / 2; grip.position.z = -1.2;
+    const lock = add(oars, new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.012, 6, 12, Math.PI), brass)); const lp = at(0.25, sd * Math.PI / 2); lock.position.set(lp.x, lp.y + 0.06, 0.25); lock.rotation.y = Math.PI / 2;
+  });
+  // ---- outboard motor clamped to the transom ----
+  const engine = new THREE.Group(); g.add(engine); g.userData.engine = engine;
+  { const top = YB + dAt(L0), body = plainMat(0x22252b, 0.4, 0.5), red = plainMat(0xb3141c, 0.35, 0.3), steel = plainMat(0x8a8d93, 0.35, 0.9);
+    const cowl = add(engine, new THREE.Mesh(new THREE.CapsuleGeometry(0.17, 0.18, 6, 12), body)); cowl.scale.set(1, 1, 1.25); cowl.position.set(0, top + 0.3, L0 - 0.16);
+    const cap = add(engine, new THREE.Mesh(new THREE.SphereGeometry(0.175, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), red)); cap.scale.set(1, 0.6, 1.25); cap.position.set(0, top + 0.47, L0 - 0.16);
+    const shaft = add(engine, new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.85, 10), body)); shaft.position.set(0, top - 0.25, L0 - 0.2);
+    const foot = add(engine, new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.2, 4, 8), body)); foot.rotation.x = Math.PI / 2; foot.position.set(0, top - 0.68, L0 - 0.24);
+    for (let k = 0; k < 3; k++) { const bl = add(engine, new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.16, 0.05), steel)); bl.position.set(0, top - 0.68, L0 - 0.4); bl.rotation.z = k * 2.09; }
+    const clamp2 = add(engine, new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.14, 0.1), steel)); clamp2.position.set(0, top - 0.02, L0 - 0.02);
+    const tiller = add(engine, new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.6, 8), body)); tiller.rotation.x = Math.PI / 2 - 0.15; tiller.position.set(0, top + 0.28, L0 + 0.22); }
+  // ---- red fuel can on the floorboards ----
+  const fuel = new THREE.Group(); g.add(fuel); g.userData.fuel = fuel;
+  { const red = plainMat(0xb3141c, 0.4, 0.3); const can = add(fuel, new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.32, 0.3), red)); can.position.set(0.28, YB + 0.25, -1.3);
+    const h = add(fuel, new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.014, 6, 12, Math.PI), red)); h.position.set(0.28, YB + 0.41, -1.32); h.rotation.y = Math.PI / 2;
+    const sp = add(fuel, new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.1, 8), plainMat(0xffd23a, 0.4))); sp.position.set(0.28, YB + 0.44, -1.2); sp.rotation.x = 0.6; }
   return g;
 }
 // Stand-alone pickups for each boat part (same pieces, loose)

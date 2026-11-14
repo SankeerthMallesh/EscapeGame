@@ -387,17 +387,30 @@ const House = {
     const g = this.gabeS, c = this.gabe;
     g.t += dt;
     if (g.follow) {
-      const P = Player.pos, fx = -Math.sin(Player.yaw), fz = -Math.cos(Player.yaw), tx = P.x - fx * 1.4, tz = P.z - fz * 1.4, d = Math.hypot(tx - g.x, tz - g.z);
-      if (d > 14) { g.x = tx; g.z = tz; }
-      else if (d > 0.3) { const sp = Math.min(d * 3, 7.5) * dt, p = { x: g.x + (tx - g.x) / d * sp, z: g.z + (tz - g.z) / d * sp }; this.resolveJ(p); g.x = p.x; g.z = p.z; g.yaw = Math.atan2(tx - g.x, tz - g.z); }
-      c.root.position.set(g.x, 0, g.z); c.root.rotation.y = g.yaw; animateKid(c, g.t, d > 0.5 ? 'walk' : 'idle');
+      // Gabe walks your exact footsteps (a breadcrumb trail), so he goes round every corner and through every door you did
+      const P = Player.pos, tr = g.trail || (g.trail = [{ x: P.x, z: P.z }]), last = tr[tr.length - 1];
+      if (Math.hypot(P.x - last.x, P.z - last.z) > 0.25) { tr.push({ x: P.x, z: P.z }); if (tr.length > 400) tr.shift(); }
+      // the point he wants: about 1.3 m back along your trail
+      let need = 1.3, tx = P.x, tz = P.z;
+      for (let i = tr.length - 1; i > 0; i--) { const a = tr[i], b2 = tr[i - 1], seg = Math.hypot(a.x - b2.x, a.z - b2.z); if (need <= seg) { const k = need / seg; tx = a.x + (b2.x - a.x) * k; tz = a.z + (b2.z - a.z) * k; need = 0; break; } need -= seg; }
+      if (need > 0) { tx = tr[0].x; tz = tr[0].z; }
+      // walk toward the oldest trail point he has not reached yet, so he never cuts a corner through a wall
+      while (tr.length > 2 && Math.hypot(tr[0].x - g.x, tr[0].z - g.z) < 0.5) tr.shift();
+      const nx = tr.length > 2 && Math.hypot(tx - g.x, tz - g.z) > 1.6 ? tr[0] : { x: tx, z: tz };
+      const d = Math.hypot(nx.x - g.x, nx.z - g.z), far = Math.hypot(P.x - g.x, P.z - g.z);
+      if (d > 0.08) { const sp = Math.min(Math.max(far - 1.0, 0) * 2.8 + 2.2, 7.5) * dt, k = Math.min(1, sp / d), q = { x: g.x + (nx.x - g.x) * k, z: g.z + (nx.z - g.z) * k }; g.x = q.x; g.z = q.z; g.yaw = Math.atan2(nx.x - g.x || 0.0001, nx.z - g.z); }
+      // never let him get left behind: if he is far away or not getting closer, he catches up
+      g.stuckT = far > 3.5 && (g.lastFar === undefined || far >= g.lastFar - 0.01) ? (g.stuckT || 0) + dt : 0; g.lastFar = far;
+      if (far > 12 || g.stuckT > 1.5) { const back = tr.length > 6 ? tr[tr.length - 6] : { x: tx, z: tz }; g.x = back.x; g.z = back.z; g.trail = tr.slice(-6); g.stuckT = 0; }
+      c.root.position.set(g.x, 0, g.z); c.root.rotation.y = g.yaw; animateKid(c, g.t, far > 1.6 ? 'walk' : 'idle');
     } else {
+      g.trail = null;
       c.root.position.set(7.7, 0, -5.3); c.root.rotation.y = -Math.PI / 2;
       poseReset(c); c.legL.rotation.x = c.legR.rotation.x = -1.5; c.kneeL.rotation.x = c.kneeR.rotation.x = 1.5; c.root.position.y = 0.6 - c.P.legH * 1.05;
       c.armL.rotation.x = -0.6; c.armR.rotation.x = -0.6; c.head.rotation.y = Math.sin(g.t * 0.7) * 0.4; c.torso.rotation.z = Math.sin(g.t * 30) * 0.01;
     }
-    // escaped!
-    if (g.follow && Player.pos.z > 20.8 && Math.abs(Player.pos.x) < 4 && Game.state === 'house') Game.houseWin();
+    // escaped! (Gabe has to be with you, not still inside)
+    if (g.follow && Player.pos.z > 20.8 && Math.abs(Player.pos.x) < 4 && Math.hypot(Player.pos.x - g.x, Player.pos.z - g.z) < 8 && Game.state === 'house') Game.houseWin();
   },
   catchPlayer() {
     if (this.caughtT >= 0) return;
@@ -462,7 +475,7 @@ const House = {
         s.unlocked = true; this.padlock.visible = false; this.doors.bedroom.open = true; SFX.click(); setTimeout(() => SFX.creak(), 250); this.noise(7, 2, -2.8); return;
       case 'gabe':
         if (s.gabeFree) return;
-        s.gabeFree = true; this.gabeS.follow = true; this.gabeS.x = 7.7; this.gabeS.z = -4.6; SFX.chime(); this.noise(9, 7.7, -5.3);
+        s.gabeFree = true; this.gabeS.follow = true; this.gabeS.x = 7.7; this.gabeS.z = -4.6; this.gabeS.trail = [{ x: 7.7, z: -4.6 }, { x: Player.pos.x, z: Player.pos.z }]; this.gabeS.stuckT = 0; SFX.chime(); this.noise(9, 7.7, -5.3);
         HUD.kidSay('Gabe: “FINALLY. Get me out of here… and never let Vivek play phonk again.”'); HUD.toast('<b>Gabe is free!</b> He follows you. Get out of the house and through the front gate.', 5); return;
       case 'wardrobe': case 'pantry': this.hide(id); return;
       case 'gate': if (!s.gabeFree) info('The front gate', "You could leave. But Gabe is still in there.", '🚧'); return;
