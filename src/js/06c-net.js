@@ -42,6 +42,12 @@ const Net = {
   others() { return [...this.players.values()].filter((p) => !p.local); },
   jouryPlayer() { return [...this.players.values()].find((p) => p.role === 'joury') || null; },
   amJoury() { const m = this.on && this.started && this.me(); return !!m && m.role === 'joury'; },
+  rename(name) {
+    const me = this.me(); if (!me) return;
+    if (me.name !== name) { me.name = name; Lobby.render(); }
+    if (this.isHost) { this.broadcast({ t: 'roster', players: this.roster() }); HUD.roster && HUD.roster(); }
+    else this.send(this.hostConn, { t: 'name', name });
+  },
   setRole(joury) {
     if (this.isHost) { this.hostRole(this.me(), joury); return; }
     this.send(this.hostConn, { t: 'role', joury: !!joury });
@@ -74,7 +80,7 @@ const Net = {
   syncRoster(list) {
     const keep = new Set(list.map((q) => q.id));
     [...this.players.keys()].forEach((id) => { if (!keep.has(id)) this.removePlayer(id); });
-    list.forEach((q) => { const p = this.players.get(q.id) || this.addPlayer(q.id, cleanName(q.name), q.ci | 0); p.kids = q.kids | 0; p.caught = q.caught | 0; p.role = q.role === 'joury' ? 'joury' : 'survivor'; p.ref = String(q.ref || ''); p.used = String(q.used || ''); p.vip = !!q.vip; });
+    list.forEach((q) => { const p = this.players.get(q.id) || this.addPlayer(q.id, cleanName(q.name), q.ci | 0); if (!p.local && p.name !== cleanName(q.name)) { p.name = cleanName(q.name); this.disposeAvatar(p); } p.kids = q.kids | 0; p.caught = q.caught | 0; p.role = q.role === 'joury' ? 'joury' : 'survivor'; p.ref = String(q.ref || ''); p.used = String(q.used || ''); p.vip = !!q.vip; });
     Lobby.render();
   },
   removePlayer(id) { const p = this.players.get(id); if (!p) return; this.disposeAvatar(p); this.players.delete(id); },
@@ -183,6 +189,7 @@ const Net = {
     const p = c.pid && this.players.get(c.pid); if (!p) return;
     p.seen = performance.now();
     if (m.t === 'role') { this.hostRole(p, !!m.joury); return; }
+    if (m.t === 'name') { const n = cleanName(m.name); if (n !== p.name) { const old = p.name; p.name = n; this.disposeAvatar(p); this.broadcast({ t: 'roster', players: this.roster() }); Lobby.render(); if (this.started) Chat.server(`${old} is now called ${n}.`); } return; }
     if (m.t === 'st') {
       p.where = m.w === 'i' ? 'i' : 'c';
       if (p.where === 'i') { p.x = +m.x || 0; p.z = +m.z || 0; p.yaw = +m.yaw || 0; p.pitch = clamp(+m.pitch || 0, -1.5, 1.5); }
@@ -452,6 +459,8 @@ const Lobby = {
     $('btnHost').addEventListener('click', () => this.host());
     $('btnJoin').addEventListener('click', () => this.join());
     $('btnStartMp').addEventListener('click', () => { SFX.uiClick(); Net.start(); });
+    $('mpName').addEventListener('change', () => this.rename());
+    $('mpName').addEventListener('input', () => { $('nameHint').textContent = 'Press Enter to save'; });
     $('btnVip').addEventListener('click', () => { SFX.uiClick(); const m = Net.me(); Net.setRole(!(m && m.role === 'joury')); });
     $('btnNetlost').addEventListener('click', () => { Game.screen('netlost', false); Game.toTitle(); });
     // the item picker
@@ -472,7 +481,11 @@ const Lobby = {
     $('mpName').value = CFG.name || ''; this.status(''); this.render();
   },
   close(leave) { if (leave) Net.leave(); this.isOpen = false; Game.screen('lobby', false); if (Game.state === 'title') Game.screen('title', true); this.busy(false); },
-  name() { const n = cleanName($('mpName').value); $('mpName').value = n; CFG.name = n; saveSettings(); return n; },
+  name() { const n = cleanName($('mpName').value); $('mpName').value = n; CFG.name = n; saveSettings(); if ($('optName')) $('optName').value = n; return n; },
+  rename() {
+    const n = this.name(); $('nameHint').textContent = 'Saved'; setTimeout(() => { $('nameHint').textContent = 'You can change it any time'; }, 1600);
+    if (Net.on && Net.joined) Net.rename(n);
+  },
   status(text, bad) { const el = $('lobbyStatus'); el.textContent = text; el.classList.toggle('bad', !!bad); },
   busy(on) { ['btnHost', 'btnJoin'].forEach((id) => { $(id).disabled = on; }); },
   host() {
@@ -494,7 +507,7 @@ const Lobby = {
   render() {
     if (!$('lobby')) return;
     const room = Net.on && Net.joined && (Net.isClient || !!Net.code && Net.peer && Net.peer.open);
-    $('lobby').classList.toggle('room', !!room); $('mpName').disabled = !!room;
+    $('lobby').classList.toggle('room', !!room);
     if (!room) return;
     const rc = codeItems(Net.code).map(([icon, name]) => `<div class="code-item"><span class="ico">${icon}</span><span class="nm">${name}</span></div>`).join('');
     if ($('roomCode').dataset.code !== Net.code) { $('roomCode').dataset.code = Net.code; $('roomCode').innerHTML = rc; $('roomCode').setAttribute('aria-label', 'Join code: ' + codeWords(Net.code)); }

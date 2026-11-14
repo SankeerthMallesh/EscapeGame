@@ -45,6 +45,7 @@ const Game = {
     vol('optVol', 'optVol2'); vol('optVol2', 'optVol');
     const sens = (id, other) => { const el = $(id); el.value = CFG.sens; el.addEventListener('input', () => { CFG.sens = Number(el.value); $(other).value = el.value; saveSettings(); }); };
     sens('optSens', 'optSens2'); sens('optSens2', 'optSens');
+    $('optName').value = CFG.name || ''; $('optName').addEventListener('change', (e) => { CFG.name = cleanName(e.target.value); e.target.value = CFG.name; saveSettings(); });
     $('optInvert').checked = CFG.invert; $('optInvert').addEventListener('change', (e) => { CFG.invert = e.target.checked; saveSettings(); });
     this.diffNote();
     const panels = { btnSettings: 'setPanel', btnHow: 'howPanel', btnCodes: 'codePanel' };
@@ -111,7 +112,7 @@ const Game = {
     if (this.state === 'title') { this.toTitle(); Lobby.status(text, true); return; }
     this.state = 'title'; this.screen('netlost', true); if (SFX.ctx) SFX.allLoopsOff(0.3);
   },
-  onFieldEnter() {},
+  onFieldEnter(el) { if (el.id === 'mpName') { Lobby.rename(); el.blur(); } else if (el.id === 'optName') el.blur(); },
 
   // ---------------- main game ----------------
   startGame() {

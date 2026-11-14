@@ -373,3 +373,45 @@ input[type=range]{accent-color:#b3141c}
 #crackers{position:absolute;right:22px;bottom:20px;font-family:var(--ui);font-size:13px;color:#efe6d4;text-shadow:0 1px 2px #000;display:flex;align-items:center;gap:6px}
 #crackers span{color:#8f877a;font-size:11px;letter-spacing:.1em;text-transform:uppercase}
 #crackers.empty{opacity:.45}
+
+/* ---------- v4.1 polish: lobby, inputs, buttons ---------- */
+.btn{transition:background .2s,border-color .2s,color .2s,transform .08s}
+.btn:disabled{opacity:.45;cursor:default}
+.text-in,#lobby input[type=text]{font-family:var(--ui);font-size:15px;color:#f2ead9;background:rgba(0,0,0,.5);border:1px solid rgba(233,226,212,.22);border-radius:3px;padding:9px 12px;transition:border-color .2s,background .2s}
+.text-in:hover,#lobby input[type=text]:hover{border-color:rgba(233,226,212,.4)}
+.text-in:focus-visible,#lobby input[type=text]:focus-visible{outline:none;border-color:#c9a46a;background:rgba(20,14,8,.7);box-shadow:0 0 0 3px rgba(201,164,106,.18)}
+.title-panel .text-in{width:200px}
+#lobby{background:radial-gradient(ellipse at 50% 40%,rgba(30,8,10,.55),rgba(2,1,1,.86) 70%)}
+.panel.lobby{width:min(900px,94vw);max-height:94vh;overflow:auto;align-items:stretch;gap:18px;padding:26px clamp(18px,3vw,34px) 18px;background:linear-gradient(180deg,#141010 0%,#0b0909 100%);border:1px solid rgba(233,226,212,.1);border-top:2px solid #8e1018;border-left-width:1px;border-radius:4px;box-shadow:0 30px 80px rgba(0,0,0,.7),0 0 0 1px rgba(0,0,0,.6)}
+.lobby-head{text-align:center;display:flex;flex-direction:column;gap:6px}
+.lobby-head .panel-title{font-size:clamp(28px,4vw,40px);letter-spacing:.14em;margin:0;color:#efe6d4;text-shadow:0 0 24px rgba(160,10,18,.35)}
+.lobby-sub{font-family:var(--ui);font-size:11px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:#7f786c}
+.name-row{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+.name-row .opt-label{width:auto}
+#lobby #mpName{width:220px}
+.name-hint{font-family:var(--ui);font-size:12px;color:#7f786c;min-width:150px}
+.lobby-cards{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.45fr);gap:16px}
+@media (max-width:760px){.lobby-cards{grid-template-columns:minmax(0,1fr)}}
+.lcard{display:flex;flex-direction:column;gap:10px;padding:18px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.01));border:1px solid rgba(233,226,212,.1);border-radius:4px;min-width:0}
+.lcard h3{margin:0;font-family:var(--display);font-weight:400;font-size:24px;letter-spacing:.06em;color:#efe6d4}
+.lcard p{margin:0;font-family:var(--ui);font-size:13.5px;line-height:1.55;color:#a39b8d}
+.host-card{align-items:center;text-align:center;justify-content:center}
+.host-card .lcard-ico{font-size:42px;line-height:1;filter:drop-shadow(0 0 14px rgba(255,160,60,.45))}
+.host-card .btn{margin-top:6px;font-size:17px;padding:10px 26px;border-color:rgba(179,20,28,.8);background:linear-gradient(rgba(130,10,18,.45),rgba(60,4,8,.45));color:#fff}
+.host-card .btn:hover{background:rgba(160,14,24,.6);border-color:#e04048}
+.join-card .join-box{background:none;border:0;padding:0;align-items:stretch}
+.join-card .code-slots{justify-content:center}
+.join-card .join-row .btn:last-child{border-color:rgba(179,20,28,.8);background:linear-gradient(rgba(130,10,18,.45),rgba(60,4,8,.45));color:#fff}
+#lobbyRoom{gap:12px}
+.room-help{font-family:var(--ui);font-size:14px;line-height:1.5;color:#cfc6b6;text-align:center;max-width:520px}
+.lobby-players{min-width:min(380px,100%)}
+.lobby-players div{padding:9px 14px;border-radius:3px;font-size:15px}
+.lobby-players i{width:12px;height:12px;box-shadow:0 0 8px currentColor}
+#btnLobbyBack{align-self:center;font-size:15px}
+.lobby-status{align-self:center}
+#lobby.room .lobby-cards{display:none}
+#lobbyChoose.lobby-cards{display:grid;flex-direction:initial;align-items:stretch;gap:16px}
+#lobby.room #lobbyChoose.lobby-cards{display:none}
+.join-card .join-box{width:100%;align-items:stretch}
+.join-card .item-grid{width:100%}
+@media (max-width:760px){#lobbyChoose.lobby-cards{grid-template-columns:minmax(0,1fr)}}
