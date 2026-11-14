@@ -29,15 +29,16 @@ const Player = {
     this.pitch = clamp(this.pitch, -1.45, 1.45);
   },
   update(dt, opts = {}) {
-    if (!this.frozen) this.look();
+    const held = this.frozen || Admin.open; // the admin panel is open: stand still behind it
+    if (!held) this.look();
     const env = this.env;
     let f = 0, s = 0;
-    if (!this.frozen) {
+    if (!held) {
       if (Input.down('KeyW') || Input.down('ArrowUp')) f += 1; if (Input.down('KeyS') || Input.down('ArrowDown')) f -= 1;
       if (Input.down('KeyA')) s -= 1; if (Input.down('KeyD')) s += 1;
     }
     const moving = f !== 0 || s !== 0, len = Math.hypot(f, s) || 1; f /= len; s /= len;
-    this.crouching = !this.frozen && (Input.down('KeyC') || Input.down('ControlLeft'));
+    this.crouching = !held && (Input.down('KeyC') || Input.down('ControlLeft'));
     const wantRun = (Input.down('ShiftLeft') || Input.down('ShiftRight')) && moving && f >= 0 && !this.exhausted && this.stamina > 0 && !this.crouching;
     const boost = Admin.speed || 1, walk = (this.crouching ? 1.8 : (opts.walk || 3.7)) * boost, run = (opts.run || 6.4) * boost;
     let speed = moving ? (wantRun ? run : walk) * (f < 0 ? 0.7 : 1) : 0;

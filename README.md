@@ -121,7 +121,7 @@ Everything you see is generated in code when the game loads. There are no image 
 | `vendor/peerjs.min.js` | PeerJS 1.5.4 (MIT license) for online play, packed in the same way. |
 | `vendor/fonts/` | The three fonts the game uses (open licenses, see the README there), embedded by the build. |
 | `build.mjs` | Joins everything into `escape-from-joury.html`. |
-| `tests/` | Automated play-throughs in a headless browser: `flow.cjs` (story → game → rescue → caught → cabin puzzle → escape), `flow2.cjs` (boat parts → ending → Play Again), `flow3.cjs` (caught again → timer runs out → Retry → escape), `house.cjs` (story 2 from start to finish), `admin.cjs` (every admin button), `mp.cjs`, `mp2.cjs` and `mp3.cjs` (online: 2–3 players, lobby, sync, chat, caught, door knocking, late joining, leaving), `scares.cjs`, `crash.cjs` and `stare.cjs` (storm, chat, diary pages, pumpkins, stare-to-catch, fake crash). |
+| `tests/` | Automated play-throughs in a headless browser: `flow.cjs` (story → game → rescue → caught → cabin puzzle → escape), `flow2.cjs` (boat parts → ending → Play Again), `flow3.cjs` (caught again → timer runs out → Retry → escape), `house.cjs` (story 2 from start to finish), `admin.cjs` and `admin2.cjs` (every admin button, island and house), `mp.cjs`, `mp2.cjs` and `mp3.cjs` (online: 2–3 players, lobby, sync, chat, caught, door knocking, late joining, leaving), `scares.cjs`, `crash.cjs` and `stare.cjs` (storm, chat, diary pages, pumpkins, stare-to-catch, fake crash). |
 
 ## Changing the game
 

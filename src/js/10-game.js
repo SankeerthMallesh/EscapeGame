@@ -141,12 +141,17 @@ const Game = {
     GFX.fx.fade = 0;
   },
   updateHouseEnd(dt) {
-    this.endT += dt; const t = this.endT, cam = House.cam;
-    cam.position.set(lerp(0, -3, smoothstep(0, 6, t)), 1.7, lerp(24, 29, smoothstep(0, 6, t))); cam.lookAt(0, 2.2, 3);
-    House.gabe.root.position.set(1.2, 0, lerp(21, 27, smoothstep(0, 5, t))); House.gabe.root.rotation.y = 0; animateKid(House.gabe, t, 'walk');
-    House.J.root.visible = t > 3; House.J.root.position.set(6, 0, 6.5); House.J.root.rotation.y = 0; animateJoury(House.J, t, false, 0, null); // a shape in the window
-    GFX.fx.fade = t > 5 ? Math.min(0.55, (t - 5) * 0.3) : 0; GFX.fx.static = 0.02; GFX.fx.red = 0; GFX.fx.exposure = 1.4;
-    if (t > 6 && !this.houseEndShown) this.showHouseEpilogue();
+    this.endT += dt; const t = this.endT, cam = House.cam, k = smoothstep(0, 7, t), g = House.gabe, J = House.J;
+    House.doors.front.open = true; House.doors.front.pivot.rotation.y = 1.45;
+    // the camera waits down the street; Gabe walks out of the gate towards it
+    cam.position.set(lerp(4.5, 5.5, k), 1.55, lerp(29.5, 31, k)); cam.lookAt(lerp(1.5, 0.5, k), 1.5, lerp(14, 9, k));
+    const gk = smoothstep(0, 6, t), gx = lerp(0, 3.2, gk), gz = lerp(20.2, 26.5, gk);
+    g.root.position.set(gx, 0, gz); g.root.rotation.y = Math.atan2(3.2, 6.3); animateKid(g, t, gk < 1 ? 'walk' : 'wave');
+    // and Joury is standing in his open front door, under the porch light, watching
+    J.root.visible = t > 2.5; J.root.position.set(0, 0.25, 7.7); J.root.rotation.y = 0; J.root.scale.setScalar(1.1); animateJoury(J, t, false, 0, null);
+    GFX.fx.fade = t > 6 ? Math.min(0.55, (t - 6) * 0.3) : 0; GFX.fx.static = t > 2.5 && t < 2.8 ? 0.5 : 0.02; GFX.fx.red = 0; GFX.fx.exposure = 2.3; GFX.fx.auto = 0;
+    Phonk.setVol(t > 4 ? 0.12 : 0); Phonk.tick(); // faintly, from inside, the music starts again
+    if (t > 7 && !this.houseEndShown) this.showHouseEpilogue();
     if (SFX.ctx) SFX.update(dt, 0);
     GFX.render(House.scene, cam, dt);
   },

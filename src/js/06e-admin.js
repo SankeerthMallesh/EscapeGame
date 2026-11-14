@@ -9,7 +9,7 @@ const Admin = {
   canWorld() { return !Net.on || Net.isHost; },
   toggle() {
     if (!this.unlocked()) return;
-    if (Game.state !== 'play' && Game.state !== 'cabin') return;
+    if (Game.state !== 'play' && Game.state !== 'cabin' && Game.state !== 'house') return;
     this.open ? this.close() : this.show();
   },
   show() {
@@ -18,7 +18,8 @@ const Admin = {
   },
   close() { if (!this.open) return; this.open = false; $('admin').classList.remove('on'); Input.requestLock(); },
   say(msg, bad) { const el = $('adminMsg'); el.textContent = msg; el.classList.toggle('bad', !!bad); clearTimeout(this.msgT); this.msgT = setTimeout(() => { el.textContent = ''; }, 3500); },
-  onIsland(fn) { return () => { if (Game.state !== 'play') { this.say('Do that on the island (you are in the cabin right now).', true); return; } fn(); }; },
+  onIsland(fn) { return () => { if (Game.state !== 'play') { this.say(Game.state === 'house' ? "That's for the island story. Use the Joury's House buttons." : 'Do that on the island (you are in the cabin right now).', true); return; } fn(); }; },
+  inHouse(fn) { return () => { if (Game.state !== 'house') { this.say("That's for Joury's House (story 2).", true); return; } fn(); }; },
   hostOnly(fn) { return () => { if (!this.canWorld()) { this.say('Online, only the host can change the island and Joury.', true); return; } fn(); }; },
 
   // ---------------- actions ----------------
@@ -66,13 +67,23 @@ const Admin = {
 
   // ---------------- every frame ----------------
   update(dt) {
-    if (Game.state === 'play' || Game.state === 'cabin') {
+    if (Game.state === 'play' || Game.state === 'cabin' || Game.state === 'house') {
       if (this.stamina) { Player.stamina = 1; Player.exhausted = false; }
       if (this.battery) Player.battery = 1;
     }
     if (!this.open) return;
     this.tickT -= dt; if (this.tickT > 0) return; this.tickT = 0.25;
-    const J = Joury, P = Player.pos, rows = [
+    const P = Player.pos;
+    if (Game.state === 'house') {
+      const h = House, st = h.s, rows = [
+        ['Where', `${P.x.toFixed(1)}, ${P.z.toFixed(1)} · ${h.roomOf(P.x, P.z)}`], ['FPS', Math.round(Game.fps || 0)],
+        ['Joury', `${h.j.state} · ${Math.hypot(P.x - h.j.x, P.z - h.j.z).toFixed(0)} m away`],
+        ['Items', [st.crowbar && 'crowbar', st.key && 'key'].filter(Boolean).join(', ') || 'none'],
+        ['Gabe', st.gabeFree ? 'following you' : st.unlocked ? 'door unlocked' : 'locked in'], ['Times caught', Game.stats.caught],
+      ];
+      $('adminInfo').innerHTML = rows.map(([k, v]) => `<span>${k}</span><b>${esc(String(v))}</b>`).join(''); this.syncToggles(); return;
+    }
+    const J = Joury, rows = [
       ['Where', Game.state === 'cabin' ? 'in the cabin' : `${P.x.toFixed(1)}, ${P.z.toFixed(1)}`],
       ['FPS', Math.round(Game.fps || 0)],
       ['Joury', `${J.state}${J.state === 'hunt' ? ` · ${J.dist.toFixed(0)} m away` : J.state === 'stunned' ? ` · ${Math.ceil(J.stunT)} s` : ''}`],
@@ -122,6 +133,15 @@ const Admin = {
     btn(W, 'Put all parts on the boat', this.hostOnly(() => this.allParts()), { world: 1 });
     btn(W, 'Launch the boat (win)', this.hostOnly(() => this.launch()), { world: 1, cls: 'win' });
     btn(W, 'Lightning', this.onIsland(() => { Weather.strike(false); this.say('Crack.'); }));
+    const H = sec("Joury's House", 'Story 2 only.');
+    const hp = (x, z, yaw) => () => { Player.place(x, z, yaw, 0); };
+    [['Sidewalk', 0, 22.4, 0], ['Shed', 9.5, -14.8, Math.PI], ['Back door', 0, -8.6, 0], ['Hallway', 0, 2, 0], ["Joury's room (key)", 9.25, 5.75, Math.PI / 2], ["Gabe's room", 5.6, -5.3, -Math.PI / 2]].forEach(([n, x, z, y]) => btn(H, n, this.inHouse(() => { hp(x, z, y)(); this.say(`Teleported: ${n}.`); })));
+    btn(H, 'Joury: stay at his PC', this.inHouse(() => { Object.assign(House.j, { state: 'sit', x: 8.2, z: 3.1, sitT: 1e9, path: [] }); this.say('Joury will not leave his PC.'); }));
+    btn(H, 'Joury: go patrol', this.inHouse(() => { House.standUp(); House.patrolRoute(); House.j.sitT = 30; this.say('Joury is walking around the house.'); }));
+    btn(H, 'Get crowbar + key', this.inHouse(() => { House.s.crowbar = House.s.key = true; House.crowbar.visible = false; House.keyMesh.visible = false; House.glints.setSize(House.keyGlint, 0); this.say('You have the crowbar and the key.'); }));
+    btn(H, 'Open every door', this.inHouse(() => { const s = House.s; s.boardsOff = s.unlocked = s.frontOpen = s.shedOpen = true; House.boards.visible = false; House.padlock.visible = false; Object.values(House.doors).forEach((d) => { d.open = true; }); this.say('Every door is open.'); }));
+    btn(H, 'Free Gabe', this.inHouse(() => { const s = House.s; if (s.gabeFree) { this.say('Gabe is already with you.'); return; } s.unlocked = true; House.doors.bedroom.open = true; House.padlock.visible = false; s.gabeFree = true; Object.assign(House.gabeS, { follow: true, x: Player.pos.x, z: Player.pos.z + 1, trail: [{ x: Player.pos.x, z: Player.pos.z }], stuckT: 0 }); this.say('Gabe is free and following you.'); }));
+    btn(H, 'Escape with Gabe (win)', this.inHouse(() => { this.close(); House.s.gabeFree = true; House.gabeS.follow = true; Game.houseWin(); }), { cls: 'win' });
     const C = sec('Cabin', 'Only works while you are locked in the cabin.');
     const inCabin = (fn) => () => { if (Game.state !== 'cabin') { this.say("You aren't in the cabin.", true); return; } fn(); };
     btn(C, 'Show the code', inCabin(() => this.say(`The door code is ${Cabin.digits.join(' ')}.`)));

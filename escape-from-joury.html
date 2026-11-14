@@ -3532,15 +3532,16 @@ const Player = {
     this.pitch = clamp(this.pitch, -1.45, 1.45);
   },
   update(dt, opts = {}) {
-    if (!this.frozen) this.look();
+    const held = this.frozen || Admin.open; // the admin panel is open: stand still behind it
+    if (!held) this.look();
     const env = this.env;
     let f = 0, s = 0;
-    if (!this.frozen) {
+    if (!held) {
       if (Input.down('KeyW') || Input.down('ArrowUp')) f += 1; if (Input.down('KeyS') || Input.down('ArrowDown')) f -= 1;
       if (Input.down('KeyA')) s -= 1; if (Input.down('KeyD')) s += 1;
     }
     const moving = f !== 0 || s !== 0, len = Math.hypot(f, s) || 1; f /= len; s /= len;
-    this.crouching = !this.frozen && (Input.down('KeyC') || Input.down('ControlLeft'));
+    this.crouching = !held && (Input.down('KeyC') || Input.down('ControlLeft'));
     const wantRun = (Input.down('ShiftLeft') || Input.down('ShiftRight')) && moving && f >= 0 && !this.exhausted && this.stamina > 0 && !this.crouching;
     const boost = Admin.speed || 1, walk = (this.crouching ? 1.8 : (opts.walk || 3.7)) * boost, run = (opts.run || 6.4) * boost;
     let speed = moving ? (wantRun ? run : walk) * (f < 0 ? 0.7 : 1) : 0;
@@ -4831,7 +4832,7 @@ const Admin = {
   canWorld() { return !Net.on || Net.isHost; },
   toggle() {
     if (!this.unlocked()) return;
-    if (Game.state !== 'play' && Game.state !== 'cabin') return;
+    if (Game.state !== 'play' && Game.state !== 'cabin' && Game.state !== 'house') return;
     this.open ? this.close() : this.show();
   },
   show() {
@@ -4840,7 +4841,8 @@ const Admin = {
   },
   close() { if (!this.open) return; this.open = false; $('admin').classList.remove('on'); Input.requestLock(); },
   say(msg, bad) { const el = $('adminMsg'); el.textContent = msg; el.classList.toggle('bad', !!bad); clearTimeout(this.msgT); this.msgT = setTimeout(() => { el.textContent = ''; }, 3500); },
-  onIsland(fn) { return () => { if (Game.state !== 'play') { this.say('Do that on the island (you are in the cabin right now).', true); return; } fn(); }; },
+  onIsland(fn) { return () => { if (Game.state !== 'play') { this.say(Game.state === 'house' ? "That's for the island story. Use the Joury's House buttons." : 'Do that on the island (you are in the cabin right now).', true); return; } fn(); }; },
+  inHouse(fn) { return () => { if (Game.state !== 'house') { this.say("That's for Joury's House (story 2).", true); return; } fn(); }; },
   hostOnly(fn) { return () => { if (!this.canWorld()) { this.say('Online, only the host can change the island and Joury.', true); return; } fn(); }; },
 
   // ---------------- actions ----------------
@@ -4888,13 +4890,23 @@ const Admin = {
 
   // ---------------- every frame ----------------
   update(dt) {
-    if (Game.state === 'play' || Game.state === 'cabin') {
+    if (Game.state === 'play' || Game.state === 'cabin' || Game.state === 'house') {
       if (this.stamina) { Player.stamina = 1; Player.exhausted = false; }
       if (this.battery) Player.battery = 1;
     }
     if (!this.open) return;
     this.tickT -= dt; if (this.tickT > 0) return; this.tickT = 0.25;
-    const J = Joury, P = Player.pos, rows = [
+    const P = Player.pos;
+    if (Game.state === 'house') {
+      const h = House, st = h.s, rows = [
+        ['Where', `${P.x.toFixed(1)}, ${P.z.toFixed(1)} · ${h.roomOf(P.x, P.z)}`], ['FPS', Math.round(Game.fps || 0)],
+        ['Joury', `${h.j.state} · ${Math.hypot(P.x - h.j.x, P.z - h.j.z).toFixed(0)} m away`],
+        ['Items', [st.crowbar && 'crowbar', st.key && 'key'].filter(Boolean).join(', ') || 'none'],
+        ['Gabe', st.gabeFree ? 'following you' : st.unlocked ? 'door unlocked' : 'locked in'], ['Times caught', Game.stats.caught],
+      ];
+      $('adminInfo').innerHTML = rows.map(([k, v]) => `<span>${k}</span><b>${esc(String(v))}</b>`).join(''); this.syncToggles(); return;
+    }
+    const J = Joury, rows = [
       ['Where', Game.state === 'cabin' ? 'in the cabin' : `${P.x.toFixed(1)}, ${P.z.toFixed(1)}`],
       ['FPS', Math.round(Game.fps || 0)],
       ['Joury', `${J.state}${J.state === 'hunt' ? ` · ${J.dist.toFixed(0)} m away` : J.state === 'stunned' ? ` · ${Math.ceil(J.stunT)} s` : ''}`],
@@ -4944,6 +4956,15 @@ const Admin = {
     btn(W, 'Put all parts on the boat', this.hostOnly(() => this.allParts()), { world: 1 });
     btn(W, 'Launch the boat (win)', this.hostOnly(() => this.launch()), { world: 1, cls: 'win' });
     btn(W, 'Lightning', this.onIsland(() => { Weather.strike(false); this.say('Crack.'); }));
+    const H = sec("Joury's House", 'Story 2 only.');
+    const hp = (x, z, yaw) => () => { Player.place(x, z, yaw, 0); };
+    [['Sidewalk', 0, 22.4, 0], ['Shed', 9.5, -14.8, Math.PI], ['Back door', 0, -8.6, 0], ['Hallway', 0, 2, 0], ["Joury's room (key)", 9.25, 5.75, Math.PI / 2], ["Gabe's room", 5.6, -5.3, -Math.PI / 2]].forEach(([n, x, z, y]) => btn(H, n, this.inHouse(() => { hp(x, z, y)(); this.say(`Teleported: ${n}.`); })));
+    btn(H, 'Joury: stay at his PC', this.inHouse(() => { Object.assign(House.j, { state: 'sit', x: 8.2, z: 3.1, sitT: 1e9, path: [] }); this.say('Joury will not leave his PC.'); }));
+    btn(H, 'Joury: go patrol', this.inHouse(() => { House.standUp(); House.patrolRoute(); House.j.sitT = 30; this.say('Joury is walking around the house.'); }));
+    btn(H, 'Get crowbar + key', this.inHouse(() => { House.s.crowbar = House.s.key = true; House.crowbar.visible = false; House.keyMesh.visible = false; House.glints.setSize(House.keyGlint, 0); this.say('You have the crowbar and the key.'); }));
+    btn(H, 'Open every door', this.inHouse(() => { const s = House.s; s.boardsOff = s.unlocked = s.frontOpen = s.shedOpen = true; House.boards.visible = false; House.padlock.visible = false; Object.values(House.doors).forEach((d) => { d.open = true; }); this.say('Every door is open.'); }));
+    btn(H, 'Free Gabe', this.inHouse(() => { const s = House.s; if (s.gabeFree) { this.say('Gabe is already with you.'); return; } s.unlocked = true; House.doors.bedroom.open = true; House.padlock.visible = false; s.gabeFree = true; Object.assign(House.gabeS, { follow: true, x: Player.pos.x, z: Player.pos.z + 1, trail: [{ x: Player.pos.x, z: Player.pos.z }], stuckT: 0 }); this.say('Gabe is free and following you.'); }));
+    btn(H, 'Escape with Gabe (win)', this.inHouse(() => { this.close(); House.s.gabeFree = true; House.gabeS.follow = true; Game.houseWin(); }), { cls: 'win' });
     const C = sec('Cabin', 'Only works while you are locked in the cabin.');
     const inCabin = (fn) => () => { if (Game.state !== 'cabin') { this.say("You aren't in the cabin.", true); return; } fn(); };
     btn(C, 'Show the code', inCabin(() => this.say(`The door code is ${Cabin.digits.join(' ')}.`)));
@@ -6443,12 +6464,17 @@ const Game = {
     GFX.fx.fade = 0;
   },
   updateHouseEnd(dt) {
-    this.endT += dt; const t = this.endT, cam = House.cam;
-    cam.position.set(lerp(0, -3, smoothstep(0, 6, t)), 1.7, lerp(24, 29, smoothstep(0, 6, t))); cam.lookAt(0, 2.2, 3);
-    House.gabe.root.position.set(1.2, 0, lerp(21, 27, smoothstep(0, 5, t))); House.gabe.root.rotation.y = 0; animateKid(House.gabe, t, 'walk');
-    House.J.root.visible = t > 3; House.J.root.position.set(6, 0, 6.5); House.J.root.rotation.y = 0; animateJoury(House.J, t, false, 0, null); // a shape in the window
-    GFX.fx.fade = t > 5 ? Math.min(0.55, (t - 5) * 0.3) : 0; GFX.fx.static = 0.02; GFX.fx.red = 0; GFX.fx.exposure = 1.4;
-    if (t > 6 && !this.houseEndShown) this.showHouseEpilogue();
+    this.endT += dt; const t = this.endT, cam = House.cam, k = smoothstep(0, 7, t), g = House.gabe, J = House.J;
+    House.doors.front.open = true; House.doors.front.pivot.rotation.y = 1.45;
+    // the camera waits down the street; Gabe walks out of the gate towards it
+    cam.position.set(lerp(4.5, 5.5, k), 1.55, lerp(29.5, 31, k)); cam.lookAt(lerp(1.5, 0.5, k), 1.5, lerp(14, 9, k));
+    const gk = smoothstep(0, 6, t), gx = lerp(0, 3.2, gk), gz = lerp(20.2, 26.5, gk);
+    g.root.position.set(gx, 0, gz); g.root.rotation.y = Math.atan2(3.2, 6.3); animateKid(g, t, gk < 1 ? 'walk' : 'wave');
+    // and Joury is standing in his open front door, under the porch light, watching
+    J.root.visible = t > 2.5; J.root.position.set(0, 0.25, 7.7); J.root.rotation.y = 0; J.root.scale.setScalar(1.1); animateJoury(J, t, false, 0, null);
+    GFX.fx.fade = t > 6 ? Math.min(0.55, (t - 6) * 0.3) : 0; GFX.fx.static = t > 2.5 && t < 2.8 ? 0.5 : 0.02; GFX.fx.red = 0; GFX.fx.exposure = 2.3; GFX.fx.auto = 0;
+    Phonk.setVol(t > 4 ? 0.12 : 0); Phonk.tick(); // faintly, from inside, the music starts again
+    if (t > 7 && !this.houseEndShown) this.showHouseEpilogue();
     if (SFX.ctx) SFX.update(dt, 0);
     GFX.render(House.scene, cam, dt);
   },
