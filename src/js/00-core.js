@@ -57,9 +57,9 @@ const DIFFS = {
   nightmare: { name: 'Nightmare', note: 'Thick fog, few batteries, and Joury creeps even while you watch.', startDelay: 15, chaseBase: 3.15, chasePerKid: 0.22, creep: 0.55, stareLimit: 2.6, catchR: 1.75, tpMin: 7, tpMax: 13, tpDist: [9, 14], cabinFirst: 150, cabinStep: 25, cabinMin: 75, drain: 1 / 125, batteries: 9, penalty: 20, fog: 0.043, enrage: 1.5 },
 };
 const QUALITY = {
-  low: { pr: 0.75, spotShadow: 512, moonShadow: 0, msaa: 0, bloom: false, pointLights: 1, grassFrac: 0.35, fireflyFrac: 0.4, viewDist: 58, fireShadow: false },
-  medium: { pr: 1.0, spotShadow: 1024, moonShadow: 0, msaa: 0, bloom: true, pointLights: 3, grassFrac: 0.7, fireflyFrac: 0.75, viewDist: 70, fireShadow: true },
-  high: { pr: Math.min(window.devicePixelRatio || 1, 1.5), spotShadow: 2048, moonShadow: 2048, msaa: 4, bloom: true, pointLights: 4, grassFrac: 1, fireflyFrac: 1, viewDist: 85, fireShadow: true },
+  low: { pr: 0.75, ao: false, spotShadow: 512, moonShadow: 0, msaa: 0, bloom: false, pointLights: 1, grassFrac: 0.35, fireflyFrac: 0.4, viewDist: 58, fireShadow: false },
+  medium: { pr: 1.0, ao: true, spotShadow: 1024, moonShadow: 0, msaa: 0, bloom: true, pointLights: 3, grassFrac: 0.7, fireflyFrac: 0.75, viewDist: 70, fireShadow: true },
+  high: { pr: Math.min(window.devicePixelRatio || 1, 1.5), ao: true, spotShadow: 2048, moonShadow: 2048, msaa: 4, bloom: true, pointLights: 4, grassFrac: 1, fireflyFrac: 1, viewDist: 85, fireShadow: true },
 };
 const D = () => DIFFS[CFG.difficulty] || DIFFS.normal;
 const Q = () => QUALITY[CFG.quality] || QUALITY.medium;
@@ -68,7 +68,7 @@ const Q = () => QUALITY[CFG.quality] || QUALITY.medium;
 //  Input: keyboard, pointer lock, click-and-drag fallback
 // ---------------------------------------------------------------------
 const Input = {
-  keys: new Set(), hit: new Set(), dx: 0, dy: 0, skipMoves: 0, locked: false, dragging: false, lockFailed: false, canvas: null,
+  keys: new Set(), hit: new Set(), dx: 0, dy: 0, rmb: false, skipMoves: 0, locked: false, dragging: false, lockFailed: false, canvas: null,
   init(canvas) {
     this.canvas = canvas;
     addEventListener('keydown', (e) => {
@@ -89,7 +89,11 @@ const Input = {
       if (Math.abs(mx) > 220 || Math.abs(my) > 220) return;
       this.dx += mx; this.dy += my;
     });
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    addEventListener('mouseup', (e) => { if (e.button === 2) this.rmb = false; });
+    addEventListener('blur', () => { this.rmb = false; });
     canvas.addEventListener('mousedown', (e) => {
+      if (e.button === 2) this.rmb = true;
       if (!Game.wantsLook()) return;
       this.dragging = true;
       this.requestLock();

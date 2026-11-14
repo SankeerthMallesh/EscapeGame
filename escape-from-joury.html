@@ -433,6 +433,9 @@ input[type=range]{accent-color:#b3141c}
 #hideOverlay.on{display:block}
 #btnHouse span{color:#ffb070}
 
+/* ---------- compass strip (top centre) ---------- */
+#compass{position:absolute;left:50%;top:14px;transform:translateX(-50%);width:min(560px,60vw);height:40px;pointer-events:none}
+
 /* ---------- admin panel ---------- */
 #admin{align-items:stretch;justify-content:flex-end;z-index:35;pointer-events:none}
 #admin.on{display:flex}
@@ -508,7 +511,7 @@ input[type=range]{accent-color:#b3141c}
       <div class="controls">
         <div><b>WASD</b> move</div><div><b>Mouse</b> look</div><div><b>Shift</b> sprint</div><div><b>C</b> crouch</div>
         <div><b>F</b> flashlight</div><div><b>E</b> interact</div><div><b>M</b> map</div><div><b>Esc</b> menu</div>
-        <div><b>T</b> chat (online)</div><div><b>G</b> firecracker</div><div><b>Q</b> blink (VIP Joury)</div>
+        <div><b>T</b> chat (online)</div><div><b>G</b> firecracker</div><div><b>Right mouse</b> focus beam</div><div><b>Space</b> jump</div><div><b>Sprint + C</b> slide</div><div><b>Q</b> blink (VIP Joury)</div>
       </div>
       <ul class="tips">
         <li>Free the 10 kids, then find the 4 boat parts and get to the dock.</li>
@@ -595,6 +598,7 @@ input[type=range]{accent-color:#b3141c}
   <div id="objective"></div>
   <div id="partsBar"></div>
   <canvas id="minimap" width="200" height="200"></canvas>
+  <canvas id="compass" width="560" height="40"></canvas>
   <div id="crosshair"></div>
   <div id="prompt"></div>
   <div id="subtitle"></div>
@@ -763,9 +767,9 @@ const DIFFS = {
   nightmare: { name: 'Nightmare', note: 'Thick fog, few batteries, and Joury creeps even while you watch.', startDelay: 15, chaseBase: 3.15, chasePerKid: 0.22, creep: 0.55, stareLimit: 2.6, catchR: 1.75, tpMin: 7, tpMax: 13, tpDist: [9, 14], cabinFirst: 150, cabinStep: 25, cabinMin: 75, drain: 1 / 125, batteries: 9, penalty: 20, fog: 0.043, enrage: 1.5 },
 };
 const QUALITY = {
-  low: { pr: 0.75, spotShadow: 512, moonShadow: 0, msaa: 0, bloom: false, pointLights: 1, grassFrac: 0.35, fireflyFrac: 0.4, viewDist: 58, fireShadow: false },
-  medium: { pr: 1.0, spotShadow: 1024, moonShadow: 0, msaa: 0, bloom: true, pointLights: 3, grassFrac: 0.7, fireflyFrac: 0.75, viewDist: 70, fireShadow: true },
-  high: { pr: Math.min(window.devicePixelRatio || 1, 1.5), spotShadow: 2048, moonShadow: 2048, msaa: 4, bloom: true, pointLights: 4, grassFrac: 1, fireflyFrac: 1, viewDist: 85, fireShadow: true },
+  low: { pr: 0.75, ao: false, spotShadow: 512, moonShadow: 0, msaa: 0, bloom: false, pointLights: 1, grassFrac: 0.35, fireflyFrac: 0.4, viewDist: 58, fireShadow: false },
+  medium: { pr: 1.0, ao: true, spotShadow: 1024, moonShadow: 0, msaa: 0, bloom: true, pointLights: 3, grassFrac: 0.7, fireflyFrac: 0.75, viewDist: 70, fireShadow: true },
+  high: { pr: Math.min(window.devicePixelRatio || 1, 1.5), ao: true, spotShadow: 2048, moonShadow: 2048, msaa: 4, bloom: true, pointLights: 4, grassFrac: 1, fireflyFrac: 1, viewDist: 85, fireShadow: true },
 };
 const D = () => DIFFS[CFG.difficulty] || DIFFS.normal;
 const Q = () => QUALITY[CFG.quality] || QUALITY.medium;
@@ -774,7 +778,7 @@ const Q = () => QUALITY[CFG.quality] || QUALITY.medium;
 //  Input: keyboard, pointer lock, click-and-drag fallback
 // ---------------------------------------------------------------------
 const Input = {
-  keys: new Set(), hit: new Set(), dx: 0, dy: 0, skipMoves: 0, locked: false, dragging: false, lockFailed: false, canvas: null,
+  keys: new Set(), hit: new Set(), dx: 0, dy: 0, rmb: false, skipMoves: 0, locked: false, dragging: false, lockFailed: false, canvas: null,
   init(canvas) {
     this.canvas = canvas;
     addEventListener('keydown', (e) => {
@@ -795,7 +799,11 @@ const Input = {
       if (Math.abs(mx) > 220 || Math.abs(my) > 220) return;
       this.dx += mx; this.dy += my;
     });
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    addEventListener('mouseup', (e) => { if (e.button === 2) this.rmb = false; });
+    addEventListener('blur', () => { this.rmb = false; });
     canvas.addEventListener('mousedown', (e) => {
+      if (e.button === 2) this.rmb = true;
       if (!Game.wantsLook()) return;
       this.dragging = true;
       this.requestLock();
@@ -1102,6 +1110,37 @@ void main(){ vec2 t = uTexel; vec3 s = texture2D(tSrc, vUv + vec2(-t.x * 2.0, 0.
   s += 2.0 * (texture2D(tSrc, vUv + vec2(-t.x, t.y)).rgb + texture2D(tSrc, vUv + vec2(t.x, t.y)).rgb + texture2D(tSrc, vUv + vec2(t.x, -t.y)).rgb + texture2D(tSrc, vUv + vec2(-t.x, -t.y)).rgb);
   gl_FragColor = vec4(s / 12.0, 1.0); }`;
 
+
+// Ambient occlusion (screen-space): soft contact shadows in corners, under furniture, where things meet the ground
+const AO_FS = `precision highp float;
+uniform sampler2D tDepth; uniform mat4 uProjInv; uniform vec2 uRes; uniform float uRadius, uIntensity, uProjY, uTime; varying vec2 vUv;
+vec3 viewPos(vec2 uv) { float z = texture2D(tDepth, uv).r; vec4 p = uProjInv * vec4(uv * 2.0 - 1.0, z * 2.0 - 1.0, 1.0); return p.xyz / p.w; }
+float h1(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+void main() {
+  float z0 = texture2D(tDepth, vUv).r; if (z0 > 0.99999) { gl_FragColor = vec4(1.0); return; }
+  vec3 p = viewPos(vUv);
+  vec2 px = 1.0 / uRes;
+  vec3 n = normalize(cross(viewPos(vUv + vec2(px.x, 0.0)) - p, viewPos(vUv + vec2(0.0, px.y)) - p));
+  float rUV = uRadius * uProjY / max(-p.z, 0.1) * 0.5;
+  if (rUV < 1.5 * px.y) { gl_FragColor = vec4(1.0); return; }
+  float a0 = h1(gl_FragCoord.xy) * 6.2831, ao = 0.0;
+  for (int i = 0; i < 12; i++) {
+    float fi = float(i), t = (fi + 0.5) / 12.0, ang = a0 + fi * 2.39996;
+    vec2 suv = vUv + vec2(cos(ang), sin(ang)) * rUV * t;
+    vec3 v = viewPos(suv) - p; float d2 = dot(v, v);
+    float range = 1.0 - smoothstep(uRadius * 0.6, uRadius * 1.6, sqrt(d2));
+    ao += max(0.0, dot(v, n) - 0.012 * -p.z) / (d2 + 0.02) * range;
+  }
+  ao = clamp(1.0 - ao / 12.0 * uIntensity, 0.0, 1.0);
+  ao = mix(ao, 1.0, smoothstep(28.0, 60.0, -p.z));
+  gl_FragColor = vec4(vec3(ao), 1.0);
+}`;
+const AO_MUL_FS = `uniform sampler2D tAO; uniform vec2 uTexel; uniform float uAmount; varying vec2 vUv;
+void main() {
+  float a = texture2D(tAO, vUv).r * 0.36 + (texture2D(tAO, vUv + vec2(uTexel.x, 0.0)).r + texture2D(tAO, vUv - vec2(uTexel.x, 0.0)).r + texture2D(tAO, vUv + vec2(0.0, uTexel.y)).r + texture2D(tAO, vUv - vec2(0.0, uTexel.y)).r) * 0.16;
+  gl_FragColor = vec4(vec3(mix(1.0, a, uAmount)), 1.0);
+}`;
+
 const GFX = {
   renderer: null, rt: null, postMat: null, postScene: null, postCam: null, w: 1, h: 1, time: 0, cams: [], bloomRTs: [],
   fx: { grain: 0.06, static: 0, vignette: 1, red: 0, fade: 0, flash: 0, aberr: 0.5, exposure: 1.0, warm: 0, shake: 0, bloom: 0.9, sat: 0.84, lift: 0.004, auto: 0, key: 0.05 },
@@ -1125,6 +1164,9 @@ const GFX = {
     this.adaptMat = new THREE.ShaderMaterial({ uniforms: { tPrev: { value: null }, tCur: { value: null }, uRate: { value: 1 } }, vertexShader: BLOOM_VS, fragmentShader: ADAPT_FS, depthTest: false, depthWrite: false });
     const one = () => new THREE.WebGLRenderTarget(1, 1, { type: THREE.FloatType, depthBuffer: false, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
     this.lumRT = one(); this.adaptRT = [one(), one()]; this.adaptI = 0; this.adaptFresh = true;
+    this.aoMat = new THREE.ShaderMaterial({ uniforms: { tDepth: { value: null }, uProjInv: { value: new THREE.Matrix4() }, uRes: { value: new THREE.Vector2(1, 1) }, uRadius: { value: 0.7 }, uIntensity: { value: 1.6 }, uProjY: { value: 1 }, uTime: { value: 0 } }, vertexShader: BLOOM_VS, fragmentShader: AO_FS, depthTest: false, depthWrite: false });
+    this.aoMulMat = new THREE.ShaderMaterial({ uniforms: { tAO: { value: null }, uTexel: { value: new THREE.Vector2() }, uAmount: { value: 1 } }, vertexShader: BLOOM_VS, fragmentShader: AO_MUL_FS, depthTest: false, depthWrite: false, transparent: true,
+      blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.ZeroFactor, blendDst: THREE.SrcColorFactor, blendSrcAlpha: THREE.ZeroFactor, blendDstAlpha: THREE.OneFactor });
     this.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.postMat);
     this.quad.frustumCulled = false; this.postScene.add(this.quad);
     this.resize();
@@ -1135,7 +1177,10 @@ const GFX = {
     if (this.rt) this.rt.dispose();
     const q = Q();
     const W = Math.max(1, Math.floor(this.w * q.pr)), H = Math.max(1, Math.floor(this.h * q.pr));
-    this.rt = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType, samples: q.msaa, depthBuffer: true });
+    if (this.aoRT) { this.aoRT.dispose(); this.aoRT = null; }
+    const depthTexture = q.ao ? new THREE.DepthTexture(W, H, THREE.UnsignedIntType) : undefined;
+    this.rt = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType, samples: q.msaa, depthBuffer: true, depthTexture });
+    if (q.ao) this.aoRT = new THREE.WebGLRenderTarget(Math.max(1, W >> 1), Math.max(1, H >> 1), { type: THREE.UnsignedByteType, depthBuffer: false });
     this.bloomRTs.forEach((t) => t.dispose()); this.bloomRTs = [];
     if (q.bloom) { let bw = W, bh = H; for (let i = 0; i < 5; i++) { bw = Math.max(1, bw >> 1); bh = Math.max(1, bh >> 1); this.bloomRTs.push(new THREE.WebGLRenderTarget(bw, bh, { type: THREE.HalfFloatType, depthBuffer: false })); } }
   },
@@ -1168,6 +1213,15 @@ const GFX = {
     r.info.autoReset = false; r.info.reset();
     r.setRenderTarget(this.rt); r.render(scene, cam);
     this.stats = { calls: r.info.render.calls, tris: r.info.render.triangles };
+    // ambient occlusion, multiplied into the picture
+    if (this.aoRT && this.rt.depthTexture && f.ao !== 0) {
+      const a = this.aoMat.uniforms; a.tDepth.value = this.rt.depthTexture; a.uProjInv.value.copy(cam.projectionMatrixInverse); a.uProjY.value = cam.projectionMatrix.elements[5]; a.uRes.value.set(this.aoRT.width, this.aoRT.height);
+      this.pass(this.aoMat, this.aoRT);
+      const m = this.aoMulMat.uniforms; m.tAO.value = this.aoRT.texture; m.uTexel.value.set(1 / this.aoRT.width, 1 / this.aoRT.height); m.uAmount.value = f.ao === undefined ? 1 : f.ao;
+      r.autoClear = false; this.pass(this.aoMulMat, this.rt); r.autoClear = true;
+    }
+    // first-person hands and flashlight, drawn on top so they never sink into walls
+    if (this.overlay && this.overlay.visible) { r.setRenderTarget(this.rt); r.autoClear = false; r.clearDepth(); r.render(this.overlay.scene, this.overlay.cam); r.autoClear = true; }
     if (f.auto > 0) {
       this.lumMat.uniforms.tSrc.value = this.rt.texture; this.pass(this.lumMat, this.lumRT);
       const prev = this.adaptRT[this.adaptI], next = this.adaptRT[1 - this.adaptI];
@@ -3522,9 +3576,9 @@ function setShadowSize(L, size) { if (!L) return; L.shadow.mapSize.set(size, siz
 
 const Player = {
   pos: new THREE.Vector3(), yaw: 0, pitch: 0, vel: new THREE.Vector2(), stamina: 1, exhausted: false, battery: 1, lightOn: true,
-  bobT: 0, stepAcc: 0, eye: 1.62, cam: null, flash: null, env: null, frozen: false, breathT: 0, flick: 1, fov: 70, moving: false, sprinting: false, y: 0,
+  bobT: 0, stepAcc: 0, eye: 1.62, aiming: false, aimK: 0, vy: 0, jumpY: 0, slideT: 0, slideDir: new THREE.Vector2(), landT: 0, cam: null, flash: null, env: null, frozen: false, breathT: 0, flick: 1, fov: 70, moving: false, sprinting: false, y: 0,
   attach(cam, env, flash) { this.cam = cam; this.env = env; this.flash = flash; },
-  place(x, z, yaw, pitch = 0) { this.pos.set(x, 0, z); this.yaw = yaw; this.pitch = pitch; this.vel.set(0, 0); this.y = this.env.surfaceY(x, z); this.applyCam(0); },
+  place(x, z, yaw, pitch = 0) { this.vy = 0; this.jumpY = 0; this.slideT = 0; this.pos.set(x, 0, z); this.yaw = yaw; this.pitch = pitch; this.vel.set(0, 0); this.y = this.env.surfaceY(x, z); this.applyCam(0); },
   look() {
     const s = 0.0022 * CFG.sens;
     this.yaw -= Input.dx * s; this.pitch -= Input.dy * s * (CFG.invert ? -1 : 1);
@@ -3541,16 +3595,33 @@ const Player = {
       if (Input.down('KeyA')) s -= 1; if (Input.down('KeyD')) s += 1;
     }
     const moving = f !== 0 || s !== 0, len = Math.hypot(f, s) || 1; f /= len; s /= len;
-    this.crouching = !held && (Input.down('KeyC') || Input.down('ControlLeft'));
-    const wantRun = (Input.down('ShiftLeft') || Input.down('ShiftRight')) && moving && f >= 0 && !this.exhausted && this.stamina > 0 && !this.crouching;
+    // slide: crouch while sprinting
+    if (!held && this.sprinting && this.slideT <= 0 && this.jumpY <= 0 && (Input.hit.has('KeyC') || Input.hit.has('ControlLeft'))) {
+      const vl = Math.hypot(this.vel.x, this.vel.y) || 1; this.slideDir.set(this.vel.x / vl, this.vel.y / vl); this.slideT = 0.7;
+      if (SFX.ok()) SFX.burst(SFX.now, 0.6, 0.12, 'bandpass', 700, 0.6, SFX.sfx, 0.8, 0.02);
+    }
+    if (this.slideT > 0) this.slideT = Math.max(0, this.slideT - dt);
+    this.crouching = !held && (Input.down('KeyC') || Input.down('ControlLeft') || this.slideT > 0);
+    // aim: right mouse focuses the flashlight into a long beam
+    this.aiming = !held && Input.rmb && this.slideT <= 0;
+    this.aimK = damp(this.aimK, this.aiming ? 1 : 0, 10, dt);
+    // jump
+    if (!held && Input.hit.has('Space') && this.jumpY <= 0 && this.vy <= 0 && !this.crouching && this.stamina > 0.08) { this.vy = 4.4; this.stamina = Math.max(0, this.stamina - 0.06); }
+    if (this.vy !== 0 || this.jumpY > 0) {
+      this.jumpY += this.vy * dt; this.vy -= 13 * dt;
+      if (this.jumpY <= 0) { this.jumpY = 0; this.vy = 0; this.landT = 0.25; VM.kick(); SFX.step(this.env.surfaceKind(this.pos.x, this.pos.z), 1.3); }
+    }
+    if (this.landT > 0) this.landT -= dt;
+    const wantRun = (Input.down('ShiftLeft') || Input.down('ShiftRight')) && moving && f >= 0 && !this.exhausted && this.stamina > 0 && !this.crouching && !this.aiming;
     const boost = Admin.speed || 1, walk = (this.crouching ? 1.8 : (opts.walk || 3.7)) * boost, run = (opts.run || 6.4) * boost;
-    let speed = moving ? (wantRun ? run : walk) * (f < 0 ? 0.7 : 1) : 0;
+    let speed = moving ? (wantRun ? run : walk) * (f < 0 ? 0.7 : 1) * (this.aiming ? 0.62 : 1) : 0;
     this.sprinting = wantRun;
     if (wantRun) { this.stamina = Math.max(0, this.stamina - dt / (5.5 * Perks.stamK())); if (this.stamina <= 0) { this.exhausted = true; this.breathT = 0; } }
     else { this.stamina = Math.min(1, this.stamina + dt * (moving ? 0.11 : 0.18) * Perks.regenK()); if (this.exhausted && this.stamina > 0.35) this.exhausted = false; }
     if (this.exhausted) { this.breathT -= dt; if (this.breathT <= 0 && SFX.ok()) { this.breathT = 1.05; SFX.burst(SFX.now, 0.55, 0.07, 'bandpass', 900, 1.2, SFX.sfx, 1, 0.15); } }
     const fx = -Math.sin(this.yaw), fz = -Math.cos(this.yaw), rx = Math.cos(this.yaw), rz = -Math.sin(this.yaw);
-    const tvx = (fx * f + rx * s) * speed, tvz = (fz * f + rz * s) * speed;
+    let tvx = (fx * f + rx * s) * speed, tvz = (fz * f + rz * s) * speed;
+    if (this.slideT > 0) { const ss = lerp(3.2, 7.8, this.slideT / 0.7) * (Admin.speed || 1); tvx = this.slideDir.x * ss; tvz = this.slideDir.y * ss; }
     this.vel.x = damp(this.vel.x, tvx, 12, dt); this.vel.y = damp(this.vel.y, tvz, 12, dt);
     const ox = this.pos.x, oz = this.pos.z;
     let nx = ox + this.vel.x * dt, nz = oz + this.vel.y * dt;
@@ -3569,18 +3640,18 @@ const Player = {
       const stride = this.sprinting ? 1.05 : 0.78;
       if (this.stepAcc > stride) { this.stepAcc = 0; SFX.step(env.surfaceKind(this.pos.x, this.pos.z), this.sprinting ? 1.2 : this.crouching ? 0.3 : 0.8); }
     }
-    this.fov = damp(this.fov, this.sprinting ? 76 : 70, 4, dt);
+    this.fov = damp(this.fov, (this.sprinting ? 76 : 70) - this.aimK * 14 + (this.slideT > 0 ? 6 : 0), this.aiming ? 9 : 4, dt);
     this.eye = damp(this.eye, this.crouching ? 1.05 : 1.62, 10, dt);
     // how far away Joury can hear you
-    this.noise = !this.moving ? 0 : this.sprinting ? 32 : this.crouching ? 3 : (env.surfaceKind(this.pos.x, this.pos.z) === 'wood' ? 15 : 10);
+    this.noise = this.landT > 0 ? 14 : this.slideT > 0 ? 16 : !this.moving ? 0 : this.sprinting ? 32 : this.crouching ? 3 : (env.surfaceKind(this.pos.x, this.pos.z) === 'wood' ? 15 : 10);
     this.applyCam(dt);
   },
   applyCam() {
     const c = this.cam; if (!c) return;
     const sp = Math.min(1, Math.hypot(this.vel.x, this.vel.y) / 3.7);
     const bob = Math.sin(this.bobT * 2) * 0.04 * sp, roll = Math.sin(this.bobT) * 0.008 * sp;
-    c.position.set(this.pos.x, this.y + this.eye + bob, this.pos.z);
-    c.rotation.set(this.pitch, this.yaw, roll);
+    c.position.set(this.pos.x, this.y + this.eye + bob * (1 - this.aimK * 0.7) + this.jumpY, this.pos.z);
+    c.rotation.set(this.pitch, this.yaw, roll * (1 - this.aimK) + (this.slideT > 0 ? 0.045 * Math.min(1, this.slideT * 4) : 0));
     if (Math.abs(c.fov - this.fov) > 0.01) { c.fov = this.fov; c.updateProjectionMatrix(); }
   },
   // flashlight battery & flicker (world only)
@@ -3597,14 +3668,85 @@ const Player = {
       this.flick = Math.min(1, this.flick + dt * 6);
       k = this.flick * (0.55 + 0.45 * Math.min(1, this.battery / 0.25));
     } else k = 0;
-    L.intensity = L.userData.base * k; L.userData.fill.intensity = 0.6 * k + 0.05;
-    if (L.userData.beam) L.userData.beam.material.uniforms.uStrength.value = L.userData.beamK * k;
+    // aiming focuses the beam: narrower, brighter, longer
+    const a = this.aimK; if (L.userData.dist0 === undefined) { L.userData.dist0 = L.distance; L.userData.angle0 = L.angle; }
+    L.angle = L.userData.angle0 * (1 - 0.42 * a); L.distance = L.userData.dist0 * (1 + 0.4 * a);
+    L.intensity = L.userData.base * k * (1 + 0.7 * a); L.userData.fill.intensity = 0.6 * k + 0.05;
+    if (L.userData.beam) { L.userData.beam.material.uniforms.uStrength.value = L.userData.beamK * k * (1 + 0.4 * a); L.userData.beam.scale.set(1 - 0.4 * a, 1 - 0.4 * a, 1 + 0.3 * a); }
   },
   toggleLight() {
     if (!this.lightOn && this.battery <= 0) { HUD.toast('No battery left. Look for glowing batteries.'); SFX.flashlight(false); return; }
     this.lightOn = !this.lightOn; SFX.flashlight(this.lightOn);
   },
   forward(v) { return v.set(-Math.sin(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), -Math.cos(this.yaw) * Math.cos(this.pitch)); },
+};
+
+// =====================================================================
+//  VIEWMODEL — your arm and flashlight on screen, like a shooter's weapon view.
+//  It sways when you turn, bobs when you walk, drops when you sprint,
+//  comes up and steadies when you aim (right mouse), and kicks when you land.
+// =====================================================================
+const VM = {
+  scene: null, cam: null, root: null, visible: false, built: false,
+  sway: new THREE.Vector2(), swayV: new THREE.Vector2(), pose: { sprint: 0, aim: 0, crouch: 0, land: 0, slide: 0 }, t: 0,
+  build() {
+    if (this.built) return; this.built = true;
+    const scene = this.scene = new THREE.Scene();
+    this.cam = GFX.camera(58, 0.01, 10);
+    this.hemi = new THREE.HemisphereLight(0x9aa8c8, 0x2a2420, 0.35); scene.add(this.hemi);
+    this.key = new THREE.PointLight(0xffe2b8, 0, 1.6, 1.6); this.key.position.set(0.12, -0.02, -0.55); scene.add(this.key); // light spilling back off the beam
+    const rim = new THREE.DirectionalLight(0x8090b0, 0.25); rim.position.set(-1, 1, 1); scene.add(rim);
+    const root = this.root = new THREE.Group(); scene.add(root);
+    const jacket = clothMat(0x2a2e36, 0.95), cuff = clothMat(0x1c1f24, 0.95), skin = skinMat(0xd9a27a);
+    const metal = plainMat(0x2a2b2e, 0.35, 0.75), grip = plainMat(0x141414, 0.8), chrome = plainMat(0xc8c8cc, 0.2, 1.0);
+    // forearm in a jacket sleeve, coming in from the bottom right
+    const arm = new THREE.Group(); arm.position.set(0.22, -0.26, -0.28); arm.rotation.set(0.25, 0.32, 0.1); root.add(arm);
+    const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.065, 0.46, 14), jacket); sleeve.rotation.x = Math.PI / 2; sleeve.position.z = 0.16; arm.add(sleeve);
+    const c = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.054, 0.05, 14), cuff); c.rotation.x = Math.PI / 2; c.position.z = -0.08; arm.add(c);
+    // hand wrapped around the flashlight
+    const hand = new THREE.Group(); hand.position.set(0, 0.005, -0.15); arm.add(hand);
+    const palm = new THREE.Mesh(new THREE.SphereGeometry(0.05, 14, 10), skin); palm.scale.set(0.95, 0.8, 1.25); hand.add(palm);
+    for (let f = 0; f < 4; f++) { const fg = new THREE.Mesh(new THREE.CapsuleGeometry(0.0135, 0.04, 4, 8), skin); fg.position.set(-0.034, 0.028 - f * 0.0035, -0.035 + f * 0.024); fg.rotation.set(0, 0, 1.25); hand.add(fg); }
+    const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.015, 0.045, 4, 8), skin); thumb.position.set(0.03, 0.04, -0.03); thumb.rotation.set(0.9, 0, -0.5); hand.add(thumb);
+    // the flashlight: rubber grip, metal head, glass lens
+    const fl = this.fl = new THREE.Group(); fl.position.set(-0.005, 0.03, -0.06); hand.add(fl);
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.2, 16), grip); body.rotation.x = Math.PI / 2; fl.add(body);
+    for (let r = 0; r < 5; r++) { const ring = new THREE.Mesh(new THREE.TorusGeometry(0.0225, 0.003, 6, 16), metal); ring.position.z = 0.05 - r * 0.022; fl.add(ring); }
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.023, 0.05, 16), metal); neck.rotation.x = Math.PI / 2; neck.position.z = -0.125; fl.add(neck);
+    const head = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.036, 0.035, 18), metal); head.rotation.x = Math.PI / 2; head.position.z = -0.165; fl.add(head);
+    const bezel = new THREE.Mesh(new THREE.TorusGeometry(0.034, 0.004, 6, 20), chrome); bezel.position.z = -0.183; fl.add(bezel);
+    this.lensMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.1, 0.1, 0.1) });
+    const lens = new THREE.Mesh(new THREE.CircleGeometry(0.031, 20), this.lensMat); lens.position.z = -0.1835; lens.rotation.y = Math.PI; fl.add(lens);
+    const button = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.006, 0.02), plainMat(0x7a1418, 0.5)); button.position.set(0, 0.023, -0.02); fl.add(button);
+    root.traverse((m) => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } });
+    GFX.overlay = this;
+  },
+  // what the flashlight is doing: 'on', 'off', 'uv'
+  update(dt, show, light, k) {
+    if (!this.built) this.build();
+    this.visible = !!show; if (!show) return;
+    this.t += dt; const P = Player, p = this.pose;
+    // sway: the arm lags behind where you turn
+    const tx = clamp(-Input.dx * 0.0016, -0.06, 0.06), ty = clamp(Input.dy * 0.0016, -0.06, 0.06);
+    this.swayV.x += (tx - this.sway.x) * 60 * dt; this.swayV.y += (ty - this.sway.y) * 60 * dt;
+    this.swayV.multiplyScalar(Math.exp(-14 * dt)); this.sway.x += this.swayV.x * dt * 8; this.sway.y += this.swayV.y * dt * 8;
+    this.sway.multiplyScalar(Math.exp(-6 * dt));
+    p.sprint = damp(p.sprint, P.sprinting && !P.aiming ? 1 : 0, 9, dt); p.aim = damp(p.aim, P.aiming ? 1 : 0, 12, dt);
+    p.crouch = damp(p.crouch, P.crouching ? 1 : 0, 8, dt); p.slide = damp(p.slide, P.slideT > 0 ? 1 : 0, 10, dt); p.land = damp(p.land, 0, 9, dt);
+    const sp = Math.min(1, Math.hypot(P.vel.x, P.vel.y) / 3.7), bob = P.bobT * 2, still = 1 - p.aim * 0.75;
+    const R = this.root;
+    R.position.set(
+      this.sway.x + Math.sin(bob * 0.5) * 0.012 * sp * still - p.aim * 0.17 + p.sprint * 0.05,
+      -this.sway.y + Math.abs(Math.cos(bob * 0.5)) * -0.01 * sp * still + p.aim * 0.09 - p.sprint * 0.07 - p.land * 0.05 + Math.sin(this.t * 1.6) * 0.002 * (1 - sp),
+      p.aim * 0.03 + p.slide * 0.04);
+    R.rotation.set(-p.sprint * 0.55 + p.land * 0.12 + this.sway.y * 1.5, p.sprint * 0.55 - p.aim * 0.3 + this.sway.x * 2, -p.sprint * 0.35 + p.slide * 0.25 + Math.sin(bob * 0.5) * 0.02 * sp * still);
+    // lens and the light it throws back on your hand
+    const on = light === 'on', uv = light === 'uv', kk = k === undefined ? 1 : k;
+    this.lensMat.color.setRGB(on ? 3.2 * kk : uv ? 1.2 * kk : 0.06, on ? 3.0 * kk : uv ? 0.4 * kk : 0.06, on ? 2.4 * kk : uv ? 3.0 * kk : 0.07);
+    this.key.color.setHex(uv ? 0x9a5cff : 0xffe2b8); this.key.intensity = (on || uv) ? 0.9 * kk : 0;
+  },
+  // landing from a jump
+  kick() { this.pose.land = 1; },
 };
 
 // =====================================================================
@@ -6179,6 +6321,26 @@ const HUD = {
     }).join('');
     if (el.innerHTML !== html) el.innerHTML = html;
   },
+  // A shooter-style compass strip: where you are facing, and where things are
+  compass(markers) {
+    const cv = $('compass'); if (!cv) return; const dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.round(cv.clientWidth * dpr) || 560, H = Math.round(40 * dpr);
+    if (cv.width !== W) { cv.width = W; cv.height = H; }
+    const g = cv.getContext('2d'), k = dpr, mid = W / 2, span = Math.PI / 2.4, heading = -Player.yaw, X = (b) => mid + angDiff(heading, b) / span * mid;
+    g.clearRect(0, 0, W, H);
+    const grd = g.createLinearGradient(0, 0, W, 0); grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(0.2, 'rgba(0,0,0,.45)'); grd.addColorStop(0.8, 'rgba(0,0,0,.45)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grd; g.fillRect(0, 8 * k, W, 22 * k);
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (let d = 0; d < 360; d += 15) {
+      const b = d * Math.PI / 180, x = X(b); if (x < 0 || x > W) continue; const fade = 1 - Math.abs(x - mid) / mid;
+      const card = d % 90 === 0, lab = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' }[d] || (d % 45 === 0 ? { 45: 'NE', 135: 'SE', 225: 'SW', 315: 'NW' }[d] : String(d));
+      g.globalAlpha = fade;
+      if (card || d % 45 === 0) { g.fillStyle = card ? '#ffffff' : '#d8d0c0'; g.font = `600 ${Math.round((card ? 13 : 10.5) * k)}px Inter, system-ui, sans-serif`; g.fillText(lab, x, 19 * k); }
+      else { g.fillStyle = 'rgba(232,226,212,.7)'; g.fillRect(x - 0.5 * k, 15 * k, 1 * k, 8 * k); }
+    }
+    g.globalAlpha = 1;
+    (markers || []).forEach((m) => { const b = Math.atan2(m.x - Player.pos.x, -(m.z - Player.pos.z)), x = X(b); if (x < 4 * k || x > W - 4 * k) return; const fade = 1 - Math.abs(x - mid) / mid; g.globalAlpha = 0.35 + 0.65 * fade; g.fillStyle = m.c; g.beginPath(); g.moveTo(x, 33 * k); g.lineTo(x - 5 * k, 39 * k); g.lineTo(x + 5 * k, 39 * k); g.closePath(); g.fill(); if (m.d) { g.font = `600 ${Math.round(9 * k)}px Inter, system-ui, sans-serif`; g.fillText(Math.round(Math.hypot(m.x - Player.pos.x, m.z - Player.pos.z)) + 'm', x, 4.5 * k); } });
+    g.globalAlpha = 1; g.fillStyle = '#ffd86a'; g.fillRect(mid - 1 * k, 6 * k, 2 * k, 6 * k);
+  },
   // Online: who is playing, and who is locked in the cabin
   roster() {
     const el = $('roster'); if (!el) return;
@@ -6346,11 +6508,12 @@ const Game = {
         HUD.buildMapImage();
         World.reset(); Joury.reset();
         Player.attach(World.cam, World, this.worldFlash); Player.place(0, World.dock.start.z, 0);
+        VM.build();
       }))
       .then(() => step(74, "Building Joury's house…", () => { House.build(); House.reset(); }))
       .then(() => step(76, 'Compiling shaders…', () => { ['bridge', 'room', 'street', 'lake'].forEach((n) => Story.scene(n)); this.ending = this.buildEnding(); }))
       .then(async () => {
-        const r = GFX.renderer, jobs = [[World.scene, World.cam], [Cabin.scene, Cabin.cam], [House.scene, House.cam]].concat(['bridge', 'room', 'street', 'lake'].map((n) => [Story.scene(n).scene, Story.cam]), [[this.ending.scene, this.ending.cam]]);
+        const r = GFX.renderer, jobs = [[World.scene, World.cam], [Cabin.scene, Cabin.cam], [House.scene, House.cam], [VM.scene, VM.cam]].concat(['bridge', 'room', 'street', 'lake'].map((n) => [Story.scene(n).scene, Story.cam]), [[this.ending.scene, this.ending.cam]]);
         for (let i = 0; i < jobs.length; i++) {
           try { if (r.compileAsync && r.extensions.has('KHR_parallel_shader_compile')) await r.compileAsync(jobs[i][0], jobs[i][1]); else r.compile(jobs[i][0], jobs[i][1]); } catch (e) { console.warn('precompile skipped', e); }
           $('loadFill').style.width = (76 + (i + 1) / jobs.length * 22) + '%';
@@ -6433,7 +6596,7 @@ const Game = {
     House.reset(); this.stats = { time: 0, caught: 0 }; this.menuOpen = false; this.mapOpen = false;
     Player.attach(House.cam, House, House.flash); Player.place(0, 22.4, 0, 0); Player.stamina = 1; Player.battery = 1; Player.lightOn = true; Player.exhausted = false; Player.frozen = false;
     HUD.show(true); HUD.parts(false); HUD.stun(0); HUD.cabinTimer(null); HUD.lightHint(null); $('hideOverlay').classList.remove('on');
-    ['minimap', 'kidsBar', 'chat', 'roster', 'crackers'].forEach((id) => { $(id).style.display = 'none'; }); $('objective').style.display = '';
+    ['minimap', 'kidsBar', 'chat', 'roster', 'crackers', 'compass'].forEach((id) => { $(id).style.display = 'none'; }); $('objective').style.display = '';
     this.state = 'house';
     HUD.toast("<b>WASD</b> move · <b>Shift</b> sprint (loud) · <b>C</b> crouch (quiet) · <b>F</b> flashlight · <b>E</b> interact<br>Gabe is locked inside. Hear the music? That means Joury is at his PC.", 8);
     Input.requestLock();
@@ -6457,6 +6620,7 @@ const Game = {
       if (this.fadeIn > 0) { this.fadeIn -= dt * 0.8; fx.fade = Math.max(0, this.fadeIn); } else fx.fade = 0;
     }
     if (SFX.ctx) { SFX.setLoop('wind', 0.06); SFX.setLoop('rain', 0); SFX.setLoop('water', 0); SFX.setLoop('drone', 0.03 + House.danger * 0.25); SFX.setLoop('static', fx.static * 0.15); SFX.update(dt, House.danger); }
+    VM.update(dt, !House.hidden && House.caughtT < 0 && !$('inspect').classList.contains('on'), Player.lightOn ? 'on' : 'off', House.flash.intensity / Math.max(0.01, House.flash.userData.base * (1 + 0.7 * Player.aimK)));
     GFX.render(House.scene, House.cam, dt);
   },
   houseWin() {
@@ -6535,7 +6699,7 @@ const Game = {
     Crackers.reset(); Vip.reset(); Perks.checkSquad();
     if (Net.amJoury()) { const dr = World.cabin.door; Player.place(dr.x, dr.z + 1.2, Math.PI, 0); Player.lightOn = false; }
     HUD.drawKidIcons([]); HUD.show(true); HUD.parts(false); HUD.stun(0); HUD.cabinTimer(null); HUD.lightHint(null);
-    $('minimap').style.display = ''; $('kidsBar').style.display = ''; $('objective').style.display = '';
+    $('minimap').style.display = ''; $('kidsBar').style.display = ''; $('objective').style.display = ''; $('compass').style.display = '';
     this.state = 'play';
     HUD.toast('<b>WASD</b> move · <b>Mouse</b> look · <b>Shift</b> sprint · <b>C</b> crouch · <b>F</b> flashlight · <b>E</b> interact · <b>M</b> map' + (Net.on ? ' · <b>T</b> chat' : '') + '<br>Free all 10 kids. Yellow dots on the map show where they are.' + (Net.on ? '<br>Split up to find them faster. Joury can only chase one of you at a time.' : ''), Net.on ? 9 : 7);
     setTimeout(() => { if (this.state === 'play') Scare.welcome(); }, 2500);
@@ -6726,7 +6890,7 @@ const Game = {
     if (newAttempt) this.attempt++;
     Cabin.reset(this.attempt);
     this.state = 'cabin'; GFX.fx.static = 0.2; GFX.fx.red = 0; GFX.fx.fade = 1;
-    HUD.show(true); $('minimap').style.display = 'none'; $('objective').style.display = 'none'; HUD.parts(false); HUD.stun(0);
+    HUD.show(true); $('minimap').style.display = 'none'; $('objective').style.display = 'none'; $('compass').style.display = 'none'; HUD.parts(false); HUD.stun(0);
     HUD.lightHint(null); Input.requestLock();
   },
   cabinInteract() {
@@ -6743,7 +6907,7 @@ const Game = {
   },
   escapeCabin() {
     this.state = 'play'; HUD.cabinTimer(null); HUD.lightHint(null);
-    $('minimap').style.display = ''; $('objective').style.display = ''; HUD.parts(this.phase === 'boat');
+    $('minimap').style.display = ''; $('compass').style.display = ''; $('objective').style.display = ''; HUD.parts(this.phase === 'boat');
     Player.attach(World.cam, World, this.worldFlash);
     const d = World.cabin.door; Player.place(d.x, d.z + 0.6, Math.PI, 0); Player.lightOn = Player.battery > 0; Player.frozen = false;
     if (Net.on) Net.act('escaped'); else Joury.stun(20); // online, the host's Joury is the one who gets stunned
@@ -6851,7 +7015,7 @@ const Game = {
     HUD.update(dt); Input.endFrame();
   },
   frame(dt) {
-    const fx = GFX.fx;
+    const fx = GFX.fx; VM.visible = false; // each state below decides whether your hands are on screen
     fx.flash = Math.max(0, fx.flash - dt * 2.5);
     switch (this.state) {
       case 'title': {
@@ -6927,6 +7091,8 @@ const Game = {
     HUD.bars(Player.stamina, Player.battery, Player.exhausted, true);
     HUD.stun(Joury.state === 'stunned' ? Joury.stunT : 0); HUD.roster();
     Vip.update(dt); Vip.updateTag();
+    { const L = this.worldFlash; VM.update(dt, !vip && this.fadeIn <= 0.5, Player.lightOn ? 'on' : 'off', L ? L.intensity / Math.max(0.01, L.userData.base * (1 + 0.7 * Player.aimK)) : 1); }
+    { const mk = []; if (this.phase === 'kids') World.kids.forEach((k) => { if (!k.saved) mk.push({ x: k.home.x, z: k.home.z, c: '#ffd23a' }); }); else { World.parts.forEach((p) => { if (!p.taken) mk.push({ x: p.x, z: p.z, c: '#ff9c2b', d: 1 }); }); mk.push({ x: 0, z: World.dock.z1, c: '#5fc8ff', d: 1 }); } HUD.compass(mk); }
     const mg = clamp(danger * 1.1 - 0.25, 0, 0.85); HUD.minimap(mg);
     if (this.mapOpen) HUD.bigmap(mg);
     GFX.render(World.scene, World.cam, dt);
@@ -6946,6 +7112,7 @@ const Game = {
     HUD.lightHint(Cabin.s.uvTaken ? `F: switch light (${Cabin.light === 'uv' ? 'UV' : Cabin.light === 'flash' ? 'flashlight' : 'off'})` : null); HUD.roster();
     Chat.update(dt, 0);
     if (SFX.ctx) { SFX.setLoop('wind', 0.04); SFX.setLoop('water', 0); SFX.setLoop('rain', 0.07); SFX.setLoop('drone', low ? 0.18 : 0.05); SFX.setLoop('static', fx.static * 0.15); SFX.update(dt, low ? 0.5 : 0); }
+    VM.update(dt, Cabin.wakeT <= 0 && !$('inspect').classList.contains('on') && !$('keypad').classList.contains('on'), Cabin.light === 'uv' ? 'uv' : Cabin.light === 'flash' ? 'on' : 'off', 1);
     GFX.render(Cabin.scene, Cabin.cam, dt);
   },
 };

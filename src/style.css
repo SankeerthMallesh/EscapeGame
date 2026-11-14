@@ -421,6 +421,9 @@ input[type=range]{accent-color:#b3141c}
 #hideOverlay.on{display:block}
 #btnHouse span{color:#ffb070}
 
+/* ---------- compass strip (top centre) ---------- */
+#compass{position:absolute;left:50%;top:14px;transform:translateX(-50%);width:min(560px,60vw);height:40px;pointer-events:none}
+
 /* ---------- admin panel ---------- */
 #admin{align-items:stretch;justify-content:flex-end;z-index:35;pointer-events:none}
 #admin.on{display:flex}

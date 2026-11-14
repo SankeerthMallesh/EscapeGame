@@ -70,6 +70,37 @@ void main(){ vec2 t = uTexel; vec3 s = texture2D(tSrc, vUv + vec2(-t.x * 2.0, 0.
   s += 2.0 * (texture2D(tSrc, vUv + vec2(-t.x, t.y)).rgb + texture2D(tSrc, vUv + vec2(t.x, t.y)).rgb + texture2D(tSrc, vUv + vec2(t.x, -t.y)).rgb + texture2D(tSrc, vUv + vec2(-t.x, -t.y)).rgb);
   gl_FragColor = vec4(s / 12.0, 1.0); }`;
 
+
+// Ambient occlusion (screen-space): soft contact shadows in corners, under furniture, where things meet the ground
+const AO_FS = `precision highp float;
+uniform sampler2D tDepth; uniform mat4 uProjInv; uniform vec2 uRes; uniform float uRadius, uIntensity, uProjY, uTime; varying vec2 vUv;
+vec3 viewPos(vec2 uv) { float z = texture2D(tDepth, uv).r; vec4 p = uProjInv * vec4(uv * 2.0 - 1.0, z * 2.0 - 1.0, 1.0); return p.xyz / p.w; }
+float h1(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+void main() {
+  float z0 = texture2D(tDepth, vUv).r; if (z0 > 0.99999) { gl_FragColor = vec4(1.0); return; }
+  vec3 p = viewPos(vUv);
+  vec2 px = 1.0 / uRes;
+  vec3 n = normalize(cross(viewPos(vUv + vec2(px.x, 0.0)) - p, viewPos(vUv + vec2(0.0, px.y)) - p));
+  float rUV = uRadius * uProjY / max(-p.z, 0.1) * 0.5;
+  if (rUV < 1.5 * px.y) { gl_FragColor = vec4(1.0); return; }
+  float a0 = h1(gl_FragCoord.xy) * 6.2831, ao = 0.0;
+  for (int i = 0; i < 12; i++) {
+    float fi = float(i), t = (fi + 0.5) / 12.0, ang = a0 + fi * 2.39996;
+    vec2 suv = vUv + vec2(cos(ang), sin(ang)) * rUV * t;
+    vec3 v = viewPos(suv) - p; float d2 = dot(v, v);
+    float range = 1.0 - smoothstep(uRadius * 0.6, uRadius * 1.6, sqrt(d2));
+    ao += max(0.0, dot(v, n) - 0.012 * -p.z) / (d2 + 0.02) * range;
+  }
+  ao = clamp(1.0 - ao / 12.0 * uIntensity, 0.0, 1.0);
+  ao = mix(ao, 1.0, smoothstep(28.0, 60.0, -p.z));
+  gl_FragColor = vec4(vec3(ao), 1.0);
+}`;
+const AO_MUL_FS = `uniform sampler2D tAO; uniform vec2 uTexel; uniform float uAmount; varying vec2 vUv;
+void main() {
+  float a = texture2D(tAO, vUv).r * 0.36 + (texture2D(tAO, vUv + vec2(uTexel.x, 0.0)).r + texture2D(tAO, vUv - vec2(uTexel.x, 0.0)).r + texture2D(tAO, vUv + vec2(0.0, uTexel.y)).r + texture2D(tAO, vUv - vec2(0.0, uTexel.y)).r) * 0.16;
+  gl_FragColor = vec4(vec3(mix(1.0, a, uAmount)), 1.0);
+}`;
+
 const GFX = {
   renderer: null, rt: null, postMat: null, postScene: null, postCam: null, w: 1, h: 1, time: 0, cams: [], bloomRTs: [],
   fx: { grain: 0.06, static: 0, vignette: 1, red: 0, fade: 0, flash: 0, aberr: 0.5, exposure: 1.0, warm: 0, shake: 0, bloom: 0.9, sat: 0.84, lift: 0.004, auto: 0, key: 0.05 },
@@ -93,6 +124,9 @@ const GFX = {
     this.adaptMat = new THREE.ShaderMaterial({ uniforms: { tPrev: { value: null }, tCur: { value: null }, uRate: { value: 1 } }, vertexShader: BLOOM_VS, fragmentShader: ADAPT_FS, depthTest: false, depthWrite: false });
     const one = () => new THREE.WebGLRenderTarget(1, 1, { type: THREE.FloatType, depthBuffer: false, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
     this.lumRT = one(); this.adaptRT = [one(), one()]; this.adaptI = 0; this.adaptFresh = true;
+    this.aoMat = new THREE.ShaderMaterial({ uniforms: { tDepth: { value: null }, uProjInv: { value: new THREE.Matrix4() }, uRes: { value: new THREE.Vector2(1, 1) }, uRadius: { value: 0.7 }, uIntensity: { value: 1.6 }, uProjY: { value: 1 }, uTime: { value: 0 } }, vertexShader: BLOOM_VS, fragmentShader: AO_FS, depthTest: false, depthWrite: false });
+    this.aoMulMat = new THREE.ShaderMaterial({ uniforms: { tAO: { value: null }, uTexel: { value: new THREE.Vector2() }, uAmount: { value: 1 } }, vertexShader: BLOOM_VS, fragmentShader: AO_MUL_FS, depthTest: false, depthWrite: false, transparent: true,
+      blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.ZeroFactor, blendDst: THREE.SrcColorFactor, blendSrcAlpha: THREE.ZeroFactor, blendDstAlpha: THREE.OneFactor });
     this.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.postMat);
     this.quad.frustumCulled = false; this.postScene.add(this.quad);
     this.resize();
@@ -103,7 +137,10 @@ const GFX = {
     if (this.rt) this.rt.dispose();
     const q = Q();
     const W = Math.max(1, Math.floor(this.w * q.pr)), H = Math.max(1, Math.floor(this.h * q.pr));
-    this.rt = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType, samples: q.msaa, depthBuffer: true });
+    if (this.aoRT) { this.aoRT.dispose(); this.aoRT = null; }
+    const depthTexture = q.ao ? new THREE.DepthTexture(W, H, THREE.UnsignedIntType) : undefined;
+    this.rt = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType, samples: q.msaa, depthBuffer: true, depthTexture });
+    if (q.ao) this.aoRT = new THREE.WebGLRenderTarget(Math.max(1, W >> 1), Math.max(1, H >> 1), { type: THREE.UnsignedByteType, depthBuffer: false });
     this.bloomRTs.forEach((t) => t.dispose()); this.bloomRTs = [];
     if (q.bloom) { let bw = W, bh = H; for (let i = 0; i < 5; i++) { bw = Math.max(1, bw >> 1); bh = Math.max(1, bh >> 1); this.bloomRTs.push(new THREE.WebGLRenderTarget(bw, bh, { type: THREE.HalfFloatType, depthBuffer: false })); } }
   },
@@ -136,6 +173,15 @@ const GFX = {
     r.info.autoReset = false; r.info.reset();
     r.setRenderTarget(this.rt); r.render(scene, cam);
     this.stats = { calls: r.info.render.calls, tris: r.info.render.triangles };
+    // ambient occlusion, multiplied into the picture
+    if (this.aoRT && this.rt.depthTexture && f.ao !== 0) {
+      const a = this.aoMat.uniforms; a.tDepth.value = this.rt.depthTexture; a.uProjInv.value.copy(cam.projectionMatrixInverse); a.uProjY.value = cam.projectionMatrix.elements[5]; a.uRes.value.set(this.aoRT.width, this.aoRT.height);
+      this.pass(this.aoMat, this.aoRT);
+      const m = this.aoMulMat.uniforms; m.tAO.value = this.aoRT.texture; m.uTexel.value.set(1 / this.aoRT.width, 1 / this.aoRT.height); m.uAmount.value = f.ao === undefined ? 1 : f.ao;
+      r.autoClear = false; this.pass(this.aoMulMat, this.rt); r.autoClear = true;
+    }
+    // first-person hands and flashlight, drawn on top so they never sink into walls
+    if (this.overlay && this.overlay.visible) { r.setRenderTarget(this.rt); r.autoClear = false; r.clearDepth(); r.render(this.overlay.scene, this.overlay.cam); r.autoClear = true; }
     if (f.auto > 0) {
       this.lumMat.uniforms.tSrc.value = this.rt.texture; this.pass(this.lumMat, this.lumRT);
       const prev = this.adaptRT[this.adaptI], next = this.adaptRT[1 - this.adaptI];

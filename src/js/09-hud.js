@@ -42,6 +42,26 @@ const HUD = {
     }).join('');
     if (el.innerHTML !== html) el.innerHTML = html;
   },
+  // A shooter-style compass strip: where you are facing, and where things are
+  compass(markers) {
+    const cv = $('compass'); if (!cv) return; const dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.round(cv.clientWidth * dpr) || 560, H = Math.round(40 * dpr);
+    if (cv.width !== W) { cv.width = W; cv.height = H; }
+    const g = cv.getContext('2d'), k = dpr, mid = W / 2, span = Math.PI / 2.4, heading = -Player.yaw, X = (b) => mid + angDiff(heading, b) / span * mid;
+    g.clearRect(0, 0, W, H);
+    const grd = g.createLinearGradient(0, 0, W, 0); grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(0.2, 'rgba(0,0,0,.45)'); grd.addColorStop(0.8, 'rgba(0,0,0,.45)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grd; g.fillRect(0, 8 * k, W, 22 * k);
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (let d = 0; d < 360; d += 15) {
+      const b = d * Math.PI / 180, x = X(b); if (x < 0 || x > W) continue; const fade = 1 - Math.abs(x - mid) / mid;
+      const card = d % 90 === 0, lab = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' }[d] || (d % 45 === 0 ? { 45: 'NE', 135: 'SE', 225: 'SW', 315: 'NW' }[d] : String(d));
+      g.globalAlpha = fade;
+      if (card || d % 45 === 0) { g.fillStyle = card ? '#ffffff' : '#d8d0c0'; g.font = `600 ${Math.round((card ? 13 : 10.5) * k)}px Inter, system-ui, sans-serif`; g.fillText(lab, x, 19 * k); }
+      else { g.fillStyle = 'rgba(232,226,212,.7)'; g.fillRect(x - 0.5 * k, 15 * k, 1 * k, 8 * k); }
+    }
+    g.globalAlpha = 1;
+    (markers || []).forEach((m) => { const b = Math.atan2(m.x - Player.pos.x, -(m.z - Player.pos.z)), x = X(b); if (x < 4 * k || x > W - 4 * k) return; const fade = 1 - Math.abs(x - mid) / mid; g.globalAlpha = 0.35 + 0.65 * fade; g.fillStyle = m.c; g.beginPath(); g.moveTo(x, 33 * k); g.lineTo(x - 5 * k, 39 * k); g.lineTo(x + 5 * k, 39 * k); g.closePath(); g.fill(); if (m.d) { g.font = `600 ${Math.round(9 * k)}px Inter, system-ui, sans-serif`; g.fillText(Math.round(Math.hypot(m.x - Player.pos.x, m.z - Player.pos.z)) + 'm', x, 4.5 * k); } });
+    g.globalAlpha = 1; g.fillStyle = '#ffd86a'; g.fillRect(mid - 1 * k, 6 * k, 2 * k, 6 * k);
+  },
   // Online: who is playing, and who is locked in the cabin
   roster() {
     const el = $('roster'); if (!el) return;
