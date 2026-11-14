@@ -23,10 +23,10 @@ const check = (n, ok, x = '') => { results.push(`${ok ? 'PASS' : 'FAIL'}  ${n} $
   // ---- lobby ----
   await A.page.click('#btnTogether'); await A.page.fill('#mpName', 'Hosty'); await A.page.click('#btnHost');
   check('host opens a room', await until(A, 'Net.isHost && Net.peer && Net.peer.open'));
-  const code = await run(A, 'Net.code'); check('room code is 5 characters', /^[A-Z2-9]{5}$/.test(code), code);
-  await B.page.click('#btnTogether'); await B.page.fill('#mpName', 'Sam<b>!'); await B.page.fill('#mpCode', 'ZZZZ9'); await B.page.click('#btnJoin');
+  const code = await run(A, 'Net.code'); check('join code is 5 items', /^[A-HJ-NP-T]{5}$/.test(code) && (await A.page.$$('#roomCode .code-item')).length === 5, code + ' ' + (await A.page.textContent('#roomCode')));
+  await B.page.click('#btnTogether'); await B.page.fill('#mpName', 'Sam<b>!'); await B.page.evaluate(() => EFJ.run("Lobby.setCode('AAAAB')")); await B.page.click('#btnJoin');
   check('wrong code gives a clear error', await until(B, "document.getElementById('lobbyStatus').textContent.includes(\"Couldn't find that room\")", 30000), await B.page.textContent('#lobbyStatus'));
-  await B.page.fill('#mpCode', code.toLowerCase()); await B.page.click('#btnJoin');
+  await B.page.click('#btnClearCode'); for (const ch of code) await B.page.click('#itemGrid .item-tile:nth-child(' + ('ABCDEFGHJKLMNPQRST'.indexOf(ch) + 1) + ')'); await B.page.click('#btnJoin');
   check('second player joins with the code', await until(B, 'Net.isClient && Net.joined && Net.players.size === 2'));
   check('host sees both players', await until(A, 'Net.players.size === 2'), await A.page.textContent('#lobbyPlayers'));
   check('names are cleaned', (await run(B, 'Net.me().name')) === 'Samb', await run(B, 'Net.me().name'));

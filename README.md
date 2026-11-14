@@ -24,6 +24,8 @@ Or play offline:
 | M | Big map |
 | Esc | Pause (online: opens the menu, the game keeps going) |
 | T | Chat with your friends (online) |
+| G | Throw a firecracker (Joury goes to check the noise) |
+| Q | Blink behind the nearest survivor (VIP Joury only) |
 
 ## The game
 
@@ -37,8 +39,8 @@ Or play offline:
 
 Everyone needs the same `escape-from-joury.html` file (or the same link) and an internet connection.
 
-1. One player chooses **Play together → Host a game**. They get a 5-letter room code.
-2. Everyone else chooses **Play together**, types the code and presses **Join**. You can also join a game that has already started.
+1. One player chooses **Play together → Host a game**. They get a join code made of 5 items from the game, like 🎃 Pumpkin · 🗝️ Key · 👻 Ghost · 🕯️ Candle · 🛶 Boat.
+2. Everyone else chooses **Play together**, taps the same 5 items in the same order and presses **Confirm**. You can also join a game that has already started.
 3. The host presses **Start**.
 
 You share one island and one Joury:
@@ -51,6 +53,22 @@ You share one island and one Joury:
 - The ending shows who freed the most kids and who got caught the most.
 
 The game connects browsers directly (WebRTC). The free [PeerJS](https://peerjs.com) service only introduces them, so there is no game server to run. Some strict school or office networks block these connections.
+
+## Codes and referrals
+
+Open **Codes** on the main menu to type in a code. Each one unlocks a bonus for good:
+
+| Code | Bonus |
+|---|---|
+| `KEYBOARD` | **👑 VIP Joury.** In an online game, press *Play as Joury* in the lobby. You become Joury and hunt your friends: they get a 20-second head start, you see in the dark, you catch them by touching them (or by letting them stare at you), and **Q** blinks you behind the nearest one. A gold "VIP · JOURY" title floats over you. |
+| `VIVEK` | Sprint 40% longer. |
+| `CANDY` | Your flashlight battery lasts 50% longer. |
+| `BRIDGE` | Start every game with 2 extra firecrackers. |
+| `REMATCH` | Joury waits 10 seconds longer before he wakes up. |
+
+**Referral codes:** everyone gets their own code (like `JRY-PKDQA`) under Codes. Give it to a friend. When they enter it they get a bonus (a longer-lasting flashlight), and whenever the two of you play online together, you both get the **Squad bonus** (stamina comes back 30% faster).
+
+Bonuses are saved in your browser, so they stay after you close the game.
 
 ## Why it's scary
 

@@ -336,6 +336,56 @@ input[type=range]{accent-color:#b3141c}
 .logo-main{font-size:clamp(64px,8.6vw,128px);white-space:nowrap}
 .menu-item span{white-space:nowrap}
 
+/* ---------- item join codes (Minecraft-style) ---------- */
+.join-box{display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px 14px 12px;background:rgba(0,0,0,.45);border:1px solid rgba(233,226,212,.16);border-radius:3px;max-width:100%}
+.join-title{font-family:var(--display);font-size:20px;letter-spacing:.08em;color:#e9e2d4}
+.code-slots{display:flex;gap:8px}
+.code-slots .slot{width:clamp(44px,8vw,58px);aspect-ratio:1;max-width:100%;display:grid;place-items:center;background:#0d0c0c;border:2px solid #2c2926;border-radius:3px;box-shadow:inset 0 2px 6px rgba(0,0,0,.8)}
+.code-slots .slot.next{border-color:#c9a46a;box-shadow:inset 0 2px 6px rgba(0,0,0,.8),0 0 10px rgba(201,164,106,.45)}
+.code-slots .slot.full{background:#1b1715;border-color:#4a3a2e}
+.code-slots .ico,.item-tile .ico,.code-item .ico{font-size:clamp(22px,4vw,30px);line-height:1;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.item-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:8px;background:#060505;border:1px solid #2a2622;border-radius:3px;width:100%}
+.item-tile{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px 4px;background:linear-gradient(#211d1a,#151210);border:1px solid #3a332c;border-radius:3px;cursor:pointer;color:#a39a8c;transition:transform .08s,border-color .15s,background .15s;min-width:0}
+.item-tile .nm{font-family:var(--ui);font-size:9.5px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.item-tile:hover,.item-tile:focus-visible{border-color:#c9a46a;background:linear-gradient(#2c2622,#1b1714);color:#efe6d4;outline:none}
+.item-tile:active{transform:scale(.94)}
+.join-box .join-row{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.join-box .join-row .btn{font-size:16px;padding:8px 10px}
+.join-box .btn:disabled{opacity:.4;cursor:default}
+.room-code{display:flex;gap:10px;justify-content:center;padding-left:0;letter-spacing:0;font-size:inherit;text-shadow:none}
+.code-item{display:flex;flex-direction:column;align-items:center;gap:4px;width:clamp(54px,9vw,70px);padding:8px 2px 6px;background:#14110f;border:2px solid #4a3a2e;border-radius:3px;box-shadow:0 0 14px rgba(255,150,60,.12)}
+.code-item .ico{font-size:clamp(28px,5vw,38px)}
+.code-item .nm{font-family:var(--ui);font-size:10.5px;color:#d8cbb0;letter-spacing:.04em}
+@media (max-width:520px){.item-grid{grid-template-columns:repeat(4,1fr)}}
+
+/* ---------- codes, referral, VIP, firecrackers ---------- */
+.redeem-row{display:flex;gap:8px}
+.redeem-row input{flex:1;min-width:0;font-family:var(--mono);font-size:17px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);background:rgba(0,0,0,.5);border:1px solid rgba(233,226,212,.28);border-radius:2px;padding:8px 10px}
+.redeem-row input:focus-visible{outline:2px solid #e7c98a;outline-offset:2px}
+.redeem-row .btn{font-size:15px;padding:8px 16px}
+.redeem-status{min-height:20px;margin:8px 0 4px;font-family:var(--ui);font-size:13px;color:#8fe0a0}
+.redeem-status.bad{color:#ff8a7a}
+.perk-list{display:flex;flex-direction:column;gap:6px;margin:4px 0 10px}
+.perk{display:flex;gap:10px;align-items:flex-start;padding:7px 9px;background:rgba(201,164,106,.07);border:1px solid rgba(201,164,106,.25);border-radius:2px;font-family:var(--ui)}
+.perk .pi{font-size:20px;line-height:1.1}
+.perk b{display:block;font-size:13.5px;color:#f0e2c2;font-weight:600}
+.perk small{display:block;font-size:12px;color:#a69e90;line-height:1.4}
+.perk.none{background:none;border-style:dashed;color:#7f786c;font-size:12.5px}
+.ref-box{border-top:1px solid rgba(233,226,212,.1);padding-top:10px;display:flex;flex-direction:column;gap:6px}
+.ref-row{display:flex;align-items:center;gap:10px}
+.ref-code{font-family:var(--mono);font-size:22px;letter-spacing:.14em;color:#ffd9a0;user-select:all;-webkit-user-select:all}
+.ref-row .btn{font-size:13px;padding:5px 12px}
+.ref-note{font-family:var(--ui);font-size:12px;color:#8f877a;line-height:1.45}
+.ref-note:empty{display:none}
+.vip-btn{font-size:15px;padding:8px 18px;border-color:rgba(232,196,106,.6);color:#ffd86a;background:linear-gradient(rgba(90,64,10,.35),rgba(40,28,4,.35))}
+.vip-btn:hover{border-color:#ffd86a;background:rgba(120,86,14,.4)}
+.vip-btn:disabled{opacity:.5;cursor:default}
+.vip-title{font-style:normal;font-weight:600;font-size:.8em;letter-spacing:.06em;color:#ffd86a;text-shadow:0 0 8px rgba(255,200,80,.45)}
+.lobby-players div.is-joury{border-color:rgba(232,196,106,.55);background:rgba(70,48,6,.35)}
+#crackers{position:absolute;right:22px;bottom:20px;font-family:var(--ui);font-size:13px;color:#efe6d4;text-shadow:0 1px 2px #000;display:flex;align-items:center;gap:6px}
+#crackers span{color:#8f877a;font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+#crackers.empty{opacity:.45}
+
 </style>
 </head>
 <body>
@@ -364,6 +414,7 @@ input[type=range]{accent-color:#b3141c}
       <button id="btnTogether" class="menu-item"><span>Play together</span><small>online · 2–4 players · one Joury</small></button>
       <button id="btnSettings" class="menu-item" aria-expanded="false" aria-controls="setPanel"><span>Settings</span><small id="setSummary"></small></button>
       <button id="btnHow" class="menu-item" aria-expanded="false" aria-controls="howPanel"><span>How to play</span><small>controls &amp; tips</small></button>
+      <button id="btnCodes" class="menu-item" aria-expanded="false" aria-controls="codePanel"><span>Codes</span><small id="codesSummary">bonuses &amp; your referral code</small></button>
     </nav>
     <div class="title-panel" id="setPanel" hidden>
       <div class="opt-row"><span class="opt-label">Difficulty</span>
@@ -384,7 +435,7 @@ input[type=range]{accent-color:#b3141c}
       <div class="controls">
         <div><b>WASD</b> move</div><div><b>Mouse</b> look</div><div><b>Shift</b> sprint</div><div><b>C</b> crouch</div>
         <div><b>F</b> flashlight</div><div><b>E</b> interact</div><div><b>M</b> map</div><div><b>Esc</b> menu</div>
-        <div><b>T</b> chat (online)</div>
+        <div><b>T</b> chat (online)</div><div><b>G</b> firecracker</div><div><b>Q</b> blink (VIP Joury)</div>
       </div>
       <ul class="tips">
         <li>Free the 10 kids, then find the 4 boat parts and get to the dock.</li>
@@ -393,6 +444,17 @@ input[type=range]{accent-color:#b3141c}
         <li>Jack-o'-lanterns go dark when he walks past them.</li>
         <li>Online: if a friend is locked in the cabin, bang on its door to buy them time.</li>
       </ul>
+    </div>
+    <div class="title-panel" id="codePanel" hidden>
+      <div class="redeem-row"><input type="text" id="redeemInput" maxlength="16" autocomplete="off" spellcheck="false" placeholder="Enter a code" aria-label="Code"><button id="btnRedeem" class="btn">REDEEM</button></div>
+      <div class="redeem-status" id="redeemStatus" role="status" aria-live="polite"></div>
+      <div class="perk-list" id="perkList"></div>
+      <div class="ref-box">
+        <div class="opt-label">Your referral code</div>
+        <div class="ref-row"><span id="myRef" class="ref-code"></span><button id="btnCopyRef" class="btn ghost">COPY</button></div>
+        <div class="ref-note">Give it to a friend. They enter it here and get a bonus, and when you play online together you both get the Squad bonus.</div>
+        <div class="ref-note" id="refUsedNote"></div>
+      </div>
     </div>
     <div class="title-foot">Headphones recommended · v4</div>
   </div>
@@ -407,13 +469,20 @@ input[type=range]{accent-color:#b3141c}
     <div id="lobbyChoose">
       <button id="btnHost" class="btn">HOST A GAME</button>
       <div class="lobby-or">or join one</div>
-      <div class="join-row"><input type="text" id="mpCode" maxlength="5" autocomplete="off" spellcheck="false" placeholder="CODE" aria-label="Room code"><button id="btnJoin" class="btn">JOIN</button></div>
+      <div class="join-box" role="group" aria-labelledby="joinTitle">
+        <div class="join-title" id="joinTitle">Enter join code</div>
+        <div class="code-slots" id="codeSlots" aria-live="polite"></div>
+        <div class="item-grid" id="itemGrid"></div>
+        <div class="join-row"><button id="btnClearCode" class="btn ghost">CLEAR</button><button id="btnJoin" class="btn">CONFIRM</button></div>
+        <input type="hidden" id="mpCode">
+      </div>
     </div>
     <div id="lobbyRoom">
-      <div class="room-code-label">ROOM CODE</div>
-      <div class="room-code" id="roomCode">-----</div>
+      <div class="room-code-label">JOIN CODE</div>
+      <div class="room-code" id="roomCode"></div>
       <div class="panel-text" id="roomHelp"></div>
       <div class="lobby-players" id="lobbyPlayers"></div>
+      <button id="btnVip" class="btn vip-btn" hidden>👑 PLAY AS JOURY</button>
       <button id="btnStartMp" class="btn big">START</button>
     </div>
     <div class="lobby-status" id="lobbyStatus" role="status" aria-live="polite"></div>
@@ -454,6 +523,7 @@ input[type=range]{accent-color:#b3141c}
   </div>
   <div id="lookHint">Click and drag to look around</div>
   <div id="roster"></div>
+  <div id="crackers"></div>
   <div id="chat"><div id="chatLines"></div><div id="chatTyping"></div><div id="chatInput"></div></div>
 </div>
 
@@ -3345,8 +3415,8 @@ const Player = {
     const walk = this.crouching ? 1.8 : (opts.walk || 3.7), run = opts.run || 6.4;
     let speed = moving ? (wantRun ? run : walk) * (f < 0 ? 0.7 : 1) : 0;
     this.sprinting = wantRun;
-    if (wantRun) { this.stamina = Math.max(0, this.stamina - dt / 5.5); if (this.stamina <= 0) { this.exhausted = true; this.breathT = 0; } }
-    else { this.stamina = Math.min(1, this.stamina + dt * (moving ? 0.11 : 0.18)); if (this.exhausted && this.stamina > 0.35) this.exhausted = false; }
+    if (wantRun) { this.stamina = Math.max(0, this.stamina - dt / (5.5 * Perks.stamK())); if (this.stamina <= 0) { this.exhausted = true; this.breathT = 0; } }
+    else { this.stamina = Math.min(1, this.stamina + dt * (moving ? 0.11 : 0.18) * Perks.regenK()); if (this.exhausted && this.stamina > 0.35) this.exhausted = false; }
     if (this.exhausted) { this.breathT -= dt; if (this.breathT <= 0 && SFX.ok()) { this.breathT = 1.05; SFX.burst(SFX.now, 0.55, 0.07, 'bandpass', 900, 1.2, SFX.sfx, 1, 0.15); } }
     const fx = -Math.sin(this.yaw), fz = -Math.cos(this.yaw), rx = Math.cos(this.yaw), rz = -Math.sin(this.yaw);
     const tvx = (fx * f + rx * s) * speed, tvz = (fz * f + rz * s) * speed;
@@ -3427,7 +3497,7 @@ const Joury = {
   focus: null, fd: 99, anySeen: false, watchT: 0, awayT: 0, net: null, _me: { id: 'me', local: true },
   init(scene) { this.c = makeJoury(); this.c.root.visible = false; scene.add(this.c.root); },
   reset() {
-    this.state = 'dormant'; this.timer = D().startDelay; this.stare = 0; this.seenT = this.unseenT = 0; this.enraged = false; this.danger = 0; this.seen = this.looking = false;
+    this.state = 'dormant'; this.timer = Net.on && Net.jouryPlayer() ? 20 : D().startDelay + (Net.isClient ? 0 : Perks.startDelayBonus()); this.stare = 0; this.seenT = this.unseenT = 0; this.enraged = false; this.danger = 0; this.seen = this.looking = false;
     this.tpT = rand(D().tpMin, D().tpMax); this.lineT = 22; this.stunT = 0; this.tipShown = false;
     this.knowT = 0; this.heardT = 99; this.roamT = 0; this.mimicT = rand(55, 80); this.revealT = 0; this.spotted = false;
     this.focus = null; this.fd = 99; this.anySeen = false; this.watchT = 0; this.awayT = 0; this.net = null; this.moving = false; this.speed = 0;
@@ -3469,7 +3539,7 @@ const Joury = {
     HUD.toast('Somewhere in the woods, a cabin door slams.<br><b>Joury is awake.</b> He hunts by sound — sprinting is loud, crouching (C) is quiet.', 5.5);
   },
   speedFor() { const d = D(); return d.chaseBase + d.chasePerKid * Game.savedCount() + (this.enraged ? d.enrage : 0); },
-  enrage() { this.enraged = true; this.say(pick(JOURY_ANGRY), true, true); if (this.state === 'hunt') this.teleport('far'); },
+  enrage() { this.enraged = true; this.say(pick(JOURY_ANGRY), true, true); if (this.state === 'hunt' && !(Net.on && Net.jouryPlayer())) this.teleport('far'); },
   stun(sec) {
     this.state = 'stunned'; this.stunT = sec; this.stare = 0;
     const d = World.cabin.door; const x = d.x + 3.2, z = d.z + 1.2; this.pos.set(x, World.groundAt(x, z), z); this.c.root.visible = true;
@@ -3520,6 +3590,7 @@ const Joury = {
   },
   // A flash of lightning shows him standing out in the trees — then he's gone
   lightningReveal() {
+    if (Net.on && Net.jouryPlayer()) return false;
     if (this.teleport('reveal') || this.teleport('ahead')) {
       const F = this.focus; this.revealT = 1.5; this.yaw = Math.atan2(F.x - this.pos.x, F.z - this.pos.z);
       if (F.local) this.stare = Math.max(0, this.stare - 1);
@@ -3528,6 +3599,11 @@ const Joury = {
     return false;
   },
   // A loud noise (freeing a kid, grabbing a part, banging on the cabin door)
+  // a firecracker went off: he goes to look
+  hearAt(x, z, radius) {
+    if (Net.isClient || this.state !== 'hunt' || (Net.on && Net.jouryPlayer())) return;
+    if (Math.hypot(x - this.pos.x, z - this.pos.z) < radius) { this.heardT = 0; this.heardPos.set(x, 0, z); this.knowT = 0; }
+  },
   hear(radius, who) {
     if (Net.isClient) { Net.act('noise', { r: radius }); return; }
     const T = who || this.targets()[0]; if (!T || this.state !== 'hunt') return;
@@ -3560,6 +3636,17 @@ const Joury = {
     }
     if (this.state !== 'hunt') return;
     const T = this.targets();
+    // VIP Joury: a player is steering him. Follow them; the rest of his brain is switched off.
+    const jp = Net.isHost && Net.jouryPlayer();
+    if (jp) {
+      if (jp.local) Net.refreshMe();
+      const was = this.pos.x;
+      this.pos.x = jp.x; this.pos.z = jp.z; this.pos.y = World.surfaceY(jp.x, jp.z); this.yaw = jp.yaw + Math.PI;
+      this.moving = jp.mv > 0; this.speed = jp.mv === 2 ? 6.5 : jp.mv === 1 ? 3.6 : 0;
+      this.anySeen = T.some((t) => t.sees); this.revealT = 0; this.focus = null;
+      this.fd = T.reduce((m, t) => Math.min(m, Math.hypot(t.x - jp.x, t.z - jp.z)), 99);
+      return;
+    }
     const seen = this.anySeen = T.some((t) => t.sees);
     this.watchT = seen ? this.watchT + dt : 0;
     if (!T.length) { this.focus = null; this.fd = 99; this.moving = false; this.speed = 0; return; } // everyone is locked in the cabin
@@ -3642,6 +3729,10 @@ const Joury = {
   // ---------------- what you see, hear and feel ----------------
   update(dt) {
     this.t += dt; const P = Player.pos, d = D(), brain = !Net.isClient, R = this.c.root;
+    if (Net.amJoury()) { // you ARE Joury: no model in your face, no stare meter, nobody to catch you
+      if (brain) this.think(dt); else this.follow(dt);
+      R.visible = false; this.seen = this.looking = false; this.stare = 0; this.danger = 0; this.dist = 99; return;
+    }
     if (!brain) this.follow(dt);
     this.dist = Math.hypot(P.x - this.pos.x, P.z - this.pos.z);
     if (this.state !== 'hunt') {
@@ -3788,7 +3879,7 @@ const Scare = {
   },
   onWake() { Chat.server('Joury joined the game.'); Chat.jouryAll('ready?', 3); },
   onRescue(kid) { Chat.server(`${KID_NAMES[kid.c.def.id]} left the game.`); setTimeout(() => Chat.kid(kid.c.def.id, pick(['thank u!!! RUN', 'ty ty ty', 'GO. hes coming', 'i owe u my candy'])), 1500); },
-  onCaught() { Chat.local('You were eliminated by Joury.'); },
+  onCaught() { const jp = Net.on && Net.jouryPlayer(); Chat.local(`You were eliminated by ${jp ? jp.name + ' (VIP Joury)' : 'Joury'}.`); },
   onSpotted(t) { if (Math.random() < 0.6) Chat.jouryAll(pick(['found u', 'there u are', 'i see u']), 1.2, Net.on && t ? t.id : undefined); },
   // He imitates the kids from wherever he is standing. Online, he sometimes borrows a friend's name instead.
   mimic(F) {
@@ -3907,7 +3998,15 @@ function makeRemoteBeam(length, radius) {
   });
   const m = new THREE.Mesh(geo, mat); m.frustumCulled = false; m.renderOrder = 8; return m;
 }
-const NET_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O or 1/I: codes get read out loud
+// Join codes are 5 items from the game, like a Minecraft join code. Each item stands for one letter of the room id.
+const NET_ITEMS = [
+  ['🎃', 'Pumpkin'], ['🏮', 'Lantern'], ['🔋', 'Battery'], ['🗝️', 'Key'], ['🕯️', 'Candle'], ['📜', 'Diary'],
+  ['🎮', 'Controller'], ['🏆', 'Trophy'], ['🛶', 'Boat'], ['🔦', 'Flashlight'], ['🍬', 'Candy'], ['👻', 'Ghost'],
+  ['💀', 'Skull'], ['🦇', 'Bat'], ['🕷️', 'Spider'], ['🌕', 'Moon'], ['🦴', 'Bone'], ['🧙', 'Witch'],
+];
+const NET_ALPHA = 'ABCDEFGHJKLMNPQRST', NET_CODE_LEN = 5;
+const codeItems = (code) => [...code].map((ch) => NET_ITEMS[NET_ALPHA.indexOf(ch)]).filter(Boolean);
+const codeWords = (code) => codeItems(code).map((it) => it[1]).join(', ');
 const FAKE_CHAT = ['come to the cabin i found something', 'behind u', 'turn ur light off, trust me', 'im at the dock, where r u?', 'stand still. he cant see u if u dont move', 'help me pls im stuck', 'wait there im coming to u', 'its safe now hes gone', 'dont move. im right behind u'];
 const r2 = (v) => Math.round(v * 100) / 100;
 
@@ -3920,6 +4019,17 @@ const Net = {
   me() { return this.players.get(this.id); },
   nameOf(id) { const p = this.players.get(id); return p ? p.name : 'Someone'; },
   others() { return [...this.players.values()].filter((p) => !p.local); },
+  jouryPlayer() { return [...this.players.values()].find((p) => p.role === 'joury') || null; },
+  amJoury() { const m = this.on && this.started && this.me(); return !!m && m.role === 'joury'; },
+  setRole(joury) {
+    if (this.isHost) { this.hostRole(this.me(), joury); return; }
+    this.send(this.hostConn, { t: 'role', joury: !!joury });
+  },
+  hostRole(p, joury) {
+    if (!p || this.started) return;
+    if (joury && p.vip && !this.jouryPlayer()) p.role = 'joury'; else if (!joury && p.role === 'joury') p.role = 'survivor';
+    this.broadcast({ t: 'roster', players: this.roster() }); Lobby.render();
+  },
 
   // ---------------- connecting ----------------
   peerOpts() {
@@ -3936,14 +4046,14 @@ const Net = {
   },
   addPlayer(id, name, ci) {
     const p = { id, name, ci, color: NET_COLORS[ci % NET_COLORS.length], x: 0, z: 0, yaw: 0, pitch: 0, lightOn: true, crouching: false, sprinting: false, mv: 0, noise: 0, where: 'l', sees: false,
-      local: id === this.id, kids: 0, caught: 0, cx: 0, cz: 0, cyaw: 0, cpitch: 0, av: null, seen: performance.now(), chatAt: [], knockAt: -1e9 };
+      local: id === this.id, kids: 0, caught: 0, role: 'survivor', ref: '', used: '', vip: false, cx: 0, cz: 0, cyaw: 0, cpitch: 0, av: null, seen: performance.now(), chatAt: [], knockAt: -1e9 };
     this.players.set(id, p); return p;
   },
-  roster() { return [...this.players.values()].map((p) => ({ id: p.id, name: p.name, ci: p.ci, kids: p.kids, caught: p.caught })); },
+  roster() { return [...this.players.values()].map((p) => ({ id: p.id, name: p.name, ci: p.ci, kids: p.kids, caught: p.caught, role: p.role, ref: p.ref, used: p.used, vip: p.vip })); },
   syncRoster(list) {
     const keep = new Set(list.map((q) => q.id));
     [...this.players.keys()].forEach((id) => { if (!keep.has(id)) this.removePlayer(id); });
-    list.forEach((q) => { const p = this.players.get(q.id) || this.addPlayer(q.id, cleanName(q.name), q.ci | 0); p.kids = q.kids | 0; p.caught = q.caught | 0; });
+    list.forEach((q) => { const p = this.players.get(q.id) || this.addPlayer(q.id, cleanName(q.name), q.ci | 0); p.kids = q.kids | 0; p.caught = q.caught | 0; p.role = q.role === 'joury' ? 'joury' : 'survivor'; p.ref = String(q.ref || ''); p.used = String(q.used || ''); p.vip = !!q.vip; });
     Lobby.render();
   },
   removePlayer(id) { const p = this.players.get(id); if (!p) return; this.disposeAvatar(p); this.players.delete(id); },
@@ -3952,9 +4062,9 @@ const Net = {
     this.leave();
     if (typeof Peer === 'undefined') { cb('browser'); return; }
     this.mode = 'host'; this.id = 'h'; this.nextId = 1; this.started = false; this.joined = true;
-    this.addPlayer('h', name, 0);
+    Object.assign(this.addPlayer('h', name, 0), { ref: CFG.refCode, used: CFG.refUsed || '', vip: Perks.has('vip') });
     const open = (tries) => {
-      this.code = Array.from({ length: 5 }, () => NET_ALPHA[Math.floor(Math.random() * NET_ALPHA.length)]).join('');
+      this.code = Array.from({ length: NET_CODE_LEN }, () => NET_ALPHA[Math.floor(Math.random() * NET_ALPHA.length)]).join('');
       let peer; try { peer = this.peer = new Peer(NET_PREFIX + this.code, this.peerOpts()); } catch (e) { cb('browser'); return; }
       peer.on('open', () => { if (this.peer === peer) cb(null, this.code); });
       peer.on('connection', (c) => { if (this.peer === peer) this.onIncoming(c); });
@@ -3984,7 +4094,7 @@ const Net = {
     peer.on('open', () => {
       if (this.peer !== peer) return;
       const c = this.hostConn = peer.connect(NET_PREFIX + code, { reliable: true, serialization: 'json' });
-      c.on('open', () => this.send(c, { t: 'hello', v: NET_VERSION, name }));
+      c.on('open', () => this.send(c, { t: 'hello', v: NET_VERSION, name, ref: CFG.refCode, used: CFG.refUsed || '', vip: Perks.has('vip') }));
       c.on('data', (m) => {
         if (this.peer !== peer || !m || typeof m !== 'object') return;
         if (m.t === 'welcome') {
@@ -4043,7 +4153,7 @@ const Net = {
       if (this.players.size >= NET_MAX) { deny('full'); return; }
       const used = new Set([...this.players.values()].map((p) => p.ci)); let ci = 0; while (used.has(ci)) ci++;
       const id = 'p' + this.nextId++; c.pid = id; this.conns.set(id, c);
-      const p = this.addPlayer(id, cleanName(m.name), ci);
+      const p = this.addPlayer(id, cleanName(m.name), ci); p.ref = String(m.ref || '').slice(0, 12); p.used = String(m.used || '').slice(0, 12); p.vip = !!m.vip;
       this.send(c, { t: 'welcome', id, code: this.code, players: this.roster(), started: this.started, seed: this.seed, diff: CFG.difficulty });
       this.broadcast({ t: 'roster', players: this.roster() }, id); Lobby.render();
       if (this.started) { p.where = 'i'; Chat.server(`${p.name} joined the game.`, id); }
@@ -4051,6 +4161,7 @@ const Net = {
     }
     const p = c.pid && this.players.get(c.pid); if (!p) return;
     p.seen = performance.now();
+    if (m.t === 'role') { this.hostRole(p, !!m.joury); return; }
     if (m.t === 'st') {
       p.where = m.w === 'i' ? 'i' : 'c';
       if (p.where === 'i') { p.x = +m.x || 0; p.z = +m.z || 0; p.yaw = +m.yaw || 0; p.pitch = clamp(+m.pitch || 0, -1.5, 1.5); }
@@ -4059,7 +4170,10 @@ const Net = {
   },
   hostAct(p, m) {
     if (!p) return;
+    if (p.role === 'joury' && !['chat', 'blink'].includes(m.a)) return; // VIP Joury hunts; he does not rescue kids or build boats
     switch (m.a) {
+      case 'decoy': { const x = +m.x || 0, z = +m.z || 0; Joury.hearAt(x, z, 70); this.emit({ e: 'bang', x: r2(x), z: r2(z), by: p.id }); break; }
+      case 'blink': break;
       case 'rescue': {
         const k = World.kids[m.i | 0]; if (!k || k.saved || !this.started) break;
         p.kids++; this.emit({ e: 'kid', i: m.i | 0, by: p.id }); Scare.onRescue(k); Joury.hear(25, p);
@@ -4080,7 +4194,8 @@ const Net = {
   playerCaught(p) {
     if (p.where === 'c' && !p.local) return;
     p.where = 'c'; p.caught++; p.sees = false;
-    Chat.server(`${p.name} was eliminated by Joury.`, p.id);
+    const jp = this.jouryPlayer(); if (jp) jp.kids++; // VIP Joury: his catches
+    Chat.server(`${p.name} was eliminated by ${jp ? jp.name + ' (Joury)' : 'Joury'}.`, p.id);
     Joury.carryOff(p);
     // while they are locked in, "a friend" may text them the door code
     if (this.players.size > 1) setTimeout(() => {
@@ -4124,6 +4239,7 @@ const Net = {
       case 'boat': if (live) Game.startBoatPhase(); break;
       case 'launch': this.board = m.board; this.started = false; if (live) Game.launch(); break;
       case 'jsay': if (Game.state === 'play' && (m.all || Joury.dist < 45)) Joury.sayLocal(m.text, m.angry); break;
+      case 'bang': if (live && m.by !== this.id) Crackers.bang(m.x, m.z); break;
       case 'whoosh': if (Game.state === 'play') SFX.whoosh(m.x === undefined ? 0 : Joury.panFor(m.x, m.z)); break;
       case 'vanish': if (Game.state === 'play' && Joury.seen) { GFX.fx.static = Math.max(GFX.fx.static, 0.8); SFX.whoosh(0); } break;
       case 'wake': Joury.wakeFx(); break;
@@ -4185,7 +4301,7 @@ const Net = {
     return p;
   },
   // Host: everyone Joury can hunt right now (players out on the island)
-  targets() { this.refreshMe(); return [...this.players.values()].filter((p) => p.where === 'i'); },
+  targets() { this.refreshMe(); return [...this.players.values()].filter((p) => p.where === 'i' && p.role !== 'joury'); },
 
   start() {
     if (!this.isHost || this.started) return;
@@ -4261,7 +4377,7 @@ const Net = {
     this.players.forEach((p) => {
       if (p.local) return;
       if (!p.av) { p.av = this.makeAvatar(p); p.cx = p.x; p.cz = p.z; p.cyaw = p.yaw; p.cpitch = p.pitch; }
-      const a = p.av, show = p.where === 'i';
+      const a = p.av, show = p.where === 'i' && p.role !== 'joury'; // VIP Joury is drawn as Joury himself
       a.c.root.visible = a.aim.visible = a.tag.visible = show; a.src.on = show && p.lightOn;
       if (!show) { if (a.gi >= 0) World.glow.setSize(a.gi, 0); p.cx = p.x; p.cz = p.z; return; }
       const k = 1 - Math.exp(-12 * dt);
@@ -4294,9 +4410,15 @@ function animatePlayer(c, walkT, t, mv, crouch, pitch) {
 //  LOBBY — name, host or join, room code, who is in
 // ---------------------------------------------------------------------
 const Lobby = {
-  isOpen: false,
+  isOpen: false, code: '',
+  setCode(c) {
+    this.code = String(c || '').toUpperCase().split('').filter((ch) => NET_ALPHA.includes(ch)).join('').slice(0, NET_CODE_LEN); $('mpCode').value = this.code;
+    const items = codeItems(this.code);
+    $('codeSlots').innerHTML = Array.from({ length: NET_CODE_LEN }, (_, i) => { const it = items[i]; return `<div class="slot${it ? ' full' : ''}${i === items.length ? ' next' : ''}">${it ? `<span class="ico">${it[0]}</span>` : ''}</div>`; }).join('');
+    $('btnJoin').disabled = this.code.length !== NET_CODE_LEN;
+  },
   MSG: {
-    noroom: "Couldn't find that room. Check the code, and make sure the host still has their lobby open.",
+    noroom: "Couldn't find that room. Check the items and their order, and make sure the host still has their lobby open.",
     full: 'That room is full (4 players).',
     version: 'You and the host have different versions of the game. Use the same file.',
     service: "Couldn't reach the connection service. Check your internet and try again.",
@@ -4309,8 +4431,19 @@ const Lobby = {
     $('btnHost').addEventListener('click', () => this.host());
     $('btnJoin').addEventListener('click', () => this.join());
     $('btnStartMp').addEventListener('click', () => { SFX.uiClick(); Net.start(); });
+    $('btnVip').addEventListener('click', () => { SFX.uiClick(); const m = Net.me(); Net.setRole(!(m && m.role === 'joury')); });
     $('btnNetlost').addEventListener('click', () => { Game.screen('netlost', false); Game.toTitle(); });
-    $('mpCode').addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+    // the item picker
+    const grid = $('itemGrid'); grid.innerHTML = '';
+    NET_ITEMS.forEach(([icon, name], i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'item-tile'; b.title = name; b.setAttribute('aria-label', name);
+      b.innerHTML = `<span class="ico">${icon}</span><span class="nm">${name}</span>`;
+      b.addEventListener('click', () => { if (this.code.length < NET_CODE_LEN) { SFX.uiClick(); this.setCode(this.code + NET_ALPHA[i]); } });
+      grid.appendChild(b);
+    });
+    $('btnClearCode').addEventListener('click', () => { SFX.uiClick(); this.setCode(''); });
+    addEventListener('keydown', (e) => { if (!this.isOpen || Net.on || e.target.tagName === 'INPUT') return; if (e.code === 'Backspace') this.setCode(this.code.slice(0, -1)); if (e.code === 'Enter' && this.code.length === NET_CODE_LEN) this.join(); });
+    this.setCode('');
   },
   open() {
     if (!SFX.ctx) { SFX.init(); SFX.startMusicBox(); } SFX.uiClick();
@@ -4327,8 +4460,8 @@ const Lobby = {
   },
   join() {
     SFX.uiClick();
-    const code = $('mpCode').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (code.length !== 5) { this.status('Type the 5-character room code your host gave you.', true); return; }
+    this.setCode($('mpCode').value || this.code); const code = this.code;
+    if (code.length !== NET_CODE_LEN) { this.status('Pick the 5 items your host is showing, in the same order.', true); return; }
     this.busy(true); this.status('Connecting…');
     Net.join(code, this.name(), (err, m) => {
       this.busy(false);
@@ -4342,14 +4475,203 @@ const Lobby = {
     const room = Net.on && Net.joined && (Net.isClient || !!Net.code && Net.peer && Net.peer.open);
     $('lobby').classList.toggle('room', !!room); $('mpName').disabled = !!room;
     if (!room) return;
-    $('roomCode').textContent = Net.code;
+    const rc = codeItems(Net.code).map(([icon, name]) => `<div class="code-item"><span class="ico">${icon}</span><span class="nm">${name}</span></div>`).join('');
+    if ($('roomCode').dataset.code !== Net.code) { $('roomCode').dataset.code = Net.code; $('roomCode').innerHTML = rc; $('roomCode').setAttribute('aria-label', 'Join code: ' + codeWords(Net.code)); }
     const list = [...Net.players.values()], host = list.find((p) => p.id === 'h');
-    $('roomHelp').textContent = Net.isHost ? 'Tell your friends this code. They choose Play Together, type it in and press Join.' : `Waiting for ${host ? host.name : 'the host'} to start the game…`;
-    let h = list.map((p) => `<div><i style="background:${css(p.color)}"></i>${esc(p.name)}<span>${p.id === 'h' ? 'host' : ''}${p.local ? (p.id === 'h' ? ' · you' : 'you') : ''}</span></div>`).join('');
+    $('roomHelp').textContent = Net.isHost ? `Tell your friends: ${codeWords(Net.code)}. They choose Play Together, tap the same items in order and press Confirm.` : `Waiting for ${host ? host.name : 'the host'} to start the game…`;
+    let h = list.map((p) => `<div class="${p.role === 'joury' ? 'is-joury' : ''}"><i style="background:${css(p.color)}"></i>${esc(p.name)}${p.role === 'joury' ? ' <em class="vip-title">👑 VIP · JOURY</em>' : ''}<span>${p.id === 'h' ? 'host' : ''}${p.local ? (p.id === 'h' ? ' · you' : 'you') : ''}</span></div>`).join('');
+    const me = Net.me(), jp = Net.jouryPlayer();
+    $('btnVip').hidden = !Perks.has('vip');
+    $('btnVip').disabled = !!jp && jp !== me;
+    $('btnVip').textContent = me && me.role === 'joury' ? '👑 PLAY AS A SURVIVOR INSTEAD' : jp ? `👑 ${jp.name.toUpperCase()} IS JOURY` : '👑 PLAY AS JOURY (VIP)';
     for (let i = list.length; i < NET_MAX; i++) h += '<div class="empty">open seat</div>';
     $('lobbyPlayers').innerHTML = h;
     $('btnStartMp').style.display = Net.isHost ? '' : 'none';
     $('btnStartMp').textContent = list.length > 1 ? `START · ${list.length} PLAYERS` : 'START';
+  },
+};
+
+// =====================================================================
+//  PERKS — redeemable codes, referral codes, firecrackers, and VIP Joury
+// =====================================================================
+const CODES = {
+  KEYBOARD: { id: 'vip', icon: '👑', title: 'VIP · Play as Joury', text: 'In an online game, choose "Play as Joury" in the lobby and hunt your friends.' },
+  VIVEK: { id: 'legs', icon: '🏃', title: "Vivek's legs", text: 'You can sprint 40% longer.' },
+  CANDY: { id: 'battery', icon: '🍬', title: 'Candy-powered battery', text: 'Your flashlight battery lasts 50% longer.' },
+  BRIDGE: { id: 'crackers', icon: '🧨', title: 'Firework pack', text: 'Start every game with 2 extra firecrackers.' },
+  REMATCH: { id: 'head', icon: '⏱️', title: 'Head start', text: 'Joury waits 10 seconds longer before he wakes up.' },
+};
+const REF_BONUS = { id: 'recruit', icon: '🤝', title: 'Recruited by a friend', text: 'Your flashlight battery lasts 20% longer. Play online with the friend who invited you for the Squad bonus.' };
+const SQUAD_TEXT = 'Squad bonus: you are playing with a friend you invited (or who invited you). You both recover stamina 30% faster.';
+
+const Perks = {
+  load() {
+    if (!Array.isArray(CFG.perks)) CFG.perks = [];
+    if (!/^JRY-[A-HJ-NP-T]{5}$/.test(CFG.refCode || '')) { CFG.refCode = 'JRY-' + Array.from({ length: 5 }, () => NET_ALPHA[Math.floor(Math.random() * NET_ALPHA.length)]).join(''); saveSettings(); }
+  },
+  has(id) { return (CFG.perks || []).includes(id); },
+  squad: false,
+  stamK() { return this.has('legs') ? 1.4 : 1; },
+  regenK() { return this.squad ? 1.3 : 1; },
+  drainK() { return (this.has('battery') ? 1 / 1.5 : 1) * (this.has('recruit') ? 1 / 1.2 : 1); },
+  crackers() { return 3 + (this.has('crackers') ? 2 : 0); },
+  startDelayBonus() { return this.has('head') ? 10 : 0; },
+  redeem(raw) {
+    const code = String(raw || '').toUpperCase().replace(/[^A-Z0-9-]/g, '');
+    if (!code) return { ok: false, msg: 'Type a code first.' };
+    if (/^JRY-?[A-Z0-9]{5}$/.test(code)) {
+      const ref = code.replace('-', '').replace(/^JRY/, 'JRY-');
+      if (ref === CFG.refCode) return { ok: false, msg: "That's your own referral code. Give it to a friend instead." };
+      if (CFG.refUsed) return { ok: false, msg: `You already used a referral code (${CFG.refUsed}).` };
+      if (!/^JRY-[A-HJ-NP-T]{5}$/.test(ref)) return { ok: false, msg: "That referral code doesn't exist. Check the letters." };
+      CFG.refUsed = ref; CFG.perks.push('recruit'); saveSettings();
+      return { ok: true, msg: `Referral accepted! ${REF_BONUS.icon} ${REF_BONUS.title}.` };
+    }
+    const c = CODES[code];
+    if (!c) return { ok: false, msg: "That code doesn't exist. Codes are one word, like a hidden word from the story." };
+    if (this.has(c.id)) return { ok: false, msg: `You already have ${c.icon} ${c.title}.` };
+    CFG.perks.push(c.id); saveSettings();
+    return { ok: true, msg: `Unlocked ${c.icon} ${c.title}! ${c.text}` };
+  },
+  list() {
+    const all = Object.values(CODES).concat([REF_BONUS]);
+    return all.filter((c) => this.has(c.id));
+  },
+  // UI on the title screen
+  init() {
+    this.load();
+    const go = () => { const r = this.redeem($('redeemInput').value); const st = $('redeemStatus'); st.textContent = r.msg; st.classList.toggle('bad', !r.ok); if (r.ok) { $('redeemInput').value = ''; SFX.chime(); } else SFX.buzz && SFX.buzz(); this.render(); };
+    $('btnRedeem').addEventListener('click', go);
+    $('redeemInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
+    $('btnCopyRef').addEventListener('click', () => {
+      const done = () => { $('btnCopyRef').textContent = 'COPIED'; setTimeout(() => { $('btnCopyRef').textContent = 'COPY'; }, 1800); };
+      try { navigator.clipboard.writeText(CFG.refCode).then(done, () => this.selectRef()); } catch (e) { this.selectRef(); }
+    });
+    this.render();
+  },
+  selectRef() { try { const r = document.createRange(); r.selectNodeContents($('myRef')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) { /* nothing to select */ } },
+  render() {
+    $('myRef').textContent = CFG.refCode;
+    const got = this.list();
+    $('perkList').innerHTML = got.length ? got.map((c) => `<div class="perk"><span class="pi">${c.icon}</span><div><b>${esc(c.title)}</b><small>${esc(c.text)}</small></div></div>`).join('') : '<div class="perk none">No rewards yet. Try a code.</div>';
+    $('refUsedNote').textContent = CFG.refUsed ? `You were invited with ${CFG.refUsed}.` : '';
+    const n = got.length; $('codesSummary').textContent = n ? `${n} reward${n > 1 ? 's' : ''} unlocked` : 'bonuses & your referral code';
+  },
+  // Online: are you playing with someone you invited, or who invited you?
+  checkSquad() {
+    this.squad = false; if (!Net.on) return;
+    const me = Net.me(); if (!me) return;
+    this.squad = Net.others().some((p) => (me.used && me.used === p.ref) || (p.used && p.used === me.ref));
+  },
+};
+
+// ---------------------------------------------------------------------
+//  Firecrackers: throw one (G), it lands, fizzes, and BANGS. Joury goes to look.
+// ---------------------------------------------------------------------
+const Crackers = {
+  n: 3, live: [], mesh: null,
+  reset() { this.n = Net.amJoury() ? 0 : Perks.crackers(); this.live.forEach((c) => this.remove(c)); this.live = []; this.hud(); },
+  hud() { const el = $('crackers'); if (!el) return; el.style.display = Net.amJoury() ? 'none' : ''; el.innerHTML = `🧨 <b>${this.n}</b> <span>G to throw</span>`; el.classList.toggle('empty', this.n <= 0); },
+  throw() {
+    if (Game.state !== 'play' || Net.amJoury()) return;
+    if (this.n <= 0) { HUD.toast('No firecrackers left.', 2); return; }
+    this.n--; this.hud();
+    const P = Player, fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw);
+    let dist = 16 + Math.max(0, P.pitch) * 8, tx = P.pos.x + fx * dist, tz = P.pos.z + fz * dist;
+    for (let k = 0; k < 8 && !World.walkable(tx, tz); k++) { dist *= 0.75; tx = P.pos.x + fx * dist; tz = P.pos.z + fz * dist; }
+    const from = new THREE.Vector3(P.pos.x + fx * 0.5, P.y + P.eye - 0.2, P.pos.z + fz * 0.5), to = new THREE.Vector3(tx, World.surfaceY(tx, tz) + 0.05, tz);
+    this.spawn(from, to, true); SFX.burst(SFX.now, 0.15, 0.05, 'highpass', 3000, 0.7);
+    HUD.toast('Firecracker thrown. It will go off in a moment and draw Joury to it.', 2.5);
+  },
+  spawn(from, to, mine) {
+    const g = new THREE.Group();
+    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.2, 8), plainMat(0xb31818, 0.6)); stick.rotation.z = Math.PI / 2; g.add(stick);
+    const gi = World.glow.add(from.x, from.y, from.z, 0xffb040, 0.18, 0.6);
+    g.position.copy(from); World.scene.add(g);
+    const c = { g, gi, from, to, t: 0, fly: 0.9, fuse: 1.6, mine, banged: false }; this.live.push(c); return c;
+  },
+  remove(c) { World.scene.remove(c.g); if (c.gi >= 0) World.glow.setSize(c.gi, 0); },
+  update(dt) {
+    this.live = this.live.filter((c) => {
+      c.t += dt;
+      if (c.t < c.fly) { const k = c.t / c.fly; c.g.position.lerpVectors(c.from, c.to, k); c.g.position.y += Math.sin(k * Math.PI) * 3.2; c.g.rotation.x += dt * 12; }
+      else c.g.position.copy(c.to);
+      const p = c.g.position;
+      if (c.gi >= 0) { World.glow.set(c.gi, p.x, p.y + 0.1, p.z); World.glow.setSize(c.gi, 0.12 + Math.random() * 0.12); }
+      if (!c.banged && c.t > c.fly + c.fuse) {
+        c.banged = true; this.bang(p.x, p.z);
+        if (c.mine) { if (Net.on) Net.act('decoy', { x: r2(p.x), z: r2(p.z) }); else Joury.hearAt(p.x, p.z, 70); }
+        this.remove(c); return false;
+      }
+      return true;
+    });
+  },
+  // the flash and the noise: everyone nearby sees and hears it
+  bangs: 0,
+  bang(x, z) {
+    this.bangs++;
+    const d = Math.hypot(Player.pos.x - x, Player.pos.z - z), v = clamp(1 - d / 90, 0.08, 1);
+    if (SFX.ctx) { const t = SFX.now; SFX.burst(t, 0.18, 0.5 * v, 'lowpass', 2600, 0.6, null, 1, 0.002); SFX.burst(t + 0.02, 1.4, 0.35 * v, 'lowpass', 220, 0.8, null, 0.6, 0.01); SFX.burst(t + 0.15, 0.5, 0.12 * v, 'highpass', 3500, 0.5); }
+    const y = World.surfaceY(x, z);
+    for (let i = 0; i < 14; i++) World.sparkle(new THREE.Vector3(x, y, z), i);
+    if (d < 40) GFX.fx.flash = Math.max(GFX.fx.flash, 0.12 * (1 - d / 40));
+  },
+};
+
+// ---------------------------------------------------------------------
+//  VIP JOURY — the KEYBOARD code: in an online game, one player IS Joury
+// ---------------------------------------------------------------------
+const Vip = {
+  blinkT: 0, lastState: null, tag: null,
+  reset() { this.blinkT = 12; this.lastState = null; },
+  // the Joury player's own screen
+  update(dt) {
+    if (!Net.amJoury()) return;
+    this.blinkT = Math.max(0, this.blinkT - dt);
+    const s = Joury.state;
+    // he is dragged back to his cabin after a catch, and after someone escapes it
+    if (s !== this.lastState) {
+      if (s === 'stunned' || s === 'away' || (s === 'dormant' && this.lastState === null)) { const dr = World.cabin.door; Player.place(dr.x, dr.z + 1.2, Math.PI, 0); }
+      if (s === 'hunt' && this.lastState && this.lastState !== 'hunt') HUD.toast('<b style="color:#ff5a4a">Hunt.</b> Get close to touch them, or make them stare at you.', 3);
+      if (s === 'stunned') HUD.toast('Someone escaped your cabin. You are stunned for 20 seconds.', 4);
+      if (s === 'away') HUD.toast('Caught one. Dragging them home… You are back in a few seconds.', 3);
+      this.lastState = s;
+    }
+    Player.frozen = s !== 'hunt' || !!Game.menuOpen;
+    const fx = GFX.fx; fx.red = 0.22; fx.exposure = 3.4; fx.auto = 0; fx.static = 0.04; fx.vignette = 1.35; fx.aberr = 1.2;
+    HUD.objective(s === 'dormant' ? (Net.isHost ? `You wake up in ${Math.max(1, Math.ceil(Joury.timer))} seconds…` : 'You wake up soon… they have a head start.') : `👑 VIP JOURY · catch them before they escape · Q blink ${this.blinkT > 0 ? '(' + Math.ceil(this.blinkT) + 's)' : 'ready'}`);
+  },
+  // Q: vanish and reappear behind whoever you are closest to
+  blink() {
+    if (!Net.amJoury() || Joury.state !== 'hunt' || Game.state !== 'play') return;
+    if (this.blinkT > 0) { HUD.toast(`Blink is ready in ${Math.ceil(this.blinkT)} seconds.`, 1.6); return; }
+    const prey = Net.others().filter((p) => p.where === 'i' && p.role !== 'joury'); if (!prey.length) { HUD.toast('Nobody is out on the island right now.', 2); return; }
+    prey.sort((a, b) => Math.hypot(a.x - Player.pos.x, a.z - Player.pos.z) - Math.hypot(b.x - Player.pos.x, b.z - Player.pos.z));
+    const T = prey[0];
+    for (let i = 0; i < 24; i++) {
+      const a = T.yaw + Math.PI + rand(-0.9, 0.9), dist = rand(9, 14), x = T.x - Math.sin(a) * dist, z = T.z - Math.cos(a) * dist;
+      if (!World.walkable(x, z) || World.onDock(x, z) || World.onBridge(x, z)) continue;
+      const q = { x, z }; World.resolve(q, 0.5); if (Math.hypot(q.x - x, q.z - z) > 0.2) continue;
+      Player.place(x, z, Math.atan2(-(T.x - x), -(T.z - z)), 0); this.blinkT = 35; SFX.whoosh(0); GFX.fx.static = 0.6;
+      Net.act('blink', { id: T.id }); return;
+    }
+    HUD.toast("Couldn't find a spot behind them. Try again in a moment.", 2);
+  },
+  // everyone else: a gold title floating over him
+  updateTag() {
+    const jp = Net.on ? Net.jouryPlayer() : null, show = !!jp && !jp.local && Joury.c.root.visible && Game.state === 'play';
+    if (!show) { if (this.tag) this.tag.visible = false; return; }
+    if (!this.tag || this.tag.userData.name !== jp.name) {
+      if (this.tag) { World.scene.remove(this.tag); this.tag.material.map.dispose(); this.tag.material.dispose(); }
+      const cv = makeCanvas(512, 96), g = cv.getContext('2d'); g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(56, 14, 400, 68);
+      g.strokeStyle = '#e8c46a'; g.lineWidth = 3; g.strokeRect(56, 14, 400, 68);
+      g.font = '600 26px Inter, system-ui, sans-serif'; g.fillStyle = '#ffd86a'; g.fillText('👑 VIP · JOURY', 256, 38);
+      g.font = '22px Inter, system-ui, sans-serif'; g.fillStyle = '#f2e6cc'; g.fillText(jp.name, 256, 66);
+      const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+      this.tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false })); this.tag.scale.set(1.9, 0.36, 1); this.tag.renderOrder = 9; this.tag.userData.name = jp.name; World.scene.add(this.tag);
+    }
+    this.tag.visible = true; this.tag.position.set(Joury.pos.x, Joury.pos.y + 2.75, Joury.pos.z);
   },
 };
 
@@ -4406,7 +4728,14 @@ const Cabin = {
     b.box(0.08, 0.35, 0.08, -3.3, 0.95, -0.8, 0x18181c, 'metal'); b.box(0.25, 0.03, 0.25, -3.3, 0.79, -0.8, 0x18181c, 'metal');
     b.box(0.08, 0.6, 1.1, -3.3, 1.35, -0.8, 0x111114, 'metal');
     this.solid(-3.5, -2.6, -1.85, 0.25); this.hit('keyboard', -3.05, 0.76, -1.15, -2.75, 0.9, -0.45); this.hit('monitor', -3.35, 1.0, -1.4, -3.15, 1.7, -0.2);
-    b.box(0.6, 0.08, 0.6, -2.2, 0.5, -0.8, 0x18181c, 'plain'); b.box(0.6, 0.8, 0.1, -1.92, 0.95, -0.8, 0x18181c, 'plain', 0, 0, -0.15); b.box(0.06, 0.5, 0.4, -1.88, 1.0, -0.8, 0xa01a22, 'plain'); b.cyl(0.04, 0.04, 0.45, -2.2, 0.25, -0.8, 0x333333, 'metal', 6);
+    // gaming chair: seat, padded back facing the desk, red racing stripes, armrests, gas lift and a five-star base
+    b.box(0.56, 0.1, 0.56, -2.2, 0.52, -0.8, 0x18181c, 'plain');
+    b.box(0.1, 0.86, 0.54, -1.9, 1.0, -0.8, 0x18181c, 'plain', 0, 0, -0.14);
+    [-0.13, 0.13].forEach((dz) => b.box(0.02, 0.62, 0.07, -1.83, 1.02, -0.8 + dz, 0xa01a22, 'plain', 0, 0, -0.14));
+    b.box(0.1, 0.16, 0.36, -1.78, 1.47, -0.8, 0x18181c, 'plain', 0, 0, -0.14); // headrest
+    [-1, 1].forEach((s) => { b.box(0.38, 0.05, 0.07, -2.2, 0.75, -0.8 + s * 0.3, 0x111114, 'plain'); b.box(0.05, 0.2, 0.05, -2.2, 0.64, -0.8 + s * 0.3, 0x222222, 'metal'); });
+    b.cyl(0.035, 0.035, 0.36, -2.2, 0.3, -0.8, 0x333333, 'metal', 8);
+    for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; b.box(0.3, 0.04, 0.05, -2.2 + Math.cos(a) * 0.15, 0.08, -0.8 + Math.sin(a) * 0.15, 0x222222, 'metal', -a, 0, 0); b.cyl(0.03, 0.03, 0.05, -2.2 + Math.cos(a) * 0.29, 0.03, -0.8 + Math.sin(a) * 0.29, 0x111111, 'plain', 8); }
     this.solid(-2.55, -1.85, -1.15, -0.45); this.hit('chair', -2.5, 0.3, -1.1, -1.85, 1.3, -0.5);
     // trophy (2nd place, silver)
     b.cyl(0.07, 0.04, 0.16, -3.25, 0.95, 0.0, 0xb8bcc4, 'metal', 10); b.box(0.16, 0.06, 0.16, -3.25, 0.82, 0.0, 0x2a2a2a, 'wood'); b.box(0.03, 0.06, 0.02, -3.17, 0.98, 0.0, 0xb8bcc4, 'metal'); b.box(0.03, 0.06, 0.02, -3.33, 0.98, 0.0, 0xb8bcc4, 'metal');
@@ -5020,7 +5349,7 @@ const HUD = {
   // Online: who is playing, and who is locked in the cabin
   roster() {
     const el = $('roster'); if (!el) return;
-    const h = !Net.on ? '' : [...Net.players.values()].map((p) => `<div><i style="background:${css(p.color)}"></i>${esc(p.name)}${p.local ? ' (you)' : ''}${p.where === 'c' ? ' <b>· in the cabin</b>' : ''}</div>`).join('');
+    const h = !Net.on ? '' : [...Net.players.values()].map((p) => `<div><i style="background:${css(p.color)}"></i>${esc(p.name)}${p.local ? ' (you)' : ''}${p.role === 'joury' ? ' <em class="vip-title">👑 VIP JOURY</em>' : p.where === 'c' ? ' <b>· in the cabin</b>' : ''}</div>`).join('');
     if (this.rosterHtml !== h) { this.rosterHtml = h; el.innerHTML = h; }
   },
   stun(sec) { const el = $('stun'); if (sec > 0) { el.style.display = 'block'; el.textContent = `JOURY IS STUNNED · ${Math.ceil(sec)}`; } else el.style.display = 'none'; },
@@ -5075,7 +5404,7 @@ const HUD = {
     if (Net.on) {
       let locked = 0;
       Net.players.forEach((p) => {
-        if (p.local) return; const col = css(p.color);
+        if (p.local || p.role === 'joury') return; const col = css(p.color);
         if (p.where === 'i') { const [mx, my] = dot(p.x, p.z, 3.1, col, 5); g.lineWidth = 1 * k; g.strokeStyle = '#fff'; g.beginPath(); g.arc(mx, my, 3.1 * k, 0, TAU); g.stroke(); if (opts.labels) { g.fillStyle = col; g.fillText(p.name, mx, my - 6 * k); } }
         else if (p.where === 'c') { const [mx, my] = this.w2m(World.cabin.x, World.cabin.z, size); g.lineWidth = 1.6 * k; g.strokeStyle = col; g.beginPath(); g.arc(mx, my, (7.5 + locked * 2.6) * k, 0, TAU); g.stroke(); locked++; }
       });
@@ -5208,7 +5537,8 @@ const Game = {
     sens('optSens', 'optSens2'); sens('optSens2', 'optSens');
     $('optInvert').checked = CFG.invert; $('optInvert').addEventListener('change', (e) => { CFG.invert = e.target.checked; saveSettings(); });
     this.diffNote();
-    const panels = { btnSettings: 'setPanel', btnHow: 'howPanel' };
+    const panels = { btnSettings: 'setPanel', btnHow: 'howPanel', btnCodes: 'codePanel' };
+    Perks.init();
     Object.keys(panels).forEach((id) => $(id).addEventListener('click', () => {
       SFX.uiClick();
       Object.entries(panels).forEach(([b, p]) => { const open = b === id && $(p).hidden; $(p).hidden = !open; $(b).setAttribute('aria-expanded', open); });
@@ -5271,7 +5601,7 @@ const Game = {
     if (this.state === 'title') { this.toTitle(); Lobby.status(text, true); return; }
     this.state = 'title'; this.screen('netlost', true); if (SFX.ctx) SFX.allLoopsOff(0.3);
   },
-  onFieldEnter(el) { if (el.id === 'mpCode') Lobby.join(); },
+  onFieldEnter() {},
 
   // ---------------- main game ----------------
   startGame() {
@@ -5285,11 +5615,15 @@ const Game = {
     document.body.classList.toggle('mp', Net.on); HUD.roster();
     Player.attach(World.cam, World, this.worldFlash);
     Player.place(Net.on && Net.me() ? (Net.me().ci - 1.5) * 0.6 : 0, World.dock.start.z, 0); Player.stamina = 1; Player.battery = 1; Player.lightOn = true; Player.exhausted = false; Player.frozen = false;
+    Crackers.reset(); Vip.reset(); Perks.checkSquad();
+    if (Net.amJoury()) { const dr = World.cabin.door; Player.place(dr.x, dr.z + 1.2, Math.PI, 0); Player.lightOn = false; }
     HUD.drawKidIcons([]); HUD.show(true); HUD.parts(false); HUD.stun(0); HUD.cabinTimer(null); HUD.lightHint(null);
     $('minimap').style.display = ''; $('kidsBar').style.display = ''; $('objective').style.display = '';
     this.state = 'play';
     HUD.toast('<b>WASD</b> move · <b>Mouse</b> look · <b>Shift</b> sprint · <b>C</b> crouch · <b>F</b> flashlight · <b>E</b> interact · <b>M</b> map' + (Net.on ? ' · <b>T</b> chat' : '') + '<br>Free all 10 kids. Yellow dots on the map show where they are.' + (Net.on ? '<br>Split up to find them faster. Joury can only chase one of you at a time.' : ''), Net.on ? 9 : 7);
     setTimeout(() => { if (this.state === 'play') Scare.welcome(); }, 2500);
+    if (Net.amJoury()) setTimeout(() => { if (this.state === 'play') HUD.toast('<b style="color:#ffd86a">👑 You are VIP Joury.</b> The others get a 20-second head start.<br>Touch them to catch them, or let them stare at you. <b>Q</b> blinks you behind the nearest one. You see in the dark.', 8); }, 600);
+    else if (Perks.squad) setTimeout(() => { if (this.state === 'play') HUD.toast('🤝 ' + SQUAD_TEXT, 6); }, 9000);
     Input.requestLock();
   },
   wantsLook() { return (this.state === 'play' || this.state === 'cabin') && !$('inspect').classList.contains('on') && !$('keypad').classList.contains('on'); },
@@ -5330,6 +5664,8 @@ const Game = {
       if (k === 'KeyF') Player.toggleLight();
       if (k === 'KeyM') this.toggleMap();
       if (k === 'KeyE') this.interact();
+      if (k === 'KeyG') Crackers.throw();
+      if (k === 'KeyQ') Vip.blink();
     } else if (s === 'cabin') {
       if (k === 'KeyF' && Cabin.wakeT <= 0) Cabin.cycleLight();
       if (k === 'KeyE' && Cabin.wakeT <= 0) this.cabinInteract();
@@ -5338,6 +5674,7 @@ const Game = {
   toggleMap() { this.mapOpen = !this.mapOpen; this.screen('bigmap', this.mapOpen); SFX.uiClick(); },
   closeInspect() { HUD.closeInspect(); },
   findTarget() {
+    if (Net.amJoury()) return null;
     const cam = World.cam, fwd = Player.forward(new THREE.Vector3()); let best = null, bs = -1;
     for (const it of World.interact) {
       if (!it.enabled()) continue;
@@ -5567,7 +5904,9 @@ const Game = {
     $('endStats').classList.remove('on'); $('btnAgain').classList.remove('on');
     const board = $('endBoard'); board.classList.remove('on'); board.innerHTML = '';
     if (Net.on && Net.board && Net.board.length > 1) { // who did what
-      board.innerHTML = '<span class="h">Player</span><span class="h">Kids freed</span><span class="h">Times caught</span>' + Net.board.map((p) => `<span class="n"><i style="background:${css(NET_COLORS[(p.ci | 0) % NET_COLORS.length])}"></i>${esc(cleanName(p.name))}${p.id === Net.id ? ' (you)' : ''}</span><span class="v">${p.kids | 0}</span><span class="v">${p.caught | 0}</span>`).join('');
+      board.innerHTML = '<span class="h">Player</span><span class="h">Kids freed</span><span class="h">Times caught</span>' + Net.board.map((p) => p.role === 'joury'
+        ? `<span class="n"><i style="background:${css(NET_COLORS[(p.ci | 0) % NET_COLORS.length])}"></i>${esc(cleanName(p.name))}${p.id === Net.id ? ' (you)' : ''} <em class="vip-title">👑 VIP JOURY</em></span><span class="v">—</span><span class="v">caught ${p.kids | 0}</span>`
+        : `<span class="n"><i style="background:${css(NET_COLORS[(p.ci | 0) % NET_COLORS.length])}"></i>${esc(cleanName(p.name))}${p.id === Net.id ? ' (you)' : ''}</span><span class="v">${p.kids | 0}</span><span class="v">${p.caught | 0}</span>`).join('');
       $('btnAgain').textContent = 'BACK TO THE LOBBY';
     } else $('btnAgain').textContent = 'PLAY AGAIN';
     this.screen('ending', true);
@@ -5627,12 +5966,14 @@ const Game = {
     this.stats.time += dt;
     if (!this.perfTipped && this.stats.time > 12 && this.stats.time < 13 && this.fps < 32 && CFG.quality !== 'low') { this.perfTipped = true; HUD.toast(`Running at about ${Math.round(this.fps)} FPS. For a smoother game, press <b>Esc</b> and set Graphics to <b>Low</b>.`, 6); }
     FogU.uMistAmt.value = CFG.difficulty === 'nightmare' ? 1.0 : 0.8;
-    if (Net.on) Player.frozen = !!this.menuOpen;
-    Player.update(dt);
-    Player.updateLight(dt, Joury.danger, d.drain);
+    const vip = Net.amJoury();
+    if (Net.on) Player.frozen = !!this.menuOpen || (vip && Joury.state !== 'hunt'); // VIP Joury waits out the head start
+    Player.update(dt, vip ? { walk: 4.3, run: 7.2 } : {});
+    if (vip) { Player.stamina = 1; Player.lightOn = false; }
+    Player.updateLight(dt, Joury.danger, vip ? 0 : d.drain * Perks.drainK());
     Joury.update(dt);
     if (this.state !== 'play') return; // caught during Joury.update
-    World.update(dt, World.cam.position); Weather.update(dt, World.cam, true); Scare.updatePumpkins(dt); Chat.update(dt, Joury.danger);
+    World.update(dt, World.cam.position); Weather.update(dt, World.cam, true); Scare.updatePumpkins(dt); Chat.update(dt, Joury.danger); Crackers.update(dt);
     // interaction target
     this.target = this.findTarget();
     HUD.prompt(this.target ? this.target.label() : null);
@@ -5658,6 +5999,7 @@ const Game = {
     HUD.objective(this.phase === 'kids' ? `Kids rescued: ${n}/10` : `Boat parts: ${World.partsDelivered.size}/4 on the boat` + (World.carried.size ? ` · carrying ${World.carried.size}` : ''));
     HUD.bars(Player.stamina, Player.battery, Player.exhausted, true);
     HUD.stun(Joury.state === 'stunned' ? Joury.stunT : 0); HUD.roster();
+    Vip.update(dt); Vip.updateTag();
     const mg = clamp(danger * 1.1 - 0.25, 0, 0.85); HUD.minimap(mg);
     if (this.mapOpen) HUD.bigmap(mg);
     GFX.render(World.scene, World.cam, dt);

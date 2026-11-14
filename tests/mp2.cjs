@@ -18,12 +18,12 @@ const check = (n, ok, x = '') => { results.push(`${ok ? 'PASS' : 'FAIL'}  ${n} $
   const [A, B, C] = await Promise.all([open(), open(), open()]);
   const run = (P, code) => P.page.evaluate((c) => EFJ.run(c), code);
   const until = (P, expr, ms = 30000) => P.page.waitForFunction((e) => { try { return EFJ.run(e); } catch (x) { return false; } }, expr, { timeout: ms, polling: 100 }).then(() => true).catch(() => false);
-  const join = async (P, name, code) => { await P.page.click('#btnTogether'); await P.page.fill('#mpName', name); await P.page.fill('#mpCode', code); await P.page.press('#mpCode', 'Enter'); };
+  const join = async (P, name, code) => { await P.page.click('#btnTogether'); await P.page.fill('#mpName', name); await P.page.evaluate((c) => EFJ.run("Lobby.setCode('" + c + "')"), code); await P.page.click('#btnJoin'); };
 
   await A.page.click('#btnTogether'); await A.page.fill('#mpName', 'Hosty'); await A.page.click('#btnHost');
   await until(A, 'Net.isHost && Net.peer && Net.peer.open'); const code = await run(A, 'Net.code');
   await join(B, 'Sam', code);
-  check('Enter in the code box joins', await until(B, 'Net.joined && Net.players.size === 2'));
+  check('picking 5 items and Confirm joins', await until(B, 'Net.joined && Net.players.size === 2'));
   await A.page.click('#btnStartMp');
   check('two players start', (await until(A, "Game.state === 'play'")) && (await until(B, "Game.state === 'play'")));
   check('players spawn side by side, not inside each other', Math.abs((await run(A, 'Player.pos.x')) - (await run(B, 'Player.pos.x'))) > 0.4);

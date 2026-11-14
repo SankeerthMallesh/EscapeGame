@@ -19,7 +19,15 @@ function makeRemoteBeam(length, radius) {
   });
   const m = new THREE.Mesh(geo, mat); m.frustumCulled = false; m.renderOrder = 8; return m;
 }
-const NET_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O or 1/I: codes get read out loud
+// Join codes are 5 items from the game, like a Minecraft join code. Each item stands for one letter of the room id.
+const NET_ITEMS = [
+  ['🎃', 'Pumpkin'], ['🏮', 'Lantern'], ['🔋', 'Battery'], ['🗝️', 'Key'], ['🕯️', 'Candle'], ['📜', 'Diary'],
+  ['🎮', 'Controller'], ['🏆', 'Trophy'], ['🛶', 'Boat'], ['🔦', 'Flashlight'], ['🍬', 'Candy'], ['👻', 'Ghost'],
+  ['💀', 'Skull'], ['🦇', 'Bat'], ['🕷️', 'Spider'], ['🌕', 'Moon'], ['🦴', 'Bone'], ['🧙', 'Witch'],
+];
+const NET_ALPHA = 'ABCDEFGHJKLMNPQRST', NET_CODE_LEN = 5;
+const codeItems = (code) => [...code].map((ch) => NET_ITEMS[NET_ALPHA.indexOf(ch)]).filter(Boolean);
+const codeWords = (code) => codeItems(code).map((it) => it[1]).join(', ');
 const FAKE_CHAT = ['come to the cabin i found something', 'behind u', 'turn ur light off, trust me', 'im at the dock, where r u?', 'stand still. he cant see u if u dont move', 'help me pls im stuck', 'wait there im coming to u', 'its safe now hes gone', 'dont move. im right behind u'];
 const r2 = (v) => Math.round(v * 100) / 100;
 
@@ -32,6 +40,17 @@ const Net = {
   me() { return this.players.get(this.id); },
   nameOf(id) { const p = this.players.get(id); return p ? p.name : 'Someone'; },
   others() { return [...this.players.values()].filter((p) => !p.local); },
+  jouryPlayer() { return [...this.players.values()].find((p) => p.role === 'joury') || null; },
+  amJoury() { const m = this.on && this.started && this.me(); return !!m && m.role === 'joury'; },
+  setRole(joury) {
+    if (this.isHost) { this.hostRole(this.me(), joury); return; }
+    this.send(this.hostConn, { t: 'role', joury: !!joury });
+  },
+  hostRole(p, joury) {
+    if (!p || this.started) return;
+    if (joury && p.vip && !this.jouryPlayer()) p.role = 'joury'; else if (!joury && p.role === 'joury') p.role = 'survivor';
+    this.broadcast({ t: 'roster', players: this.roster() }); Lobby.render();
+  },
 
   // ---------------- connecting ----------------
   peerOpts() {
@@ -48,14 +67,14 @@ const Net = {
   },
   addPlayer(id, name, ci) {
     const p = { id, name, ci, color: NET_COLORS[ci % NET_COLORS.length], x: 0, z: 0, yaw: 0, pitch: 0, lightOn: true, crouching: false, sprinting: false, mv: 0, noise: 0, where: 'l', sees: false,
-      local: id === this.id, kids: 0, caught: 0, cx: 0, cz: 0, cyaw: 0, cpitch: 0, av: null, seen: performance.now(), chatAt: [], knockAt: -1e9 };
+      local: id === this.id, kids: 0, caught: 0, role: 'survivor', ref: '', used: '', vip: false, cx: 0, cz: 0, cyaw: 0, cpitch: 0, av: null, seen: performance.now(), chatAt: [], knockAt: -1e9 };
     this.players.set(id, p); return p;
   },
-  roster() { return [...this.players.values()].map((p) => ({ id: p.id, name: p.name, ci: p.ci, kids: p.kids, caught: p.caught })); },
+  roster() { return [...this.players.values()].map((p) => ({ id: p.id, name: p.name, ci: p.ci, kids: p.kids, caught: p.caught, role: p.role, ref: p.ref, used: p.used, vip: p.vip })); },
   syncRoster(list) {
     const keep = new Set(list.map((q) => q.id));
     [...this.players.keys()].forEach((id) => { if (!keep.has(id)) this.removePlayer(id); });
-    list.forEach((q) => { const p = this.players.get(q.id) || this.addPlayer(q.id, cleanName(q.name), q.ci | 0); p.kids = q.kids | 0; p.caught = q.caught | 0; });
+    list.forEach((q) => { const p = this.players.get(q.id) || this.addPlayer(q.id, cleanName(q.name), q.ci | 0); p.kids = q.kids | 0; p.caught = q.caught | 0; p.role = q.role === 'joury' ? 'joury' : 'survivor'; p.ref = String(q.ref || ''); p.used = String(q.used || ''); p.vip = !!q.vip; });
     Lobby.render();
   },
   removePlayer(id) { const p = this.players.get(id); if (!p) return; this.disposeAvatar(p); this.players.delete(id); },
@@ -64,9 +83,9 @@ const Net = {
     this.leave();
     if (typeof Peer === 'undefined') { cb('browser'); return; }
     this.mode = 'host'; this.id = 'h'; this.nextId = 1; this.started = false; this.joined = true;
-    this.addPlayer('h', name, 0);
+    Object.assign(this.addPlayer('h', name, 0), { ref: CFG.refCode, used: CFG.refUsed || '', vip: Perks.has('vip') });
     const open = (tries) => {
-      this.code = Array.from({ length: 5 }, () => NET_ALPHA[Math.floor(Math.random() * NET_ALPHA.length)]).join('');
+      this.code = Array.from({ length: NET_CODE_LEN }, () => NET_ALPHA[Math.floor(Math.random() * NET_ALPHA.length)]).join('');
       let peer; try { peer = this.peer = new Peer(NET_PREFIX + this.code, this.peerOpts()); } catch (e) { cb('browser'); return; }
       peer.on('open', () => { if (this.peer === peer) cb(null, this.code); });
       peer.on('connection', (c) => { if (this.peer === peer) this.onIncoming(c); });
@@ -96,7 +115,7 @@ const Net = {
     peer.on('open', () => {
       if (this.peer !== peer) return;
       const c = this.hostConn = peer.connect(NET_PREFIX + code, { reliable: true, serialization: 'json' });
-      c.on('open', () => this.send(c, { t: 'hello', v: NET_VERSION, name }));
+      c.on('open', () => this.send(c, { t: 'hello', v: NET_VERSION, name, ref: CFG.refCode, used: CFG.refUsed || '', vip: Perks.has('vip') }));
       c.on('data', (m) => {
         if (this.peer !== peer || !m || typeof m !== 'object') return;
         if (m.t === 'welcome') {
@@ -155,7 +174,7 @@ const Net = {
       if (this.players.size >= NET_MAX) { deny('full'); return; }
       const used = new Set([...this.players.values()].map((p) => p.ci)); let ci = 0; while (used.has(ci)) ci++;
       const id = 'p' + this.nextId++; c.pid = id; this.conns.set(id, c);
-      const p = this.addPlayer(id, cleanName(m.name), ci);
+      const p = this.addPlayer(id, cleanName(m.name), ci); p.ref = String(m.ref || '').slice(0, 12); p.used = String(m.used || '').slice(0, 12); p.vip = !!m.vip;
       this.send(c, { t: 'welcome', id, code: this.code, players: this.roster(), started: this.started, seed: this.seed, diff: CFG.difficulty });
       this.broadcast({ t: 'roster', players: this.roster() }, id); Lobby.render();
       if (this.started) { p.where = 'i'; Chat.server(`${p.name} joined the game.`, id); }
@@ -163,6 +182,7 @@ const Net = {
     }
     const p = c.pid && this.players.get(c.pid); if (!p) return;
     p.seen = performance.now();
+    if (m.t === 'role') { this.hostRole(p, !!m.joury); return; }
     if (m.t === 'st') {
       p.where = m.w === 'i' ? 'i' : 'c';
       if (p.where === 'i') { p.x = +m.x || 0; p.z = +m.z || 0; p.yaw = +m.yaw || 0; p.pitch = clamp(+m.pitch || 0, -1.5, 1.5); }
@@ -171,7 +191,10 @@ const Net = {
   },
   hostAct(p, m) {
     if (!p) return;
+    if (p.role === 'joury' && !['chat', 'blink'].includes(m.a)) return; // VIP Joury hunts; he does not rescue kids or build boats
     switch (m.a) {
+      case 'decoy': { const x = +m.x || 0, z = +m.z || 0; Joury.hearAt(x, z, 70); this.emit({ e: 'bang', x: r2(x), z: r2(z), by: p.id }); break; }
+      case 'blink': break;
       case 'rescue': {
         const k = World.kids[m.i | 0]; if (!k || k.saved || !this.started) break;
         p.kids++; this.emit({ e: 'kid', i: m.i | 0, by: p.id }); Scare.onRescue(k); Joury.hear(25, p);
@@ -192,7 +215,8 @@ const Net = {
   playerCaught(p) {
     if (p.where === 'c' && !p.local) return;
     p.where = 'c'; p.caught++; p.sees = false;
-    Chat.server(`${p.name} was eliminated by Joury.`, p.id);
+    const jp = this.jouryPlayer(); if (jp) jp.kids++; // VIP Joury: his catches
+    Chat.server(`${p.name} was eliminated by ${jp ? jp.name + ' (Joury)' : 'Joury'}.`, p.id);
     Joury.carryOff(p);
     // while they are locked in, "a friend" may text them the door code
     if (this.players.size > 1) setTimeout(() => {
@@ -236,6 +260,7 @@ const Net = {
       case 'boat': if (live) Game.startBoatPhase(); break;
       case 'launch': this.board = m.board; this.started = false; if (live) Game.launch(); break;
       case 'jsay': if (Game.state === 'play' && (m.all || Joury.dist < 45)) Joury.sayLocal(m.text, m.angry); break;
+      case 'bang': if (live && m.by !== this.id) Crackers.bang(m.x, m.z); break;
       case 'whoosh': if (Game.state === 'play') SFX.whoosh(m.x === undefined ? 0 : Joury.panFor(m.x, m.z)); break;
       case 'vanish': if (Game.state === 'play' && Joury.seen) { GFX.fx.static = Math.max(GFX.fx.static, 0.8); SFX.whoosh(0); } break;
       case 'wake': Joury.wakeFx(); break;
@@ -297,7 +322,7 @@ const Net = {
     return p;
   },
   // Host: everyone Joury can hunt right now (players out on the island)
-  targets() { this.refreshMe(); return [...this.players.values()].filter((p) => p.where === 'i'); },
+  targets() { this.refreshMe(); return [...this.players.values()].filter((p) => p.where === 'i' && p.role !== 'joury'); },
 
   start() {
     if (!this.isHost || this.started) return;
@@ -373,7 +398,7 @@ const Net = {
     this.players.forEach((p) => {
       if (p.local) return;
       if (!p.av) { p.av = this.makeAvatar(p); p.cx = p.x; p.cz = p.z; p.cyaw = p.yaw; p.cpitch = p.pitch; }
-      const a = p.av, show = p.where === 'i';
+      const a = p.av, show = p.where === 'i' && p.role !== 'joury'; // VIP Joury is drawn as Joury himself
       a.c.root.visible = a.aim.visible = a.tag.visible = show; a.src.on = show && p.lightOn;
       if (!show) { if (a.gi >= 0) World.glow.setSize(a.gi, 0); p.cx = p.x; p.cz = p.z; return; }
       const k = 1 - Math.exp(-12 * dt);
@@ -406,9 +431,15 @@ function animatePlayer(c, walkT, t, mv, crouch, pitch) {
 //  LOBBY — name, host or join, room code, who is in
 // ---------------------------------------------------------------------
 const Lobby = {
-  isOpen: false,
+  isOpen: false, code: '',
+  setCode(c) {
+    this.code = String(c || '').toUpperCase().split('').filter((ch) => NET_ALPHA.includes(ch)).join('').slice(0, NET_CODE_LEN); $('mpCode').value = this.code;
+    const items = codeItems(this.code);
+    $('codeSlots').innerHTML = Array.from({ length: NET_CODE_LEN }, (_, i) => { const it = items[i]; return `<div class="slot${it ? ' full' : ''}${i === items.length ? ' next' : ''}">${it ? `<span class="ico">${it[0]}</span>` : ''}</div>`; }).join('');
+    $('btnJoin').disabled = this.code.length !== NET_CODE_LEN;
+  },
   MSG: {
-    noroom: "Couldn't find that room. Check the code, and make sure the host still has their lobby open.",
+    noroom: "Couldn't find that room. Check the items and their order, and make sure the host still has their lobby open.",
     full: 'That room is full (4 players).',
     version: 'You and the host have different versions of the game. Use the same file.',
     service: "Couldn't reach the connection service. Check your internet and try again.",
@@ -421,8 +452,19 @@ const Lobby = {
     $('btnHost').addEventListener('click', () => this.host());
     $('btnJoin').addEventListener('click', () => this.join());
     $('btnStartMp').addEventListener('click', () => { SFX.uiClick(); Net.start(); });
+    $('btnVip').addEventListener('click', () => { SFX.uiClick(); const m = Net.me(); Net.setRole(!(m && m.role === 'joury')); });
     $('btnNetlost').addEventListener('click', () => { Game.screen('netlost', false); Game.toTitle(); });
-    $('mpCode').addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+    // the item picker
+    const grid = $('itemGrid'); grid.innerHTML = '';
+    NET_ITEMS.forEach(([icon, name], i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'item-tile'; b.title = name; b.setAttribute('aria-label', name);
+      b.innerHTML = `<span class="ico">${icon}</span><span class="nm">${name}</span>`;
+      b.addEventListener('click', () => { if (this.code.length < NET_CODE_LEN) { SFX.uiClick(); this.setCode(this.code + NET_ALPHA[i]); } });
+      grid.appendChild(b);
+    });
+    $('btnClearCode').addEventListener('click', () => { SFX.uiClick(); this.setCode(''); });
+    addEventListener('keydown', (e) => { if (!this.isOpen || Net.on || e.target.tagName === 'INPUT') return; if (e.code === 'Backspace') this.setCode(this.code.slice(0, -1)); if (e.code === 'Enter' && this.code.length === NET_CODE_LEN) this.join(); });
+    this.setCode('');
   },
   open() {
     if (!SFX.ctx) { SFX.init(); SFX.startMusicBox(); } SFX.uiClick();
@@ -439,8 +481,8 @@ const Lobby = {
   },
   join() {
     SFX.uiClick();
-    const code = $('mpCode').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (code.length !== 5) { this.status('Type the 5-character room code your host gave you.', true); return; }
+    this.setCode($('mpCode').value || this.code); const code = this.code;
+    if (code.length !== NET_CODE_LEN) { this.status('Pick the 5 items your host is showing, in the same order.', true); return; }
     this.busy(true); this.status('Connecting…');
     Net.join(code, this.name(), (err, m) => {
       this.busy(false);
@@ -454,10 +496,15 @@ const Lobby = {
     const room = Net.on && Net.joined && (Net.isClient || !!Net.code && Net.peer && Net.peer.open);
     $('lobby').classList.toggle('room', !!room); $('mpName').disabled = !!room;
     if (!room) return;
-    $('roomCode').textContent = Net.code;
+    const rc = codeItems(Net.code).map(([icon, name]) => `<div class="code-item"><span class="ico">${icon}</span><span class="nm">${name}</span></div>`).join('');
+    if ($('roomCode').dataset.code !== Net.code) { $('roomCode').dataset.code = Net.code; $('roomCode').innerHTML = rc; $('roomCode').setAttribute('aria-label', 'Join code: ' + codeWords(Net.code)); }
     const list = [...Net.players.values()], host = list.find((p) => p.id === 'h');
-    $('roomHelp').textContent = Net.isHost ? 'Tell your friends this code. They choose Play Together, type it in and press Join.' : `Waiting for ${host ? host.name : 'the host'} to start the game…`;
-    let h = list.map((p) => `<div><i style="background:${css(p.color)}"></i>${esc(p.name)}<span>${p.id === 'h' ? 'host' : ''}${p.local ? (p.id === 'h' ? ' · you' : 'you') : ''}</span></div>`).join('');
+    $('roomHelp').textContent = Net.isHost ? `Tell your friends: ${codeWords(Net.code)}. They choose Play Together, tap the same items in order and press Confirm.` : `Waiting for ${host ? host.name : 'the host'} to start the game…`;
+    let h = list.map((p) => `<div class="${p.role === 'joury' ? 'is-joury' : ''}"><i style="background:${css(p.color)}"></i>${esc(p.name)}${p.role === 'joury' ? ' <em class="vip-title">👑 VIP · JOURY</em>' : ''}<span>${p.id === 'h' ? 'host' : ''}${p.local ? (p.id === 'h' ? ' · you' : 'you') : ''}</span></div>`).join('');
+    const me = Net.me(), jp = Net.jouryPlayer();
+    $('btnVip').hidden = !Perks.has('vip');
+    $('btnVip').disabled = !!jp && jp !== me;
+    $('btnVip').textContent = me && me.role === 'joury' ? '👑 PLAY AS A SURVIVOR INSTEAD' : jp ? `👑 ${jp.name.toUpperCase()} IS JOURY` : '👑 PLAY AS JOURY (VIP)';
     for (let i = list.length; i < NET_MAX; i++) h += '<div class="empty">open seat</div>';
     $('lobbyPlayers').innerHTML = h;
     $('btnStartMp').style.display = Net.isHost ? '' : 'none';

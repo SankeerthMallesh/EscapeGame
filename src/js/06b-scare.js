@@ -101,7 +101,7 @@ const Scare = {
   },
   onWake() { Chat.server('Joury joined the game.'); Chat.jouryAll('ready?', 3); },
   onRescue(kid) { Chat.server(`${KID_NAMES[kid.c.def.id]} left the game.`); setTimeout(() => Chat.kid(kid.c.def.id, pick(['thank u!!! RUN', 'ty ty ty', 'GO. hes coming', 'i owe u my candy'])), 1500); },
-  onCaught() { Chat.local('You were eliminated by Joury.'); },
+  onCaught() { const jp = Net.on && Net.jouryPlayer(); Chat.local(`You were eliminated by ${jp ? jp.name + ' (VIP Joury)' : 'Joury'}.`); },
   onSpotted(t) { if (Math.random() < 0.6) Chat.jouryAll(pick(['found u', 'there u are', 'i see u']), 1.2, Net.on && t ? t.id : undefined); },
   // He imitates the kids from wherever he is standing. Online, he sometimes borrows a friend's name instead.
   mimic(F) {

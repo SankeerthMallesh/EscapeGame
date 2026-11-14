@@ -19,7 +19,7 @@ const Joury = {
   focus: null, fd: 99, anySeen: false, watchT: 0, awayT: 0, net: null, _me: { id: 'me', local: true },
   init(scene) { this.c = makeJoury(); this.c.root.visible = false; scene.add(this.c.root); },
   reset() {
-    this.state = 'dormant'; this.timer = D().startDelay; this.stare = 0; this.seenT = this.unseenT = 0; this.enraged = false; this.danger = 0; this.seen = this.looking = false;
+    this.state = 'dormant'; this.timer = Net.on && Net.jouryPlayer() ? 20 : D().startDelay + (Net.isClient ? 0 : Perks.startDelayBonus()); this.stare = 0; this.seenT = this.unseenT = 0; this.enraged = false; this.danger = 0; this.seen = this.looking = false;
     this.tpT = rand(D().tpMin, D().tpMax); this.lineT = 22; this.stunT = 0; this.tipShown = false;
     this.knowT = 0; this.heardT = 99; this.roamT = 0; this.mimicT = rand(55, 80); this.revealT = 0; this.spotted = false;
     this.focus = null; this.fd = 99; this.anySeen = false; this.watchT = 0; this.awayT = 0; this.net = null; this.moving = false; this.speed = 0;
@@ -61,7 +61,7 @@ const Joury = {
     HUD.toast('Somewhere in the woods, a cabin door slams.<br><b>Joury is awake.</b> He hunts by sound — sprinting is loud, crouching (C) is quiet.', 5.5);
   },
   speedFor() { const d = D(); return d.chaseBase + d.chasePerKid * Game.savedCount() + (this.enraged ? d.enrage : 0); },
-  enrage() { this.enraged = true; this.say(pick(JOURY_ANGRY), true, true); if (this.state === 'hunt') this.teleport('far'); },
+  enrage() { this.enraged = true; this.say(pick(JOURY_ANGRY), true, true); if (this.state === 'hunt' && !(Net.on && Net.jouryPlayer())) this.teleport('far'); },
   stun(sec) {
     this.state = 'stunned'; this.stunT = sec; this.stare = 0;
     const d = World.cabin.door; const x = d.x + 3.2, z = d.z + 1.2; this.pos.set(x, World.groundAt(x, z), z); this.c.root.visible = true;
@@ -112,6 +112,7 @@ const Joury = {
   },
   // A flash of lightning shows him standing out in the trees — then he's gone
   lightningReveal() {
+    if (Net.on && Net.jouryPlayer()) return false;
     if (this.teleport('reveal') || this.teleport('ahead')) {
       const F = this.focus; this.revealT = 1.5; this.yaw = Math.atan2(F.x - this.pos.x, F.z - this.pos.z);
       if (F.local) this.stare = Math.max(0, this.stare - 1);
@@ -120,6 +121,11 @@ const Joury = {
     return false;
   },
   // A loud noise (freeing a kid, grabbing a part, banging on the cabin door)
+  // a firecracker went off: he goes to look
+  hearAt(x, z, radius) {
+    if (Net.isClient || this.state !== 'hunt' || (Net.on && Net.jouryPlayer())) return;
+    if (Math.hypot(x - this.pos.x, z - this.pos.z) < radius) { this.heardT = 0; this.heardPos.set(x, 0, z); this.knowT = 0; }
+  },
   hear(radius, who) {
     if (Net.isClient) { Net.act('noise', { r: radius }); return; }
     const T = who || this.targets()[0]; if (!T || this.state !== 'hunt') return;
@@ -152,6 +158,17 @@ const Joury = {
     }
     if (this.state !== 'hunt') return;
     const T = this.targets();
+    // VIP Joury: a player is steering him. Follow them; the rest of his brain is switched off.
+    const jp = Net.isHost && Net.jouryPlayer();
+    if (jp) {
+      if (jp.local) Net.refreshMe();
+      const was = this.pos.x;
+      this.pos.x = jp.x; this.pos.z = jp.z; this.pos.y = World.surfaceY(jp.x, jp.z); this.yaw = jp.yaw + Math.PI;
+      this.moving = jp.mv > 0; this.speed = jp.mv === 2 ? 6.5 : jp.mv === 1 ? 3.6 : 0;
+      this.anySeen = T.some((t) => t.sees); this.revealT = 0; this.focus = null;
+      this.fd = T.reduce((m, t) => Math.min(m, Math.hypot(t.x - jp.x, t.z - jp.z)), 99);
+      return;
+    }
     const seen = this.anySeen = T.some((t) => t.sees);
     this.watchT = seen ? this.watchT + dt : 0;
     if (!T.length) { this.focus = null; this.fd = 99; this.moving = false; this.speed = 0; return; } // everyone is locked in the cabin
@@ -234,6 +251,10 @@ const Joury = {
   // ---------------- what you see, hear and feel ----------------
   update(dt) {
     this.t += dt; const P = Player.pos, d = D(), brain = !Net.isClient, R = this.c.root;
+    if (Net.amJoury()) { // you ARE Joury: no model in your face, no stare meter, nobody to catch you
+      if (brain) this.think(dt); else this.follow(dt);
+      R.visible = false; this.seen = this.looking = false; this.stare = 0; this.danger = 0; this.dist = 99; return;
+    }
     if (!brain) this.follow(dt);
     this.dist = Math.hypot(P.x - this.pos.x, P.z - this.pos.z);
     if (this.state !== 'hunt') {

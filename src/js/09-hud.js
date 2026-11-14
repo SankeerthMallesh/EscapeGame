@@ -45,7 +45,7 @@ const HUD = {
   // Online: who is playing, and who is locked in the cabin
   roster() {
     const el = $('roster'); if (!el) return;
-    const h = !Net.on ? '' : [...Net.players.values()].map((p) => `<div><i style="background:${css(p.color)}"></i>${esc(p.name)}${p.local ? ' (you)' : ''}${p.where === 'c' ? ' <b>· in the cabin</b>' : ''}</div>`).join('');
+    const h = !Net.on ? '' : [...Net.players.values()].map((p) => `<div><i style="background:${css(p.color)}"></i>${esc(p.name)}${p.local ? ' (you)' : ''}${p.role === 'joury' ? ' <em class="vip-title">👑 VIP JOURY</em>' : p.where === 'c' ? ' <b>· in the cabin</b>' : ''}</div>`).join('');
     if (this.rosterHtml !== h) { this.rosterHtml = h; el.innerHTML = h; }
   },
   stun(sec) { const el = $('stun'); if (sec > 0) { el.style.display = 'block'; el.textContent = `JOURY IS STUNNED · ${Math.ceil(sec)}`; } else el.style.display = 'none'; },
@@ -100,7 +100,7 @@ const HUD = {
     if (Net.on) {
       let locked = 0;
       Net.players.forEach((p) => {
-        if (p.local) return; const col = css(p.color);
+        if (p.local || p.role === 'joury') return; const col = css(p.color);
         if (p.where === 'i') { const [mx, my] = dot(p.x, p.z, 3.1, col, 5); g.lineWidth = 1 * k; g.strokeStyle = '#fff'; g.beginPath(); g.arc(mx, my, 3.1 * k, 0, TAU); g.stroke(); if (opts.labels) { g.fillStyle = col; g.fillText(p.name, mx, my - 6 * k); } }
         else if (p.where === 'c') { const [mx, my] = this.w2m(World.cabin.x, World.cabin.z, size); g.lineWidth = 1.6 * k; g.strokeStyle = col; g.beginPath(); g.arc(mx, my, (7.5 + locked * 2.6) * k, 0, TAU); g.stroke(); locked++; }
       });

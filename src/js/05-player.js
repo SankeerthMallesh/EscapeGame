@@ -42,8 +42,8 @@ const Player = {
     const walk = this.crouching ? 1.8 : (opts.walk || 3.7), run = opts.run || 6.4;
     let speed = moving ? (wantRun ? run : walk) * (f < 0 ? 0.7 : 1) : 0;
     this.sprinting = wantRun;
-    if (wantRun) { this.stamina = Math.max(0, this.stamina - dt / 5.5); if (this.stamina <= 0) { this.exhausted = true; this.breathT = 0; } }
-    else { this.stamina = Math.min(1, this.stamina + dt * (moving ? 0.11 : 0.18)); if (this.exhausted && this.stamina > 0.35) this.exhausted = false; }
+    if (wantRun) { this.stamina = Math.max(0, this.stamina - dt / (5.5 * Perks.stamK())); if (this.stamina <= 0) { this.exhausted = true; this.breathT = 0; } }
+    else { this.stamina = Math.min(1, this.stamina + dt * (moving ? 0.11 : 0.18) * Perks.regenK()); if (this.exhausted && this.stamina > 0.35) this.exhausted = false; }
     if (this.exhausted) { this.breathT -= dt; if (this.breathT <= 0 && SFX.ok()) { this.breathT = 1.05; SFX.burst(SFX.now, 0.55, 0.07, 'bandpass', 900, 1.2, SFX.sfx, 1, 0.15); } }
     const fx = -Math.sin(this.yaw), fz = -Math.cos(this.yaw), rx = Math.cos(this.yaw), rz = -Math.sin(this.yaw);
     const tvx = (fx * f + rx * s) * speed, tvz = (fz * f + rz * s) * speed;

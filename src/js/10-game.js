@@ -47,7 +47,8 @@ const Game = {
     sens('optSens', 'optSens2'); sens('optSens2', 'optSens');
     $('optInvert').checked = CFG.invert; $('optInvert').addEventListener('change', (e) => { CFG.invert = e.target.checked; saveSettings(); });
     this.diffNote();
-    const panels = { btnSettings: 'setPanel', btnHow: 'howPanel' };
+    const panels = { btnSettings: 'setPanel', btnHow: 'howPanel', btnCodes: 'codePanel' };
+    Perks.init();
     Object.keys(panels).forEach((id) => $(id).addEventListener('click', () => {
       SFX.uiClick();
       Object.entries(panels).forEach(([b, p]) => { const open = b === id && $(p).hidden; $(p).hidden = !open; $(b).setAttribute('aria-expanded', open); });
@@ -110,7 +111,7 @@ const Game = {
     if (this.state === 'title') { this.toTitle(); Lobby.status(text, true); return; }
     this.state = 'title'; this.screen('netlost', true); if (SFX.ctx) SFX.allLoopsOff(0.3);
   },
-  onFieldEnter(el) { if (el.id === 'mpCode') Lobby.join(); },
+  onFieldEnter() {},
 
   // ---------------- main game ----------------
   startGame() {
@@ -124,11 +125,15 @@ const Game = {
     document.body.classList.toggle('mp', Net.on); HUD.roster();
     Player.attach(World.cam, World, this.worldFlash);
     Player.place(Net.on && Net.me() ? (Net.me().ci - 1.5) * 0.6 : 0, World.dock.start.z, 0); Player.stamina = 1; Player.battery = 1; Player.lightOn = true; Player.exhausted = false; Player.frozen = false;
+    Crackers.reset(); Vip.reset(); Perks.checkSquad();
+    if (Net.amJoury()) { const dr = World.cabin.door; Player.place(dr.x, dr.z + 1.2, Math.PI, 0); Player.lightOn = false; }
     HUD.drawKidIcons([]); HUD.show(true); HUD.parts(false); HUD.stun(0); HUD.cabinTimer(null); HUD.lightHint(null);
     $('minimap').style.display = ''; $('kidsBar').style.display = ''; $('objective').style.display = '';
     this.state = 'play';
     HUD.toast('<b>WASD</b> move · <b>Mouse</b> look · <b>Shift</b> sprint · <b>C</b> crouch · <b>F</b> flashlight · <b>E</b> interact · <b>M</b> map' + (Net.on ? ' · <b>T</b> chat' : '') + '<br>Free all 10 kids. Yellow dots on the map show where they are.' + (Net.on ? '<br>Split up to find them faster. Joury can only chase one of you at a time.' : ''), Net.on ? 9 : 7);
     setTimeout(() => { if (this.state === 'play') Scare.welcome(); }, 2500);
+    if (Net.amJoury()) setTimeout(() => { if (this.state === 'play') HUD.toast('<b style="color:#ffd86a">👑 You are VIP Joury.</b> The others get a 20-second head start.<br>Touch them to catch them, or let them stare at you. <b>Q</b> blinks you behind the nearest one. You see in the dark.', 8); }, 600);
+    else if (Perks.squad) setTimeout(() => { if (this.state === 'play') HUD.toast('🤝 ' + SQUAD_TEXT, 6); }, 9000);
     Input.requestLock();
   },
   wantsLook() { return (this.state === 'play' || this.state === 'cabin') && !$('inspect').classList.contains('on') && !$('keypad').classList.contains('on'); },
@@ -169,6 +174,8 @@ const Game = {
       if (k === 'KeyF') Player.toggleLight();
       if (k === 'KeyM') this.toggleMap();
       if (k === 'KeyE') this.interact();
+      if (k === 'KeyG') Crackers.throw();
+      if (k === 'KeyQ') Vip.blink();
     } else if (s === 'cabin') {
       if (k === 'KeyF' && Cabin.wakeT <= 0) Cabin.cycleLight();
       if (k === 'KeyE' && Cabin.wakeT <= 0) this.cabinInteract();
@@ -177,6 +184,7 @@ const Game = {
   toggleMap() { this.mapOpen = !this.mapOpen; this.screen('bigmap', this.mapOpen); SFX.uiClick(); },
   closeInspect() { HUD.closeInspect(); },
   findTarget() {
+    if (Net.amJoury()) return null;
     const cam = World.cam, fwd = Player.forward(new THREE.Vector3()); let best = null, bs = -1;
     for (const it of World.interact) {
       if (!it.enabled()) continue;
@@ -406,7 +414,9 @@ const Game = {
     $('endStats').classList.remove('on'); $('btnAgain').classList.remove('on');
     const board = $('endBoard'); board.classList.remove('on'); board.innerHTML = '';
     if (Net.on && Net.board && Net.board.length > 1) { // who did what
-      board.innerHTML = '<span class="h">Player</span><span class="h">Kids freed</span><span class="h">Times caught</span>' + Net.board.map((p) => `<span class="n"><i style="background:${css(NET_COLORS[(p.ci | 0) % NET_COLORS.length])}"></i>${esc(cleanName(p.name))}${p.id === Net.id ? ' (you)' : ''}</span><span class="v">${p.kids | 0}</span><span class="v">${p.caught | 0}</span>`).join('');
+      board.innerHTML = '<span class="h">Player</span><span class="h">Kids freed</span><span class="h">Times caught</span>' + Net.board.map((p) => p.role === 'joury'
+        ? `<span class="n"><i style="background:${css(NET_COLORS[(p.ci | 0) % NET_COLORS.length])}"></i>${esc(cleanName(p.name))}${p.id === Net.id ? ' (you)' : ''} <em class="vip-title">👑 VIP JOURY</em></span><span class="v">—</span><span class="v">caught ${p.kids | 0}</span>`
+        : `<span class="n"><i style="background:${css(NET_COLORS[(p.ci | 0) % NET_COLORS.length])}"></i>${esc(cleanName(p.name))}${p.id === Net.id ? ' (you)' : ''}</span><span class="v">${p.kids | 0}</span><span class="v">${p.caught | 0}</span>`).join('');
       $('btnAgain').textContent = 'BACK TO THE LOBBY';
     } else $('btnAgain').textContent = 'PLAY AGAIN';
     this.screen('ending', true);
@@ -466,12 +476,14 @@ const Game = {
     this.stats.time += dt;
     if (!this.perfTipped && this.stats.time > 12 && this.stats.time < 13 && this.fps < 32 && CFG.quality !== 'low') { this.perfTipped = true; HUD.toast(`Running at about ${Math.round(this.fps)} FPS. For a smoother game, press <b>Esc</b> and set Graphics to <b>Low</b>.`, 6); }
     FogU.uMistAmt.value = CFG.difficulty === 'nightmare' ? 1.0 : 0.8;
-    if (Net.on) Player.frozen = !!this.menuOpen;
-    Player.update(dt);
-    Player.updateLight(dt, Joury.danger, d.drain);
+    const vip = Net.amJoury();
+    if (Net.on) Player.frozen = !!this.menuOpen || (vip && Joury.state !== 'hunt'); // VIP Joury waits out the head start
+    Player.update(dt, vip ? { walk: 4.3, run: 7.2 } : {});
+    if (vip) { Player.stamina = 1; Player.lightOn = false; }
+    Player.updateLight(dt, Joury.danger, vip ? 0 : d.drain * Perks.drainK());
     Joury.update(dt);
     if (this.state !== 'play') return; // caught during Joury.update
-    World.update(dt, World.cam.position); Weather.update(dt, World.cam, true); Scare.updatePumpkins(dt); Chat.update(dt, Joury.danger);
+    World.update(dt, World.cam.position); Weather.update(dt, World.cam, true); Scare.updatePumpkins(dt); Chat.update(dt, Joury.danger); Crackers.update(dt);
     // interaction target
     this.target = this.findTarget();
     HUD.prompt(this.target ? this.target.label() : null);
@@ -497,6 +509,7 @@ const Game = {
     HUD.objective(this.phase === 'kids' ? `Kids rescued: ${n}/10` : `Boat parts: ${World.partsDelivered.size}/4 on the boat` + (World.carried.size ? ` · carrying ${World.carried.size}` : ''));
     HUD.bars(Player.stamina, Player.battery, Player.exhausted, true);
     HUD.stun(Joury.state === 'stunned' ? Joury.stunT : 0); HUD.roster();
+    Vip.update(dt); Vip.updateTag();
     const mg = clamp(danger * 1.1 - 0.25, 0, 0.85); HUD.minimap(mg);
     if (this.mapOpen) HUD.bigmap(mg);
     GFX.render(World.scene, World.cam, dt);
