@@ -1,7 +1,7 @@
 // Soak test: play the game many times with random inputs, as fast as possible (no drawing),
 // and report every error, broken value (NaN) and stuck state. RUNS=1000 node tests/soak.cjs
 const { chromium } = require('playwright'); const path = require('path');
-const RUNS = +process.env.RUNS || 1000, BATCH = 10;
+const RUNS = +process.env.RUNS || 1000, BATCH = 1; // one game per call, with a pause between, like real play
 (async () => {
   const b = await chromium.launch({ args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
   const p = await b.newPage({ viewport: { width: 1100, height: 700 } }); const pageErrors = [];
@@ -82,7 +82,7 @@ const RUNS = +process.env.RUNS || 1000, BATCH = 10;
   const errors = new Map(), flags = new Map(), outcomes = []; let done = 0; const t0 = Date.now();
   for (let i = 0; i < RUNS; i += BATCH) {
     const n = Math.min(BATCH, RUNS - i);
-    const res = await p.evaluate(([start, n]) => { const r = []; for (let k = 0; k < n; k++) r.push(window.__soak(start + k)); return r; }, [i, n]);
+    const res = await p.evaluate(([start, n]) => { const r = []; for (let k = 0; k < n; k++) r.push(window.__soak(start + k)); return r; }, [i, n]); await p.waitForTimeout(120);
     res.forEach((r, k) => { done++; outcomes.push(r.outcome); r.errors.forEach((e) => { const c = errors.get(e) || { n: 0, run: i + k }; c.n++; errors.set(e, c); }); r.flags.forEach((e) => { const c = flags.get(e) || { n: 0, run: i + k }; c.n++; flags.set(e, c); }); });
     if (done % 100 === 0 || done === RUNS) console.log(`${done} runs · ${((Date.now() - t0) / 1000).toFixed(0)} s · ${errors.size} distinct errors · ${flags.size} distinct problems`);
   }

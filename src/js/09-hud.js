@@ -130,15 +130,14 @@ const HUD = {
       g.save(); g.translate(mx, my); g.rotate(a); g.beginPath(); g.moveTo(8 * k, 0); g.lineTo(-5 * k, 4.5 * k); g.lineTo(-2.5 * k, 0); g.lineTo(-5 * k, -4.5 * k); g.closePath(); g.fillStyle = '#fff'; g.shadowColor = '#000'; g.shadowBlur = 3; g.fill(); g.restore(); }
     // static glitch when Joury is near
     if (glitch > 0.02) {
-      const img = g.getImageData(0, 0, size, size), dd = img.data, row = size * 4, tmp = new Uint8ClampedArray(row);
-      // tear a few horizontal bands sideways (done on the pixels: drawing a canvas onto itself is unreliable)
+      // tear a few horizontal bands sideways, using a scratch copy of the map (no per-pixel reads: nothing is allocated per frame)
+      const tmp = this.glitchTmp || (this.glitchTmp = makeCanvas(size, size)); if (tmp.width !== size) { tmp.width = size; tmp.height = size; }
+      const tg = tmp.getContext('2d'); tg.clearRect(0, 0, size, size); tg.drawImage(cv, 0, 0);
       const n = Math.floor(glitch * 14);
-      for (let i = 0; i < n; i++) {
-        const y0 = Math.floor(Math.random() * size), h = Math.floor(rand(2, 14) * k), dx = Math.round(rand(-18, 18) * glitch * k);
-        for (let y = y0; y < Math.min(size, y0 + h); y++) { const o = y * row; tmp.set(dd.subarray(o, o + row)); for (let x = 0; x < size; x++) { const sx = clamp(x - dx, 0, size - 1) * 4, t = o + x * 4; dd[t] = tmp[sx]; dd[t + 1] = tmp[sx + 1]; dd[t + 2] = tmp[sx + 2]; } }
-      }
-      for (let i = 0; i < dd.length; i += 4) if (dd[i + 3] > 0 && Math.random() < glitch * 0.4) { const v = Math.random() * 255; dd[i] = v; dd[i + 1] = v * 0.9; dd[i + 2] = v * 0.9; }
-      g.putImageData(img, 0, 0);
+      for (let i = 0; i < n; i++) { const y0 = Math.floor(Math.random() * size), h = Math.max(1, Math.floor(rand(2, 14) * k)), dx = Math.round(rand(-18, 18) * glitch * k); g.drawImage(tmp, 0, y0, size, h, dx, y0, size, h); }
+      // static speckles
+      const specks = Math.floor(glitch * 260 * k * k);
+      for (let i = 0; i < specks; i++) { const v = Math.floor(Math.random() * 255); g.fillStyle = `rgb(${v},${(v * 0.9) | 0},${(v * 0.9) | 0})`; g.fillRect(Math.random() * size, Math.random() * size, 1.5 * k, 1.5 * k); }
       g.fillStyle = `rgba(255,0,0,${glitch * 0.25})`; g.fillRect(0, 0, size, size);
       if (Math.random() < glitch * 0.3) { g.fillStyle = '#ff3030'; g.font = `bold ${Math.round(14 * k)}px "Courier New", monospace`; g.textAlign = 'center'; g.fillText(pick(['NOT GG', 'SIGNAL LOST', 'REMATCH', '5-4']), size / 2, size / 2 + rand(-30, 30) * k); }
     }

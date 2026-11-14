@@ -94,7 +94,10 @@ const Crackers = {
   spawn(from, to, mine) {
     const g = new THREE.Group();
     const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.2, 8), plainMat(0xb31818, 0.6)); stick.rotation.z = Math.PI / 2; g.add(stick);
-    const gi = World.glow.add(from.x, from.y, from.z, 0xffb040, 0.18, 0.6);
+    // fuse glow: reuse a small pool of glow slots instead of taking a new one every throw
+    if (!this.pool) this.pool = []; let gi = this.pool.find((i) => !this.live.some((c) => c.gi === i));
+    if (gi === undefined) { gi = World.glow.add(from.x, from.y, from.z, 0xffb040, 0.18, 0.6); if (gi >= 0) this.pool.push(gi); }
+    else { World.glow.set(gi, from.x, from.y, from.z); World.glow.setSize(gi, 0.18); }
     g.position.copy(from); World.scene.add(g);
     const c = { g, gi, from, to, t: 0, fly: 0.9, fuse: 1.6, mine, banged: false }; this.live.push(c); return c;
   },
