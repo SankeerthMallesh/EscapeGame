@@ -35,6 +35,21 @@ Or play offline:
 - **Caught?** You wake up in his cabin with a countdown. Find the 4 hidden digits, type them on the door keypad, and escape while he's stunned.
 - **Boat parts** (hull planks, oars, engine and fuel can) appear only after all 10 kids are saved. Bring them to the dock to build the boat and escape at sunrise.
 
+## Story 2: Joury's House
+
+Choose **Joury's House** on the main menu. A week after the rematch, Vivek blasted phonk in the voice chat for three hours, and Joury, who lives next door, snapped. This time he took **Gabe**.
+
+It plays like a sneaking game:
+
+- **Get in.** The front door is locked. The shed in the back yard has a crowbar, and the back door is only boarded up. Prying the boards off is loud, though.
+- **Listen.** When you can hear Joury's phonk, he is sitting at his PC with his back to the door. When the music stops, he is up and walking around the house.
+- **The key** to Gabe's room hangs on the wall right next to Joury's chair. Crouch (**C**) to sneak up behind him and take it.
+- **Hide** in the wardrobe or the pantry when he chases you. If he saw you get in, he will check.
+- **Get caught** and he throws you out on the front lawn. You keep what you found, but if Gabe was with you, he gets dragged back to his room.
+- **Free Gabe**, unlock the front door from the inside, and get him out through the front gate.
+
+The phonk in the game is an original cowbell beat made in code, not a real song.
+
 ## Play together (online, 2–4 players)
 
 Everyone needs the same `escape-from-joury.html` file (or the same link) and an internet connection.
@@ -65,6 +80,7 @@ Open **Codes** on the main menu to type in a code. Each one unlocks a bonus for 
 | `CANDY` | Your flashlight battery lasts 50% longer. |
 | `BRIDGE` | Start every game with 2 extra firecrackers. |
 | `REMATCH` | Joury waits 10 seconds longer before he wakes up. |
+| `ADMIN` | **Admin panel.** Press **F8** during a game: teleport anywhere, god mode, speed ×2/×3, infinite stamina and battery, freeze/wake/stun Joury, free the kids, finish the boat, launch, show the cabin code, escape the cabin. Online, only the host can change the island and Joury. |
 
 **Referral codes:** everyone gets their own code (like `JRY-PKDQA`) under Codes. Give it to a friend. When they enter it they get a bonus (a longer-lasting flashlight), and whenever the two of you play online together, you both get the **Squad bonus** (stamina comes back 30% faster).
 
@@ -105,7 +121,7 @@ Everything you see is generated in code when the game loads. There are no image 
 | `vendor/peerjs.min.js` | PeerJS 1.5.4 (MIT license) for online play, packed in the same way. |
 | `vendor/fonts/` | The three fonts the game uses (open licenses, see the README there), embedded by the build. |
 | `build.mjs` | Joins everything into `escape-from-joury.html`. |
-| `tests/` | Automated play-throughs in a headless browser: `flow.cjs` (story → game → rescue → caught → cabin puzzle → escape), `flow2.cjs` (boat parts → ending → Play Again), `flow3.cjs` (caught again → timer runs out → Retry → escape), `mp.cjs` and `mp2.cjs` (online: 2–3 players, lobby, sync, chat, caught, door knocking, late joining, leaving), `scares.cjs`, `crash.cjs` and `stare.cjs` (storm, chat, diary pages, pumpkins, stare-to-catch, fake crash). |
+| `tests/` | Automated play-throughs in a headless browser: `flow.cjs` (story → game → rescue → caught → cabin puzzle → escape), `flow2.cjs` (boat parts → ending → Play Again), `flow3.cjs` (caught again → timer runs out → Retry → escape), `house.cjs` (story 2 from start to finish), `admin.cjs` (every admin button), `mp.cjs`, `mp2.cjs` and `mp3.cjs` (online: 2–3 players, lobby, sync, chat, caught, door knocking, late joining, leaving), `scares.cjs`, `crash.cjs` and `stare.cjs` (storm, chat, diary pages, pumpkins, stare-to-catch, fake crash). |
 
 ## Changing the game
 

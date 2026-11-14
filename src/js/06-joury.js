@@ -278,7 +278,8 @@ const Joury = {
     } else {
       this.unseenT += dt; this.seenT = 0; this.stare = Math.max(0, this.stare - dt * 0.8);
     }
-    if (this.stare >= d.stareLimit || this.dist < d.catchR + (this.enraged ? 0.2 : 0)) { Game.caught(); return; }
+    if ((this.stare >= d.stareLimit || this.dist < d.catchR + (this.enraged ? 0.2 : 0)) && !Admin.god) { Game.caught(); return; }
+    if (Admin.god) this.stare = Math.min(this.stare, d.stareLimit * 0.9);
     if (brain) { this.think(dt); if (this.state !== 'hunt') { if (this.state !== 'stunned') R.visible = false; return; } }
     const speed = this.speed;
     // footsteps you can hear but not see

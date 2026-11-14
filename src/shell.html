@@ -32,6 +32,7 @@
     </div>
     <nav class="menu" aria-label="Main menu">
       <button id="btnPlay" class="menu-item"><span>Play alone</span><small>the story · one player</small></button>
+      <button id="btnHouse" class="menu-item"><span>Joury's House</span><small>story 2 · new · sneak in, save Gabe</small></button>
       <button id="btnTogether" class="menu-item"><span>Play together</span><small>online · 2–4 players · one Joury</small></button>
       <button id="btnSettings" class="menu-item" aria-expanded="false" aria-controls="setPanel"><span>Settings</span><small id="setSummary"></small></button>
       <button id="btnHow" class="menu-item" aria-expanded="false" aria-controls="howPanel"><span>How to play</span><small>controls &amp; tips</small></button>
@@ -156,6 +157,7 @@
     <div class="bar-row"><span class="bar-ico">🔦</span><div class="bar"><div id="batFill"></div></div><span id="batPct"></span></div>
   </div>
   <div id="lookHint">Click and drag to look around</div>
+  <div id="hideOverlay" aria-hidden="true"></div>
   <div id="roster"></div>
   <div id="crackers"></div>
   <div id="chat"><div id="chatLines"></div><div id="chatTyping"></div><div id="chatInput"></div></div>
@@ -234,6 +236,15 @@
 </div>
 
 <div id="crash" class="screen"><div class="crash-box"><div class="crash-title" id="crashTitle">Escape from Joury is not responding</div><div class="crash-body" id="crashBody">The program stopped working. Collecting crash data…</div><div class="crash-bar"><div id="crashFill"></div></div><div class="crash-btns"><span>Wait</span><span>Close the program</span></div></div></div>
+
+<div id="admin" class="screen" role="dialog" aria-labelledby="adminTitle">
+  <div class="admin-box">
+    <header class="admin-head"><div><div class="admin-title" id="adminTitle">🛠️ ADMIN PANEL</div><div class="admin-sub">F8 or Esc to close · the game keeps running</div></div><button type="button" id="adminClose" class="adm-x" aria-label="Close">✕</button></header>
+    <div class="admin-info" id="adminInfo"></div>
+    <div class="admin-msg" id="adminMsg" role="status" aria-live="polite"></div>
+    <div class="admin-body" id="adminBody"></div>
+  </div>
+</div>
 
 <div id="netlost" class="screen"><div class="panel"><div class="panel-title red">CONNECTION LOST</div><div class="panel-text" id="netlostText"></div><button id="btnNetlost" class="btn">BACK TO TITLE</button></div></div>
 

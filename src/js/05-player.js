@@ -39,7 +39,7 @@ const Player = {
     const moving = f !== 0 || s !== 0, len = Math.hypot(f, s) || 1; f /= len; s /= len;
     this.crouching = !this.frozen && (Input.down('KeyC') || Input.down('ControlLeft'));
     const wantRun = (Input.down('ShiftLeft') || Input.down('ShiftRight')) && moving && f >= 0 && !this.exhausted && this.stamina > 0 && !this.crouching;
-    const walk = this.crouching ? 1.8 : (opts.walk || 3.7), run = opts.run || 6.4;
+    const boost = Admin.speed || 1, walk = (this.crouching ? 1.8 : (opts.walk || 3.7)) * boost, run = (opts.run || 6.4) * boost;
     let speed = moving ? (wantRun ? run : walk) * (f < 0 ? 0.7 : 1) : 0;
     this.sprinting = wantRun;
     if (wantRun) { this.stamina = Math.max(0, this.stamina - dt / (5.5 * Perks.stamK())); if (this.stamina <= 0) { this.exhausted = true; this.breathT = 0; } }

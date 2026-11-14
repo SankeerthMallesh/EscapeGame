@@ -13,31 +13,33 @@ const SLIDES = [
 const Story = {
   cam: null, scenes: {}, idx: 0, t: 0, typed: 0, done: false, holdT: 0, cur: null, fw: null, fwParts: [],
   init() { this.cam = GFX.camera(55, 0.1, 900); },
-  start() {
-    this.idx = -1; $('storyDots').innerHTML = SLIDES.map(() => '<i></i>').join('');
+  start(slides) {
+    this.slides = slides || SLIDES; this.idx = -1; $('storyDots').innerHTML = this.slides.map(() => '<i></i>').join('');
     this.next();
   },
   next() {
     this.idx++;
-    if (this.idx >= SLIDES.length) { Game.startGame(); return; }
-    const S = SLIDES[this.idx]; this.t = 0; this.typed = 0; this.done = false; this.holdT = 0; this.bigShown = false;
+    if (this.idx >= this.slides.length) { Game.startGame(); return; }
+    const S = this.slides[this.idx]; this.t = 0; this.typed = 0; this.done = false; this.holdT = 0; this.bigShown = false;
     this.cur = this.scene(S.scene); this.cur.enter && this.cur.enter(S.mode);
     $('storyLabel').textContent = S.label; $('storyText').textContent = ''; $('storyNext').classList.remove('on');
     const big = $('storyBig'); big.className = ''; big.innerHTML = '';
     [...$('storyDots').children].forEach((d, i) => d.classList.toggle('on', i <= this.idx));
     GFX.fx.fade = 1; GFX.fx.red = 0; GFX.fx.shake = 0; GFX.fx.flash = 0;
+    if (S.phonk) Phonk.setVol(0.55); else if (S.scene !== 'house') Phonk.setVol(0);
   },
   advance() { // click / space
-    const S = SLIDES[this.idx]; if (!S) return;
+    const S = this.slides[this.idx]; if (!S) return;
     if (!this.done) { this.typed = S.text.length; this.done = true; $('storyText').textContent = S.text; $('storyNext').classList.add('on'); return; }
     SFX.uiClick(); this.next();
   },
+  build_house() { return House.storyScene(); },
   scene(name) {
     if (!this.scenes[name]) this.scenes[name] = this['build_' + name]();
     return this.scenes[name];
   },
   update(dt) {
-    const S = SLIDES[this.idx]; if (!S) return;
+    const S = this.slides[this.idx]; if (!S) return;
     this.t += dt;
     GFX.fx.fade = Math.max(0, 1 - this.t * 1.6);
     // typewriter
@@ -49,7 +51,7 @@ const Story = {
       if (now >= S.text.length) { this.done = true; $('storyNext').classList.add('on'); }
     } else { this.holdT += dt; if (this.holdT > 4.5 + (S.big ? 1 : 0)) this.next(); }
     if (S.big && !this.bigShown && this.t > S.bigAt) { this.bigShown = true; const big = $('storyBig'); big.innerHTML = S.big; big.className = 'on' + (S.bigRed ? ' red' : ''); }
-    this.cur.update(this.t, dt, S.mode);
+    this.cur.update(this.t, dt, S.mode); Phonk.tick();
     this.updateFireworks(dt);
     GFX.render(this.cur.scene, this.cam, dt);
   },

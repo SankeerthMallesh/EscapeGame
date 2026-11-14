@@ -2,7 +2,7 @@
 //  GAME — state machine, menus, ending, main loop
 // =====================================================================
 const Game = {
-  state: 'loading', phase: 'kids', prev: null, t: 0, stats: { time: 0, caught: 0 }, attempt: 0, caughtT: 0, target: null, mapOpen: false,
+  state: 'loading', phase: 'kids', mode: 'island', prev: null, t: 0, stats: { time: 0, caught: 0 }, attempt: 0, caughtT: 0, target: null, mapOpen: false,
   ambT: 10, owlT: 25, expectUnlock: false, endT: 0, ending: null, saved: [],
   savedCount() { return World.kids.filter((k) => k.saved).length; },
 
@@ -24,9 +24,10 @@ const Game = {
         World.reset(); Joury.reset();
         Player.attach(World.cam, World, this.worldFlash); Player.place(0, World.dock.start.z, 0);
       }))
+      .then(() => step(74, "Building Joury's house…", () => { House.build(); House.reset(); }))
       .then(() => step(76, 'Compiling shaders…', () => { ['bridge', 'room', 'street', 'lake'].forEach((n) => Story.scene(n)); this.ending = this.buildEnding(); }))
       .then(async () => {
-        const r = GFX.renderer, jobs = [[World.scene, World.cam], [Cabin.scene, Cabin.cam]].concat(['bridge', 'room', 'street', 'lake'].map((n) => [Story.scene(n).scene, Story.cam]), [[this.ending.scene, this.ending.cam]]);
+        const r = GFX.renderer, jobs = [[World.scene, World.cam], [Cabin.scene, Cabin.cam], [House.scene, House.cam]].concat(['bridge', 'room', 'street', 'lake'].map((n) => [Story.scene(n).scene, Story.cam]), [[this.ending.scene, this.ending.cam]]);
         for (let i = 0; i < jobs.length; i++) {
           try { if (r.compileAsync && r.extensions.has('KHR_parallel_shader_compile')) await r.compileAsync(jobs[i][0], jobs[i][1]); else r.compile(jobs[i][0], jobs[i][1]); } catch (e) { console.warn('precompile skipped', e); }
           $('loadFill').style.width = (76 + (i + 1) / jobs.length * 22) + '%';
@@ -55,16 +56,18 @@ const Game = {
       Object.entries(panels).forEach(([b, p]) => { const open = b === id && $(p).hidden; $(p).hidden = !open; $(b).setAttribute('aria-expanded', open); });
     }));
     $('btnPlay').addEventListener('click', () => this.play());
+    $('btnHouse').addEventListener('click', () => this.playHouse());
     $('btnSkip').addEventListener('click', (e) => { e.stopPropagation(); SFX.uiClick(); this.startGame(); });
     $('story').addEventListener('click', () => { if (this.state === 'story') Story.advance(); });
     $('btnResume').addEventListener('click', () => this.resume());
     $('btnQuit').addEventListener('click', () => { this.screen('pause', false); this.menuOpen = false; this.toTitle(); });
     $('btnRetry').addEventListener('click', () => { this.screen('timeout', false); this.enterCabin(false); });
-    $('btnAgain').addEventListener('click', () => { this.screen('ending', false); if (Net.on) { this.toTitle(true); Lobby.open(); } else this.toTitle(); }); // online: back to the same room
+    $('btnAgain').addEventListener('click', () => { this.screen('ending', false); if (this.mode === 'house' && !Net.on) { this.toTitle(); return; } if (Net.on) { this.toTitle(true); Lobby.open(); } else this.toTitle(); }); // online: back to the same room
     Lobby.init();
     $('title').addEventListener('pointerdown', () => { if (!SFX.ctx) { SFX.init(); SFX.startMusicBox(); } $('soundHint').style.visibility = 'hidden'; }); // hidden, not removed: removing it would shift the buttons mid-click
-    document.addEventListener('visibilitychange', () => { if (document.hidden && (this.state === 'play' || this.state === 'cabin')) this.pause(); });
-    if (/[?&#]norender/.test(location.href)) GFX.noRender = true; // automated tests: run the game logic without drawing
+    document.addEventListener('visibilitychange', () => { if (document.hidden && (this.state === 'play' || this.state === 'cabin' || this.state === 'house')) this.pause(); });
+    if (/[?&#]norender/.test(location.href)) GFX.noRender = true;
+    $('adminClose').addEventListener('click', () => Admin.close()); // automated tests: run the game logic without drawing
   },
   diffNote() { $('diffNote').textContent = D().note; $('setSummary').textContent = `${D().name} · ${(Q() === QUALITY.low ? 'low' : Q() === QUALITY.high ? 'high' : 'medium')} graphics`; },
   applyQuality() {
@@ -76,7 +79,7 @@ const Game = {
   // ---------------- title ----------------
   toTitle(keepRoom) {
     if (!keepRoom) Net.leave();
-    this.state = 'title'; Input.exitLock(); this.menuOpen = false; Chat.stopTyping(); Lobby.isOpen = false; document.body.classList.remove('mp');
+    Admin.close(); Phonk.setVol(0); this.houseEndShown = false; if ($('hideOverlay')) $('hideOverlay').classList.remove('on'); this.state = 'title'; Input.exitLock(); this.menuOpen = false; Chat.stopTyping(); Lobby.isOpen = false; document.body.classList.remove('mp');
     ['loading', 'hud', 'story', 'bigmap', 'inspect', 'keypad', 'pause', 'caught', 'timeout', 'ending', 'lobby'].forEach((s) => this.screen(s, false));
     $('crash').className = 'screen';
     $('story').classList.remove('bare');
@@ -90,8 +93,81 @@ const Game = {
   },
   play() {
     SFX.init(); SFX.stopMusic(); SFX.allLoopsOff(); SFX.uiClick();
+    this.mode = 'island';
     this.screen('title', false); this.screen('story', true); $('story').classList.remove('bare');
     this.state = 'story'; Story.start();
+  },
+  playHouse() {
+    SFX.init(); SFX.stopMusic(); SFX.allLoopsOff(); SFX.uiClick(); Net.leave();
+    this.mode = 'house';
+    this.screen('title', false); this.screen('story', true); $('story').classList.remove('bare');
+    this.state = 'story'; Story.start(HOUSE_SLIDES);
+  },
+  // ---------------- story 2: Joury's house ----------------
+  startHouse() {
+    this.screen('story', false); $('storyBig').className = '';
+    GFX.fx.red = 0; GFX.fx.shake = 0; GFX.fx.flash = 0; GFX.fx.fade = 1; this.fadeIn = 1;
+    House.reset(); this.stats = { time: 0, caught: 0 }; this.menuOpen = false; this.mapOpen = false;
+    Player.attach(House.cam, House, House.flash); Player.place(0, 22.4, 0, 0); Player.stamina = 1; Player.battery = 1; Player.lightOn = true; Player.exhausted = false; Player.frozen = false;
+    HUD.show(true); HUD.parts(false); HUD.stun(0); HUD.cabinTimer(null); HUD.lightHint(null); $('hideOverlay').classList.remove('on');
+    ['minimap', 'kidsBar', 'chat', 'roster', 'crackers'].forEach((id) => { $(id).style.display = 'none'; }); $('objective').style.display = '';
+    this.state = 'house';
+    HUD.toast("<b>WASD</b> move · <b>Shift</b> sprint (loud) · <b>C</b> crouch (quiet) · <b>F</b> flashlight · <b>E</b> interact<br>Gabe is locked inside. Hear the music? That means Joury is at his PC.", 8);
+    Input.requestLock();
+  },
+  updateHouse(dt) {
+    const fx = GFX.fx;
+    this.stats.time += dt; FogU.uMistAmt.value = 0;
+    if ($('inspect').classList.contains('on') || this.menuOpen) Player.frozen = true; else if (!House.hidden && House.caughtT < 0) Player.frozen = false;
+    Player.update(dt); Player.updateLight(dt, House.danger, 0);
+    House.update(dt); if (this.state !== 'house') return;
+    if (House.hidden) { const h = House.hides[House.hidden]; House.cam.position.set(h.x + Math.sin(h.yaw) * -0.25, 1.45, h.z + Math.cos(h.yaw) * -0.25); }
+    const it = House.caughtT < 0 && !$('inspect').classList.contains('on') ? House.aimed() : null, lab = it ? House.label(it.id) : null;
+    HUD.prompt(lab);
+    HUD.objective(House.objective());
+    const inv = House.inventory(), el = $('partsBar'); el.style.display = inv.length ? 'flex' : 'none'; const ih = inv.map((t) => `<div class="carry">${t}</div>`).join(''); if (el.innerHTML !== ih) el.innerHTML = ih;
+    HUD.bars(Player.stamina, Player.battery, Player.exhausted, false);
+    if (House.caughtT < 0) {
+      const d = House.danger;
+      fx.static = damp(fx.static, House.j.state === 'chase' ? 0.12 + d * 0.25 : 0.02, 4, dt); fx.red = damp(fx.red, House.j.state === 'chase' ? 0.12 : 0, 3, dt);
+      fx.exposure = 1.45; fx.auto = 1; fx.key = 0.05; fx.vignette = 1.05 + d * 0.3; fx.grain = 0.07; fx.aberr = 0.5 + d; fx.warm = 0.08; fx.shake = House.j.state === 'chase' ? d * 0.25 : 0;
+      if (this.fadeIn > 0) { this.fadeIn -= dt * 0.8; fx.fade = Math.max(0, this.fadeIn); } else fx.fade = 0;
+    }
+    if (SFX.ctx) { SFX.setLoop('wind', 0.06); SFX.setLoop('rain', 0); SFX.setLoop('water', 0); SFX.setLoop('drone', 0.03 + House.danger * 0.25); SFX.setLoop('static', fx.static * 0.15); SFX.update(dt, House.danger); }
+    GFX.render(House.scene, House.cam, dt);
+  },
+  houseWin() {
+    this.state = 'hend'; this.endT = 0; Input.exitLock(); HUD.show(false); HUD.prompt(null); Phonk.setVol(0); SFX.chime(); SFX.cheer();
+    GFX.fx.fade = 0;
+  },
+  updateHouseEnd(dt) {
+    this.endT += dt; const t = this.endT, cam = House.cam;
+    cam.position.set(lerp(0, -3, smoothstep(0, 6, t)), 1.7, lerp(24, 29, smoothstep(0, 6, t))); cam.lookAt(0, 2.2, 3);
+    House.gabe.root.position.set(1.2, 0, lerp(21, 27, smoothstep(0, 5, t))); House.gabe.root.rotation.y = 0; animateKid(House.gabe, t, 'walk');
+    House.J.root.visible = t > 3; House.J.root.position.set(6, 0, 6.5); House.J.root.rotation.y = 0; animateJoury(House.J, t, false, 0, null); // a shape in the window
+    GFX.fx.fade = t > 5 ? Math.min(0.55, (t - 5) * 0.3) : 0; GFX.fx.static = 0.02; GFX.fx.red = 0; GFX.fx.exposure = 1.4;
+    if (t > 6 && !this.houseEndShown) this.showHouseEpilogue();
+    if (SFX.ctx) SFX.update(dt, 0);
+    GFX.render(House.scene, cam, dt);
+  },
+  showHouseEpilogue() {
+    this.houseEndShown = true;
+    const lines = [
+      'Gabe made it home. His mom made him promise to never ride past that house again.',
+      'Vivek said sorry. It lasted about four minutes.',
+      'Then he turned the phonk back on.',
+      '<span class="big">TIKI. TIKI.</span>',
+      'Next door, a bedroom light flicked on.',
+      '<span class="srv">[SERVER] Joury is online.</span>',
+    ];
+    $('endLines').innerHTML = lines.map((l) => `<span class="line">${l}</span>`).join('');
+    $('endStats').innerHTML = `<span>Time</span><span>${fmtTime(this.stats.time)}</span><span>Times caught</span><span>${this.stats.caught}</span><span>Story</span><span>Joury's House</span>`;
+    $('endStats').classList.remove('on'); $('btnAgain').classList.remove('on'); $('endBoard').classList.remove('on'); $('endBoard').innerHTML = ''; $('btnAgain').textContent = 'PLAY AGAIN';
+    this.screen('ending', true);
+    const els = [...$('endLines').children];
+    els.forEach((el, i) => setTimeout(() => { el.classList.add('on'); if (el.querySelector('.srv')) SFX.chatPing('server'); }, 400 + i * 1300 + (i === els.length - 1 ? 1600 : 0)));
+    setTimeout(() => { $('endStats').classList.add('on'); }, 2400 + els.length * 1300);
+    setTimeout(() => { $('btnAgain').classList.add('on'); }, 2900 + els.length * 1300);
   },
 
   // ---------------- online ----------------
@@ -116,7 +192,9 @@ const Game = {
 
   // ---------------- main game ----------------
   startGame() {
-    if (this.state === 'play') return;
+    if (this.state === 'play' || this.state === 'house') return;
+    if (this.mode === 'house') { this.startHouse(); return; }
+    $('chat').style.display = '';
     this.screen('story', false); $('storyBig').className = '';
     GFX.fx.red = 0; GFX.fx.shake = 0; GFX.fx.flash = 0; GFX.fx.fade = 1;
     World.scene.fog.density = D().fog; this.setRage(0);
@@ -137,15 +215,17 @@ const Game = {
     else if (Perks.squad) setTimeout(() => { if (this.state === 'play') HUD.toast('🤝 ' + SQUAD_TEXT, 6); }, 9000);
     Input.requestLock();
   },
-  wantsLook() { return (this.state === 'play' || this.state === 'cabin') && !$('inspect').classList.contains('on') && !$('keypad').classList.contains('on'); },
+  wantsLook() { return (this.state === 'play' || this.state === 'cabin' || this.state === 'house') && !$('inspect').classList.contains('on') && !$('keypad').classList.contains('on') && !Admin.open; },
   onUnlock() {
     if (this.expectUnlock) { this.expectUnlock = false; return; }
     if (Chat.typing) { Chat.stopTyping(); HUD.lookHint(true); return; }
+    if (Admin.open) return;
     if ($('inspect').classList.contains('on')) { this.closeInspect(); HUD.lookHint(true); return; }
-    if ((this.state === 'play' || this.state === 'cabin') && !$('keypad').classList.contains('on')) this.pause();
+    if ((this.state === 'play' || this.state === 'cabin' || this.state === 'house') && !$('keypad').classList.contains('on')) this.pause();
   },
   pause() {
-    if (this.state !== 'play' && this.state !== 'cabin') return;
+    if (this.state !== 'play' && this.state !== 'cabin' && this.state !== 'house') return;
+    if (this.state === 'house') Phonk.setVol(0);
     $('pauseTitle').textContent = Net.on ? 'MENU' : 'PAUSED'; $('pauseNote').textContent = Net.on ? 'An online game cannot pause. Joury is still out there.' : '';
     this.closeInspect(); this.screen('bigmap', false); this.mapOpen = false;
     this.screen('pause', true); this.expectUnlock = true; Input.exitLock(); if (!document.pointerLockElement) this.expectUnlock = false;
@@ -160,9 +240,12 @@ const Game = {
   },
   onKey(e) {
     const k = e.code, s = this.state;
+    if (k === 'F8') { e.preventDefault(); Admin.toggle(); return; }
+    if (Admin.open) { if (k === 'Escape') Admin.close(); return; }
     if (s === 'title' && (k === 'Enter') && !Lobby.isOpen && !$('netlost').classList.contains('on')) { this.play(); return; }
     if (this.menuOpen) { if (k === 'Escape') this.resume(); return; }
     if (s === 'story') { if (k === 'Space' || k === 'Enter') Story.advance(); if (k === 'Escape') this.startGame(); return; }
+    if (s === 'house' && House.caughtT >= 0) return;
     if ($('keypad').classList.contains('on')) {
       if (k === 'Escape' || k === 'KeyE') { this.closeKeypad(false); return; }
       if (/^(Digit|Numpad)\d$/.test(k)) HUD.kpPress(k.slice(-1)); else if (k === 'Backspace') HUD.kpPress('⌫');
@@ -177,6 +260,9 @@ const Game = {
       if (k === 'KeyE') this.interact();
       if (k === 'KeyG') Crackers.throw();
       if (k === 'KeyQ') Vip.blink();
+    } else if (s === 'house') {
+      if (k === 'KeyF' && !House.hidden) Player.toggleLight();
+      if (k === 'KeyE' && House.caughtT < 0) House.interact();
     } else if (s === 'cabin') {
       if (k === 'KeyF' && Cabin.wakeT <= 0) Cabin.cycleLight();
       if (k === 'KeyE' && Cabin.wakeT <= 0) this.cabinInteract();
@@ -433,7 +519,7 @@ const Game = {
     const dt = Math.min(0.05, Math.max(0, (now - (this.last || now)) / 1000)); this.last = now;
     this.fps = this.fps ? this.fps * 0.95 + (dt > 0 ? 1 / dt : 60) * 0.05 : 60;
     FogU.uTime.value += dt;
-    try { this.frame(dt); Net.tick(dt); } catch (e) { console.error(e); this.errors = (this.errors || 0) + 1; }
+    try { this.frame(dt); Net.tick(dt); Admin.update(dt); } catch (e) { console.error(e); this.errors = (this.errors || 0) + 1; }
     HUD.update(dt); Input.endFrame();
   },
   frame(dt) {
@@ -460,11 +546,13 @@ const Game = {
         break;
       }
       case 'play': this.updatePlay(dt); break;
+      case 'house': this.updateHouse(dt); break;
+      case 'hend': this.updateHouseEnd(dt); break;
       case 'caught': this.updateCaught(dt); break;
       case 'cabin': this.updateCabin(dt); break;
       case 'paused': {
         const prev = this.prev;
-        if (prev === 'cabin') GFX.render(Cabin.scene, Cabin.cam, 0); else GFX.render(World.scene, World.cam, 0);
+        if (prev === 'cabin') GFX.render(Cabin.scene, Cabin.cam, 0); else if (prev === 'house') GFX.render(House.scene, House.cam, 0); else GFX.render(World.scene, World.cam, 0);
         if (this.mapOpen) HUD.bigmap(0);
         break;
       }

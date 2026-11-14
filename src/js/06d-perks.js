@@ -6,6 +6,7 @@ const CODES = {
   VIVEK: { id: 'legs', icon: '🏃', title: "Vivek's legs", text: 'You can sprint 40% longer.' },
   CANDY: { id: 'battery', icon: '🍬', title: 'Candy-powered battery', text: 'Your flashlight battery lasts 50% longer.' },
   BRIDGE: { id: 'crackers', icon: '🧨', title: 'Firework pack', text: 'Start every game with 2 extra firecrackers.' },
+  ADMIN: { id: 'admin', icon: '🛠️', title: 'Admin panel', text: 'Press F8 during a game to open it: teleport, god mode, speed, control Joury, free kids, show the cabin code and more.' },
   REMATCH: { id: 'head', icon: '⏱️', title: 'Head start', text: 'Joury waits 10 seconds longer before he wakes up.' },
 };
 const REF_BONUS = { id: 'recruit', icon: '🤝', title: 'Recruited by a friend', text: 'Your flashlight battery lasts 20% longer. Play online with the friend who invited you for the Squad bonus.' };
